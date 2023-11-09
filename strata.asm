@@ -483,15 +483,15 @@ _start:
 
     mov [bIsIfCondition], byte 0
 
-%define CompareOperandWith(candidate) _CompareOperandWith_ candidate
-%macro _CompareOperandWith_ 1
+%define CompareOperatorWith(candidate) _CompareOperatorWith_ candidate
+%macro _CompareOperatorWith_ 1
     multipush rdi, rsi, rcx, r10
     strcmp(op, %1, %1.length)
     multipop rdi, rsi, rcx, r10
 %endmacro
 
 .if_if_operator_is_equal:
-    CompareOperandWith(szOperatorEqual)
+    CompareOperatorWith(szOperatorEqual)
     jne .endif_if_operator_is_equal
 .then_if_operator_is_equal:
     ; when equal, we need to jump if not equal
@@ -522,7 +522,7 @@ _start:
 .endif_if_operator_is_equal:
 
 .if_if_operator_is_not_equal:
-    CompareOperandWith(szOperatorNotEqual)
+    CompareOperatorWith(szOperatorNotEqual)
     jne .endif_if_operator_is_not_equal
 .then_if_operator_is_not_equal:
     ; when equal, we need to jump if not equal
@@ -553,7 +553,7 @@ _start:
 .endif_if_operator_is_not_equal:
 
 .if_if_operator_is_less_or_equal:
-    CompareOperandWith(szOperatorLessOrEqual)
+    CompareOperatorWith(szOperatorLessOrEqual)
     jne .endif_if_operator_is_less_or_equal
 .then_if_operator_is_less_or_equal:
     ; when equal, we need to jump if not equal
@@ -584,7 +584,7 @@ _start:
 .endif_if_operator_is_less_or_equal:
 
 .if_if_operator_is_less:
-    CompareOperandWith(szOperatorLess)
+    CompareOperatorWith(szOperatorLess)
     jne .endif_if_operator_is_less
 .then_if_operator_is_less:
     ; when equal, we need to jump if not equal
@@ -615,7 +615,7 @@ _start:
 .endif_if_operator_is_less:
 
 .if_if_operator_is_greater_or_equal:
-    CompareOperandWith(szOperatorGreaterOrEqual)
+    CompareOperatorWith(szOperatorGreaterOrEqual)
     jne .endif_if_operator_is_greater_or_equal
 .then_if_operator_is_greater_or_equal:
     ; when equal, we need to jump if not equal
@@ -646,7 +646,7 @@ _start:
 .endif_if_operator_is_greater_or_equal:
 
 .if_if_operator_is_greater:
-    CompareOperandWith(szOperatorGreater)
+    CompareOperatorWith(szOperatorGreater)
     jne .endif_if_operator_is_greater
 .then_if_operator_is_greater:
     ; when equal, we need to jump if not equal
