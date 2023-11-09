@@ -69,7 +69,6 @@ section .data
 
 section .text
     global _start
-    global t
     extern CreateFileA
     extern ReadFile
     extern WriteFile
@@ -674,11 +673,11 @@ _start:
 .exit:
     ExitProcess(0)
 section .data
-    szFileOpenError db "Error opening file "
+    szFileOpenError db "Error opening file. Error code:"
     szFileOpenError.length equ $ - szFileOpenError
-    szFileReadError db "Error reading file "
+    szFileReadError db "Error reading file. Error code:"
     szFileReadError.length equ $ - szFileReadError
-    szGenericError db "Error"
+    szGenericError db "Generic error."
     szGenericError.length equ $ - szGenericError
     szStrataFileExtension db ".strata"
     szStrataFileExtension.length equ $ - szStrataFileExtension

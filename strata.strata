@@ -75,9 +75,9 @@ section .text
     extern GetLastError
     extern GetCommandLineA
 `
-    gstr szFileOpenError = "Error opening file "
-    gstr szFileReadError = "Error reading file "
-    gstr szGenericError = "Error"
+    gstr szFileOpenError = "Error opening file. Error code:"
+    gstr szFileReadError = "Error reading file. Error code:"
+    gstr szGenericError = "Generic error."
 
     gstr szStrataFileExtension = ".strata"
     
