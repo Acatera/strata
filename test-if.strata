@@ -11,3 +11,6 @@ if rax != 69 then
     mov rax, rbx`
 end
 
+if rbx < 0 then
+`    mov rbx, 0`
+end

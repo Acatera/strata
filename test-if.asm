@@ -7,9 +7,4 @@ _start:
 .if_0:
     cmp rax, 69
     je .endif_0
-.then_0:
-    mov rbx, 35
-    mov rcx, 34
-    add rbx, rcx
-    mov rax, rbx
-.endif_0:
+section .data
