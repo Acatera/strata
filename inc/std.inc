@@ -155,7 +155,9 @@ section .text
     add rsp, 32  ; Deallocate shadow space
 %endmacro
 
+; TODO: Research how to add a variadic macro
 printf:
+    multipush rcx, rdx, r8, r9, r12, r13, r14, r15
     mov r13, rsp
     xor r14, r14 ; total length
     xor r12, r12 ; arg count
@@ -270,6 +272,7 @@ printf:
 
 .done:
     mov rax, r14
+    multipop rcx, rdx, r8, r9, r12, r13, r14, r15
     ret
 
 ;------------------------------------------------------------------------------------------------------------
