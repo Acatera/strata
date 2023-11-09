@@ -12,9 +12,19 @@ section .text
 _start:
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
 `
-    gstr message = "Hello, "`
+    gstr message = "Hello, "
+    gstr message1 = "Hello, "
+    gstr message2 = "Hello, "
+    gstr message3 = "Hello, "
+    gstr message4= "Hello, "
+    gstr message5= "Hello, "
+    gstr message6 = "Hello, "`
     WriteConsoleA([hStdOut], message, message.length, 0)`
     
+    if rax == 0 then 
+`    ExitProcess(1)`
+    end
+
     gstr myName = "Alex"`
     WriteConsoleA([hStdOut], myName, myName.length, 0)
 

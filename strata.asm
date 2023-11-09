@@ -49,8 +49,6 @@ section .bss
     szLastLabelLength resb 1
 
 section .data
-    szStrataFileExtension db ".strata", 0
-    szAsmFileExtension db ".asm", 0
     bExpectLabel db 0
     bIsIfCondition db 0
     dwIfKeywordCount dq 0
@@ -74,8 +72,6 @@ section .data
     szEndLabelForJump db ".endif_"
     szEndLabelForJumpLength equ $ - szEndLabelForJump
     szGenericError db "Error", 0
-    szFileOpenError db "Error opening file ", 0
-    szFileOpenError.length equ $ - szFileOpenError
     szFileReadError db "Error reading file ", 0
     szFileReadError.length equ $ - szFileReadError
     argCount dq 0
@@ -161,11 +157,11 @@ _start:
     
     mov r14, szSourceFile
     add r14, r13
-    memcpy(r14, szStrataFileExtension, 7)
+    memcpy(r14, szStrataFileExtension, szStrataFileExtension.length)
 
     mov r14, szDestFile
     add r14, r13
-    memcpy(r14, szAsmFileExtension, 4)
+    memcpy(r14, szAsmFileExtension, szAsmFileExtension.length)
 
     multipop rax, rcx, rdi, rsi
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
@@ -325,12 +321,13 @@ _start:
     _reset_counters_
 .endif_keyword_gstr:
 
+.if_keyword_if:
     ; check if token is 'if'
     multipush rdi, rsi, rcx, r10
     strcmp(r10, szKeywordIf, 2)
     multipop rdi, rsi, rcx, r10
-    jne .lexeme_not_if
-.if:    
+    jne .endif_keyword_if
+.then_keyword_if:
     ; write label
     multipush r8, r9, rdi
     WriteFile([hndDestFile], szIfLabel, szIfLabelLength, dwBytesWritten, 0)
@@ -356,14 +353,14 @@ _start:
     mov [bIsIfCondition], byte 1
 
     _reset_counters_
+.endif_keyword_if:
 
-.lexeme_not_if:
+.if_keyword_then:
     multipush rdi, rsi, rcx, r10
     strcmp(r10, szKeywordThen, 4)
     multipop rdi, rsi, rcx, r10
-    jne .lexeme_not_then
-
-.then:    
+    jne .endif_keyword_then
+.then_keyword_then:
     ; write label
     multipush r8, r9, rdi
     WriteFile([hndDestFile], szThenLabel, szThenLabelLength, dwBytesWritten, 0)
@@ -390,14 +387,14 @@ _start:
     inc qword [dwIfKeywordCount] ; restore the counter
 
     _reset_counters_  
+.endif_keyword_then:
 
-.lexeme_not_then:
+.if_keyword_end:
     multipush rdi, rsi, rcx, r10
     strcmp(r10, szKeywordEnd, 3)
     multipop rdi, rsi, rcx, r10
-    jne .lexeme_not_end
-
-.end:
+    jne .endif_keyword_end
+.then_keyword_end:
     ; write label
     multipush r8, r9, rdi
     WriteFile([hndDestFile], szEndLabel, szEndLabelLength, dwBytesWritten, 0)
@@ -424,22 +421,12 @@ _start:
     inc qword [dwIfKeywordCount] ; restore the counter
 
     _reset_counters_
+.endif_keyword_end:
 
-.lexeme_not_end:
-
-
-
-    ; other lexemes. Only structures like (t1 <comparison> t2) are supported
-    ; for now
+.if_is_first_if_condition_operand:
     cmp [bIsIfCondition], byte 1
-    je .write_if_condition_1
-    cmp [bIsIfCondition], byte 2
-    je .write_if_condition_2
-    cmp [bIsIfCondition], byte 3
-    je .write_if_condition_3
-    jg .error
-
-.write_if_condition_1:    
+    jne .endif_is_first_if_condition_operand
+.then_is_first_if_condition_operand:
     ; set t1
     multipush rcx, rdx, r8, rdi, rsi
     memcpy(t1, r10, r9)
@@ -447,8 +434,12 @@ _start:
     multipop rcx, rdx, r8, rdi, rsi
     inc byte [bIsIfCondition]
     jmp .advance_token
+.endif_is_first_if_condition_operand:
 
-.write_if_condition_2:
+.if_is_if_condition_operator:
+    cmp [bIsIfCondition], byte 2
+    jne .endif_is_if_condition_operator
+.then_is_if_condition_operator:
     ; set op
     multipush rcx, rdx, r8, rdi, rsi
     memcpy(op, r10, r9)
@@ -456,8 +447,12 @@ _start:
     multipop rcx, rdx, r8, rdi, rsi
     inc byte [bIsIfCondition]
     jmp .advance_token
+.endif_is_if_condition_operator:
 
-.write_if_condition_3:    
+.if_is_second_if_condition_operand:
+    cmp [bIsIfCondition], byte 3
+    jne .endif_is_second_if_condition_operand
+.then_is_second_if_condition_operand:
     ; set t2
     multipush rcx, rdx, r8, rdi, rsi
     memcpy(t2, r10, r9)
@@ -499,12 +494,12 @@ _start:
     mov [bIsIfCondition], byte 0
 
     ; write jump
+.if_if_operator_is_equal:
     multipush rdi, rsi, rcx, r10
     strcmp(op, szKeywordEqual, 2)
     multipop rdi, rsi, rcx, r10
-    jne .op_not_equal
-
-.equal:
+    jne .endif_if_operator_is_equal
+.then_if_operator_is_equal:
     ; when equal, we need to jump if not equal
     multipush rcx, rdx, r8, r9, rdi, rsi, r11
     mov r11, ptrSmallBuffer
@@ -531,13 +526,14 @@ _start:
 
     WriteFile([hndDestFile], ptrSmallBuffer, r8, dwBytesWritten, 0)
     multipop rcx, rdx, r8, r9, rdi, rsi, r11
+.endif_if_operator_is_equal:
 
-.op_not_equal:    
+.if_if_operator_is_not_equal:
     multipush rdi, rsi, rcx, r10
     strcmp(op, szKeywordNotEqual, 2)
     multipop rdi, rsi, rcx, r10
-    jne .op_not_nequal
-.nequal:
+    jne .endif_if_operator_is_not_equal
+.then_if_operator_is_not_equal:
     ; when not equal, we need to jump if equal
     multipush rcx, rdx, r8, r9, rdi, rsi, r11
     mov r11, ptrSmallBuffer
@@ -564,8 +560,10 @@ _start:
 
     WriteFile([hndDestFile], ptrSmallBuffer, r8, dwBytesWritten, 0)
     multipop rcx, rdx, r8, r9, rdi, rsi, r11
+.endif_if_operator_is_not_equal:    
 
-.op_not_nequal:    
+.endif_is_second_if_condition_operand:
+    jg .error
 
     ; multipush r8, r9, rdi
     ; WriteFile([hndDestFile], r10, r9, dwBytesWritten, 0)
@@ -691,4 +689,9 @@ _start:
 .exit:
     ExitProcess(0)
 section .data
-    
+    szFileOpenError db "Error opening file "
+    szFileOpenError.length equ $ - szFileOpenError
+    szStrataFileExtension db ".strata"
+    szStrataFileExtension.length equ $ - szStrataFileExtension
+    szAsmFileExtension db ".asm"
+    szAsmFileExtension.length equ $ - szAsmFileExtension
