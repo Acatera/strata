@@ -1,0 +1,16 @@
+EXPORTS
+    GetStdHandle
+    ReadConsoleA
+    WriteConsoleA
+    ExitProcess
+    GetCommandLineA
+    GetCommandLineW 
+    CommandLineToArgvW 
+    GetLocalTime
+    GetProcessHeap
+    HeapAlloc
+    CreateFileA
+    ReadFile 
+    WriteFile
+    GetLastError
+    CreateProcessA 

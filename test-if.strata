@@ -1,0 +1,13 @@
+`section .text
+global _start
+
+%include "inc/std.inc"
+
+_start:`
+if rax != 69 then
+`    mov rbx, 35
+    mov rcx, 34
+    add rbx, rcx
+    mov rax, rbx`
+end
+

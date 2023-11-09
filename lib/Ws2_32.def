@@ -1,0 +1,10 @@
+EXPORTS
+    socket 
+    bind
+    listen
+    accept
+    recv
+    send
+    shutdown
+    WSAGetLastError 
+    WSAStartup
