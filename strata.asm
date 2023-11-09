@@ -483,10 +483,15 @@ _start:
 
     mov [bIsIfCondition], byte 0
 
-.if_if_operator_is_equal:
+%define CompareOperandWith(candidate) _CompareOperandWith_ candidate
+%macro _CompareOperandWith_ 1
     multipush rdi, rsi, rcx, r10
-    strcmp(op, szOperatorEqual, szOperatorEqual.length)
+    strcmp(op, %1, %1.length)
     multipop rdi, rsi, rcx, r10
+%endmacro
+
+.if_if_operator_is_equal:
+    CompareOperandWith(szOperatorEqual)
     jne .endif_if_operator_is_equal
 .then_if_operator_is_equal:
     ; when equal, we need to jump if not equal
@@ -517,9 +522,7 @@ _start:
 .endif_if_operator_is_equal:
 
 .if_if_operator_is_not_equal:
-    multipush rdi, rsi, rcx, r10
-    strcmp(op, szOperatorNotEqual, szOperatorNotEqual.length)
-    multipop rdi, rsi, rcx, r10
+    CompareOperandWith(szOperatorNotEqual)
     jne .endif_if_operator_is_not_equal
 .then_if_operator_is_not_equal:
     ; when equal, we need to jump if not equal
@@ -550,9 +553,7 @@ _start:
 .endif_if_operator_is_not_equal:
 
 .if_if_operator_is_less_or_equal:
-    multipush rdi, rsi, rcx, r10
-    strcmp(op, szOperatorLessOrEqual, szOperatorLessOrEqual.length)
-    multipop rdi, rsi, rcx, r10
+    CompareOperandWith(szOperatorLessOrEqual)
     jne .endif_if_operator_is_less_or_equal
 .then_if_operator_is_less_or_equal:
     ; when equal, we need to jump if not equal
@@ -583,9 +584,7 @@ _start:
 .endif_if_operator_is_less_or_equal:
 
 .if_if_operator_is_less:
-    multipush rdi, rsi, rcx, r10
-    strcmp(op, szOperatorLess, szOperatorLess.length)
-    multipop rdi, rsi, rcx, r10
+    CompareOperandWith(szOperatorLess)
     jne .endif_if_operator_is_less
 .then_if_operator_is_less:
     ; when equal, we need to jump if not equal
@@ -616,9 +615,7 @@ _start:
 .endif_if_operator_is_less:
 
 .if_if_operator_is_greater_or_equal:
-    multipush rdi, rsi, rcx, r10
-    strcmp(op, szOperatorGreaterOrEqual, szOperatorGreaterOrEqual.length)
-    multipop rdi, rsi, rcx, r10
+    CompareOperandWith(szOperatorGreaterOrEqual)
     jne .endif_if_operator_is_greater_or_equal
 .then_if_operator_is_greater_or_equal:
     ; when equal, we need to jump if not equal
@@ -649,9 +646,7 @@ _start:
 .endif_if_operator_is_greater_or_equal:
 
 .if_if_operator_is_greater:
-    multipush rdi, rsi, rcx, r10
-    strcmp(op, szOperatorGreater, szOperatorGreater.length)
-    multipop rdi, rsi, rcx, r10
+    CompareOperandWith(szOperatorGreater)
     jne .endif_if_operator_is_greater
 .then_if_operator_is_greater:
     ; when equal, we need to jump if not equal

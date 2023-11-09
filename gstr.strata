@@ -1,8 +1,14 @@
+`; Compare rax with 0`
 if rax == 0 then end
+`; Compare rax with 0`
 if rax != 0 then end
+`; Compare rax with 0`
 if rax < 0 then end
+`; Compare rax with 0`
 if rax <= 0 then end
+`; Compare rax with 0`
 if rax > 0 then end
+`; Compare rax with 0`
 if rax >= 0 then end
 
 
