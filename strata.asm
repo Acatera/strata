@@ -54,34 +54,18 @@ section .data
     dwIfKeywordCount dq 0
     chAsmStart equ 0x60
     chDoubleQuote equ 0x22
-    szCmp db "cmp "
-    szAsmEqual db "jne " ; yes, it's intentionally reversed
-    szAsmNotEqual db "je " ; yes, it's intentionally reversed
-    szKeywordIf db "if"
-    szKeywordThen db "then"
-    szKeywordEnd db "end"
-    szKeywordGStr db "gstr"
-    szKeywordEqual db "=="
-    szKeywordNotEqual db "!="
+    
     szIfLabel db 0xd, 0xa, ".if_"
     szIfLabelLength equ $ - szIfLabel
     szThenLabel db 0xd, 0xa, ".then_"
     szThenLabelLength equ $ - szThenLabel
     szEndLabel db 0xd, 0xa, ".endif_"
     szEndLabelLength equ $ - szEndLabel
-    szEndLabelForJump db ".endif_"
-    szEndLabelForJumpLength equ $ - szEndLabelForJump
-    szGenericError db "Error", 0
-    szFileReadError db "Error reading file ", 0
-    szFileReadError.length equ $ - szFileReadError
     argCount dq 0
     endline db 0xd, 0xa
-    tab db "    "
     szSectionData db "section .data", 0xd, 0xa
     szSectionDataLength equ $ - szSectionData
-    szAsmDataStringType db " db "
-    szAsmDataStringLengthType db " equ $ - "
-    szAsmDataStringSuffix db ".length"
+
 
 section .text
     global _start
@@ -166,6 +150,7 @@ _start:
     multipop rax, rcx, rdi, rsi
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
     add r13, 7
+    WriteConsoleA([hStdOut], szCompileMessage, szCompileMessage.length, 0)
     WriteConsoleA([hStdOut], szSourceFile, r13, 0)
     WriteConsoleA([hStdOut], endline, 2, 0)
 
@@ -236,7 +221,7 @@ _start:
     mov rbx, 0xd    ; CR
     mov rax, ' '
     mov rcx, 0xa    ; LF
-    mov rdx, 0x9    ; TAB
+    mov rdx, 0x9    ; szTab
     cmp byte [rdi], 0
     je .source_code_end
     cmp byte [rdi], al
@@ -280,10 +265,10 @@ _start:
     jne .endif_label_expected
 .then_label_expected:
     multipush rax, rcx, rdi, rsi
-    ; write tab
-    memcpy([ptrGlobalConstants], tab, 4)
-    add qword [qwGlobalConstantsLength], 4
-    add qword [ptrGlobalConstants], 4
+    ; write szTab
+    memcpy([ptrGlobalConstants], szTab, szTab.length)
+    add qword [qwGlobalConstantsLength], szTab.length
+    add qword [ptrGlobalConstants], szTab.length
     
     ; write label
     memcpy([ptrGlobalConstants], r10, r9)
@@ -295,9 +280,9 @@ _start:
     mov [szLastLabelLength], r9
 
     ; write separator
-    memcpy([ptrGlobalConstants], szAsmDataStringType, 4)
-    add qword [qwGlobalConstantsLength], 4
-    add qword [ptrGlobalConstants], 4
+    memcpy([ptrGlobalConstants], szAsmDataStringType, szAsmDataStringType.length)
+    add qword [qwGlobalConstantsLength], szAsmDataStringType.length
+    add qword [ptrGlobalConstants], szAsmDataStringType.length
 
     multipop rax, rcx, rdi, rsi
     ; multipush r8, r9, rdi
@@ -312,7 +297,7 @@ _start:
     ; this is temporary, we will write to file as we go
 .if_keyword_gstr:
     multipush rdi, rsi, rcx, r10
-    strcmp(r10, szKeywordGStr, 4)
+    strcmp(r10, szKeywordGStr, szKeywordGStr.length)
     multipop rdi, rsi, rcx, r10
     jne .endif_keyword_gstr
 .then_keyword_gstr:
@@ -324,7 +309,7 @@ _start:
 .if_keyword_if:
     ; check if token is 'if'
     multipush rdi, rsi, rcx, r10
-    strcmp(r10, szKeywordIf, 2)
+    strcmp(r10, szKeywordIf, szKeywordIf.length)
     multipop rdi, rsi, rcx, r10
     jne .endif_keyword_if
 .then_keyword_if:
@@ -357,7 +342,7 @@ _start:
 
 .if_keyword_then:
     multipush rdi, rsi, rcx, r10
-    strcmp(r10, szKeywordThen, 4)
+    strcmp(r10, szKeywordThen, szKeywordThen.length)
     multipop rdi, rsi, rcx, r10
     jne .endif_keyword_then
 .then_keyword_then:
@@ -391,7 +376,7 @@ _start:
 
 .if_keyword_end:
     multipush rdi, rsi, rcx, r10
-    strcmp(r10, szKeywordEnd, 3)
+    strcmp(r10, szKeywordEnd, szKeywordEnd.length)
     multipop rdi, rsi, rcx, r10
     jne .endif_keyword_end
 .then_keyword_end:
@@ -465,9 +450,9 @@ _start:
     memset(r11, ' ', 4)
     add r11, 4
     mov r8, 4
-    memcpy(r11, szCmp, 4)
-    add r8, 4 ; r8 stores counter
-    add r11, 4
+    memcpy(r11, szAsmCmp, szAsmCmp.length)
+    add r8, szAsmCmp.length ; r8 stores counter
+    add r11, szAsmCmp.length
     memcpy(r11, t1, [t1Length])
     add r8, [t1Length]
     add r11, [t1Length]
@@ -496,7 +481,7 @@ _start:
     ; write jump
 .if_if_operator_is_equal:
     multipush rdi, rsi, rcx, r10
-    strcmp(op, szKeywordEqual, 2)
+    strcmp(op, szOperatorEqual, szOperatorEqual.length)
     multipop rdi, rsi, rcx, r10
     jne .endif_if_operator_is_equal
 .then_if_operator_is_equal:
@@ -506,12 +491,12 @@ _start:
     memset(r11, ' ', 4)
     add r11, 4
     mov r8, 4
-    memcpy(r11, szAsmEqual, 4)
-    add r8, 4 
-    add r11, 4
-    memcpy(r11, szEndLabelForJump, szEndLabelForJumpLength)
-    add r8, szEndLabelForJumpLength
-    add r11, szEndLabelForJumpLength
+    memcpy(r11, szAsmEqual, szAsmEqual.length)
+    add r8, szAsmEqual.length 
+    add r11, szAsmEqual.length
+    memcpy(r11, szEndLabelForJump, szEndLabelForJump.length)
+    add r8, szEndLabelForJump.length
+    add r11, szEndLabelForJump.length
     multipush rax, rcx, rdx
     dec qword [dwIfKeywordCount] ; temporarly decrement the counter
 
@@ -530,7 +515,7 @@ _start:
 
 .if_if_operator_is_not_equal:
     multipush rdi, rsi, rcx, r10
-    strcmp(op, szKeywordNotEqual, 2)
+    strcmp(op, szOperatorNotEqual, szOperatorNotEqual.length)
     multipop rdi, rsi, rcx, r10
     jne .endif_if_operator_is_not_equal
 .then_if_operator_is_not_equal:
@@ -540,12 +525,12 @@ _start:
     memset(r11, ' ', 4)
     add r11, 4
     mov r8, 4
-    memcpy(r11, szAsmNotEqual, 3)
-    add r8, 3 
-    add r11, 3
-    memcpy(r11, szEndLabelForJump, szEndLabelForJumpLength)
-    add r8, szEndLabelForJumpLength
-    add r11, szEndLabelForJumpLength
+    memcpy(r11, szAsmNotEqual, szAsmNotEqual.length)
+    add r8, szAsmNotEqual.length 
+    add r11, szAsmNotEqual.length
+    memcpy(r11, szEndLabelForJump, szEndLabelForJump.length)
+    add r8, szEndLabelForJump.length
+    add r11, szEndLabelForJump.length
     multipush rax, rcx, rdx
     dec qword [dwIfKeywordCount] ; temporarly decrement the counter
 
@@ -642,23 +627,23 @@ _start:
     add qword [ptrGlobalConstants], 2
 
     ; write length of string literal
-    ; write a tab
-    memcpy([ptrGlobalConstants], tab, 4)
-    add qword [qwGlobalConstantsLength], 4
-    add qword [ptrGlobalConstants], 4
+    ; write a szTab
+    memcpy([ptrGlobalConstants], szTab, szTab.length)
+    add qword [qwGlobalConstantsLength], szTab.length
+    add qword [ptrGlobalConstants], szTab.length
     ; write last label
     memcpy([ptrGlobalConstants], szLastLabel, [szLastLabelLength])
     mov rax, [szLastLabelLength]
     add qword [qwGlobalConstantsLength], rax
     add qword [ptrGlobalConstants], rax
     ; write suffix
-    memcpy([ptrGlobalConstants], szAsmDataStringSuffix, 7)
-    add qword [qwGlobalConstantsLength], 7
-    add qword [ptrGlobalConstants], 7
+    memcpy([ptrGlobalConstants], szAsmDataStringSuffix, szAsmDataStringSuffix.length)
+    add qword [qwGlobalConstantsLength], szAsmDataStringSuffix.length
+    add qword [ptrGlobalConstants], szAsmDataStringSuffix.length
     ; write type (aka "equ $ - ")
-    memcpy([ptrGlobalConstants], szAsmDataStringLengthType, 9)
-    add qword [qwGlobalConstantsLength], 9
-    add qword [ptrGlobalConstants], 9
+    memcpy([ptrGlobalConstants], szAsmDataStringLengthType, szAsmDataStringLengthType.length)
+    add qword [qwGlobalConstantsLength], szAsmDataStringLengthType.length
+    add qword [ptrGlobalConstants], szAsmDataStringLengthType.length
     ; write last label
     memcpy([ptrGlobalConstants], szLastLabel, [szLastLabelLength])
     mov rax, [szLastLabelLength]
@@ -676,7 +661,7 @@ _start:
 
     jmp .read_token_loop
 .error:
-    WriteConsoleA([hStdOut], szGenericError, 5, 0)
+    WriteConsoleA([hStdOut], szGenericError, szGenericError.length, 0)
 
 .source_code_parsed:
     ; write global constants
@@ -691,7 +676,41 @@ _start:
 section .data
     szFileOpenError db "Error opening file "
     szFileOpenError.length equ $ - szFileOpenError
+    szFileReadError db "Error reading file "
+    szFileReadError.length equ $ - szFileReadError
+    szGenericError db "Error"
+    szGenericError.length equ $ - szGenericError
     szStrataFileExtension db ".strata"
     szStrataFileExtension.length equ $ - szStrataFileExtension
+    szCompileMessage db "Compiling "
+    szCompileMessage.length equ $ - szCompileMessage
+    szTab db "    "
+    szTab.length equ $ - szTab
     szAsmFileExtension db ".asm"
     szAsmFileExtension.length equ $ - szAsmFileExtension
+    szAsmCmp db "cmp "
+    szAsmCmp.length equ $ - szAsmCmp
+    szAsmDataStringType db " db "
+    szAsmDataStringType.length equ $ - szAsmDataStringType
+    szAsmDataStringLengthType db " equ $ - "
+    szAsmDataStringLengthType.length equ $ - szAsmDataStringLengthType
+    szAsmDataStringSuffix db ".length"
+    szAsmDataStringSuffix.length equ $ - szAsmDataStringSuffix
+    szAsmEqual db "jne "
+    szAsmEqual.length equ $ - szAsmEqual
+    szAsmNotEqual db "je "
+    szAsmNotEqual.length equ $ - szAsmNotEqual
+    szKeywordIf db "if"
+    szKeywordIf.length equ $ - szKeywordIf
+    szKeywordThen db "then"
+    szKeywordThen.length equ $ - szKeywordThen
+    szKeywordEnd db "end"
+    szKeywordEnd.length equ $ - szKeywordEnd
+    szKeywordGStr db "gstr"
+    szKeywordGStr.length equ $ - szKeywordGStr
+    szOperatorEqual db "=="
+    szOperatorEqual.length equ $ - szOperatorEqual
+    szOperatorNotEqual db "!="
+    szOperatorNotEqual.length equ $ - szOperatorNotEqual
+    szEndLabelForJump db ".endif_"
+    szEndLabelForJump.length equ $ - szEndLabelForJump

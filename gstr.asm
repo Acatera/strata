@@ -33,10 +33,10 @@ section .data
     message2.length equ $ - message2
     message3 db "Hello, "
     message3.length equ $ - message3
-    message4= db "Hello, "
-    message4=.length equ $ - message4=
-    message5= db "Hello, "
-    message5=.length equ $ - message5=
+    message4 db "Hello, "
+    message4.length equ $ - message4
+    message5 db "Hello, "
+    message5.length equ $ - message5
     message6 db "Hello, "
     message6.length equ $ - message6
     myName db "Alex"

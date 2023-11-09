@@ -16,8 +16,8 @@ _start:
     gstr message1 = "Hello, "
     gstr message2 = "Hello, "
     gstr message3 = "Hello, "
-    gstr message4= "Hello, "
-    gstr message5= "Hello, "
+    gstr message4 = "Hello, "
+    gstr message5 = "Hello, "
     gstr message6 = "Hello, "`
     WriteConsoleA([hStdOut], message, message.length, 0)`
     
