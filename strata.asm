@@ -180,16 +180,7 @@ _start:
     ExitProcess(1)
 .endif_0:
 
-    ; cmp rax, 0
-    ; jge .file_opened
-    ; WriteConsoleA([hStdOut], szFileOpenError, szFileOpenError.length, 0)
-    ; call GetLastError
-    ; mov rcx, rax
-    ; mov rdx, ptrSmallBuffer
-    ; call itoa
-    ; WriteConsoleA([hStdOut], ptrSmallBuffer, rax, 0)
-    ; ExitProcess(1)
-
+   
 .file_opened:    
     mov [hndSourceFile], rax
 
@@ -246,7 +237,7 @@ _start:
     cmp byte [rdi], dl
     je .token_found
     cmp byte [rdi], chAsmStart
-    je .consume_asm_code
+    je .asm_literal_start
     cmp byte [rdi], chDoubleQuote
     je .string_literal_start
     inc r9
@@ -702,34 +693,31 @@ _start:
     ; advance token start and reset token length
     _reset_counters_
 
-.consume_asm_code:
+.asm_literal_start:
     ; iterate until we find another '0x40'
     inc rdi
     push rdi
     xor r14, r14 ; store length of asm code
 
-.consume_asm_code_loop:
+.asm_literal_loop:
     cmp byte [rdi], chAsmStart
-    je .consume_asm_code_end
+    je .asm_literal_end
     inc r14
     inc rdi
-    jmp .consume_asm_code_loop
+    jmp .asm_literal_loop
 
-.consume_asm_code_end:
+.asm_literal_end:
     inc rdi ; move offset past trailing '0x40'
     pop r10 ; restore start of asm code from rdi to r10
     add r8, r14
     add r8, 2 
-
-    ; multipush r8, r9, rdi, r10, r14
-    ; WriteFile([hndDestFile], endline, 2, dwBytesWritten, 0)
-    ; multipop r8, r9, rdi, r10, r14
 
     multipush r8, r9, rdi 
     WriteFile([hndDestFile], r10, r14, dwBytesWritten, 0)
     multipop r8, r9, rdi
 
     jmp .read_token_loop
+
 .string_literal_start:
     inc rdi
     push rdi
