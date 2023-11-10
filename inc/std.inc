@@ -157,7 +157,7 @@ section .text
 
 ; TODO: Research how to add a variadic macro
 printf:
-    multipush rcx, rdx, r8, r9, r12, r13, r14, r15
+    multipush rcx, rdx, r8, r9, r12, r13, r14, r15, rdi, rsi
     mov r13, rsp
     xor r14, r14 ; total length
     xor r12, r12 ; arg count
@@ -272,7 +272,121 @@ printf:
 
 .done:
     mov rax, r14
-    multipop rcx, rdx, r8, r9, r12, r13, r14, r15
+    multipop rcx, rdx, r8, r9, r12, r13, r14, r15, rdi, rsi
+    ret
+;-------------------------------------------------------------------------------------------------------------
+; sprintf - writes formatted data to a buffer
+;-------------------------------------------------------------------------------------------------------------
+sprintf:
+    multipush rcx, rdx, r8, r9, r12, r13, r14, r15, rdi, rsi
+    mov r13, rsp
+    xor r14, r14 ; total length
+    xor r12, r12 ; arg count
+    mov rbx, '%'
+    mov rdi, rcx
+    mov rsi, rdx
+
+.loop:    
+    cmp byte [rsi], 0
+    je .done
+    cmp bl, [rsi]
+    jne .write_char
+    je .format
+    
+.write_char:
+    movzx r15, byte [rsi]
+    mov [rdi], r15
+    inc rdi
+    inc rsi
+    inc r14
+    jmp .loop
+
+.format:    
+    inc rsi
+    cmp byte [rsi], 'd'
+    je .decimal
+    cmp byte [rsi], 's'
+    je .string
+    mov [rdi], byte '%'
+    inc rdi
+    movzx r15, byte [rsi]
+    mov [rdi], r15
+    inc rdi
+    inc rsi
+    jmp .loop
+
+.decimal:
+    push rsi
+    cmp r12, 0
+    je .decimal_r8
+    cmp r12, 1
+    je .decimal_r9
+    mov rcx, [r13+8]
+    add r13, 8
+    jmp .decimal_start
+
+.decimal_r8:
+    mov rcx, r8
+    jmp .decimal_start
+
+.decimal_r9:
+    mov rcx, r9
+    jmp .decimal_start
+
+.decimal_start:
+    mov rdx, _internal_printf_buffer
+    call itoa
+    mov rsi, _internal_printf_buffer
+    cmp rax, DEFAULT_BUFFER_SIZE
+    jg .done
+    mov rcx, rax
+    add r14, rax
+    rep movsb
+    pop rsi
+    inc rsi
+    inc r12
+    jmp .loop
+
+.string:
+    push rsi
+    cmp r12, 0
+    je .string_r8
+    cmp r12, 1
+    je .string_r9
+    mov rsi, [r13+8]
+    add r13, 8
+    jmp .string_start
+
+.string_r8:
+    mov rsi, r8
+    jmp .string_start
+
+.string_r9:
+    mov rsi, r9
+
+.string_start:
+    inc r12
+
+.string_loop:
+    cmp byte [rsi], 0
+    je .string_done
+    mov r15, [rsi]
+    and r15, 0xFF
+    mov [rdi], r15
+    inc rdi
+    inc rsi
+    inc r14
+    jmp .string_loop
+
+.string_done:
+    pop rsi
+    inc rsi
+    jmp .loop    
+
+.done:
+    mov rax, r14
+    mov byte [rdi], 0 ; NULL terminate buffer
+    multipop rcx, rdx, r8, r9, r12, r13, r14, r15, rdi, rsi
     ret
 
 ;------------------------------------------------------------------------------------------------------------
