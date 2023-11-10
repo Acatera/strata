@@ -22,15 +22,22 @@ default rel
     jmp .read_token_loop
 %endmacro
 
-struc OP
-    .opType:    resw 1
-    .size equ $ - .opType
+struc Token
+    .TokenType:    resw 1
+    .TokenStart:   resq 1
+    .TokenLength:  resq 1
+    .size equ $ - .TokenType
 endstruc
 
+%define MAX_TOKEN_COUNT 1024
+
 section .bss
-    hStdOut resq 0
     szSouceCode resb SOURCE_CODE_SIZE
     ptrBuffer64 resb SMALL_BUFFER_SIZE
+
+    tokenList resq MAX_TOKEN_COUNT * Token.size
+    dwTokenCount resd 1
+
     hndSourceFile resq 1
     hndDestFile resq 1
     dwBytesRead resd 1
@@ -51,6 +58,7 @@ section .bss
     szLastLabelLength resb 1
 
 section .data
+    hStdOut dq 0
     bExpectLabel db 0
     bIsIfCondition db 0
     dwIfKeywordCount dq 0
@@ -68,6 +76,9 @@ section .data
     endline db 0xd, 0xa
     szSectionData db "section .data", 0xd, 0xa
     szSectionDataLength equ $ - szSectionData
+
+    cStrPrintTokenFormat db "TokenStart: %d, Length: %d, Token: ", 0
+    cStrPrintTokenValueFormat db "%s", 0xd, 0xa, 0
 
 section .text
     global _start
@@ -249,6 +260,7 @@ end
     je .error
 
     mov [hndDestFile], rax
+    GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
 
 .start_parsing_source_code:
     ; reset offset
@@ -295,6 +307,20 @@ end
 .print_token:
     mov r10, szSouceCode
     add r10, r8
+
+    ; create a token
+    ; r8 - offset in source code, token start
+    ; r9 - token length
+    multipush rax, rbx, rcx, rdx, r15
+    mov rbx, tokenList         ; load pointer to list
+    mov eax, [dwTokenCount]    ; load token count
+    mov rdx, Token.size        ; and size
+    mul rdx                    ; calculate offset
+    add rbx, rax               ; add offset to pointer
+    mov [rbx + Token.TokenStart], r8 ; token start
+    mov [rbx + Token.TokenLength], r9 ; token start
+    inc dword [dwTokenCount]
+    multipop rax, rbx, rcx, rdx, r15
 
 .if_label_expected:
     cmp byte [bExpectLabel], 1
@@ -739,9 +765,26 @@ end
     add r8, r14
     add r8, 2 
 
-    multipush r8, r9, rdi 
+    multipush r8, r9, r10, rdi 
     WriteFile([hndDestFile], r10, r14, dwBytesWritten, 0)
-    multipop r8, r9, rdi
+    multipop r8, r9, r10, rdi
+
+    multipush rax, rbx, rcx, rdx, r10, r14
+    dec r10
+    push r11
+    mov r11, szSouceCode
+    sub r10, r11
+    pop r11
+    add r14, 2
+    mov rbx, tokenList         ; load pointer to list
+    mov eax, [dwTokenCount]    ; load token count
+    mov rdx, Token.size        ; and size
+    mul rdx                    ; calculate offset
+    add rbx, rax               ; add offset to pointer
+    mov [rbx + Token.TokenStart], r10 ; token start
+    mov [rbx + Token.TokenLength], r14 ; token start
+    inc dword [dwTokenCount]
+    multipop rax, rbx, rcx, rdx, r10, r14
 
     jmp .read_token_loop
 
@@ -762,6 +805,23 @@ end
     pop r10 ; restore start of string literal from rdi to r10
     add r8, r14
     add r8, 2 
+
+    multipush rax, rbx, rcx, rdx, r10, r14
+    dec r10
+    push r11
+    mov r11, szSouceCode
+    sub r10, r11
+    pop r11
+    add r14, 2
+    mov rbx, tokenList         ; load pointer to list
+    mov eax, [dwTokenCount]    ; load token count
+    mov rdx, Token.size        ; and size
+    mul rdx                    ; calculate offset
+    add rbx, rax               ; add offset to pointer
+    mov [rbx + Token.TokenStart], r10 ; token start
+    mov [rbx + Token.TokenLength], r14 ; token start
+    inc dword [dwTokenCount]
+    multipop rax, rbx, rcx, rdx, r10, r14
 
     ; write to global constants
     multipush rax, rcx, rdi, rsi
@@ -832,6 +892,28 @@ end
     ; strlen(szGlobalConstants)
     WriteFile([hndDestFile], szGlobalConstants, [qwGlobalConstantsLength], dwBytesWritten, 0)
 
+.print_tokens:
+    mov r15, 0
+    mov r14, tokenList
+.tloop:
+    mov rcx, ptrBuffer64
+    mov rdx, cStrPrintTokenFormat
+    mov r8, [r14 + Token.TokenStart]
+    mov r9, [r14 + Token.TokenLength]
+.t:
+    mov r13, szSouceCode
+    add r13, r8
+    call sprintf
+    push r9
+    WriteConsoleA([hStdOut], ptrBuffer64, rax, 0)
+    pop r9
+    WriteConsoleA([hStdOut], r13, r9, 0)
+    WriteConsoleA([hStdOut], endline, 2, 0)
+
+    inc r15
+    add r14, Token.size
+    cmp r15d, [dwTokenCount]
+    jl .tloop
 
 .exit:
     ExitProcess(0)`
