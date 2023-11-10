@@ -1,4 +1,7 @@
 `; Compare rax with 0`
+if CompareOperatorWith(szOperatorEqual) then end
+
+`; Compare rax with 0`
 if rax == 0 then end
 `; Compare rax with 0`
 if rax != 0 then end
@@ -11,4 +14,7 @@ if rax > 0 then end
 `; Compare rax with 0`
 if rax >= 0 then end
 
-
+gstr string = "Hello World!"
+gstr string = "Hello World!"
+gstr string = "Hello World!"
+gstr string = "Hello World!"

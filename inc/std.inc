@@ -6,6 +6,14 @@
 section .bss
     _internal_printf_buffer resb DEFAULT_BUFFER_SIZE
     _internal_printf_output_buffer resb DEFAULT_BUFFER_SIZE
+    itoh_buffer resb 32
+
+section d.data    
+    itoh_digits db "0123456789abcdef"
+
+.initialize:
+    mov r12, rdx
+    mov rdi, itoh_buffer
 
 section .text
     extern GetStdHandle                 ; Declare external function 'GetStdHandle'.
@@ -482,6 +490,60 @@ itoa:
 .end:
     mov rax, r11            ; move number of characters to rax
     multipop rbx, rcx, rdx, r10, r11, r12
+    ret    
+
+%define itoab(a, b) _itoab_ a, b, 2
+%define itoao(a, b) _itoab_ a, b, 8
+%define itoah(a, b) _itoab_ a, b, 16
+%macro _itoab_ 3
+    ; Arguments: %1=integer (RCX), %2=buffer (RDX), %3=base (R8)
+    mov rcx, %1  
+    mov rdx, %2  
+    mov r8,  %3
+    call itoagb
+%endmacro
+itoagb:
+    multipush rbx, rcx, rdx, r8, r9, r10, r12, rsi, rdi
+.initialize:
+    mov r12, rdx
+    mov rdi, itoh_buffer
+    mov rsi, itoh_digits
+    mov r10, r8
+    mov rax, rcx
+    xor r9, r9 ; used to store digit count
+.build_buffer:
+    xor rdx, rdx
+    div r10
+    add rsi, rdx
+    movzx rcx, byte [rsi]
+    mov [rdi], cl
+    sub rsi, rdx
+    inc rdi
+    inc r9
+    cmp rax, 0
+    jne .build_buffer
+
+.prepare_reverse:
+    ; reverse buffer
+    mov rsi, rdi ; use rsi to store buffer pointer
+    dec rsi
+    mov rdi, r12 ; use rdi to store buffer pointer
+    mov rax, r9  ; use rax to store digit count
+
+.write_chars:
+    movzx rbx, byte [rsi]
+    mov [rdi], byte bl
+    inc rdi
+    dec rsi
+    dec r9
+    cmp r9, 0
+    jne .write_chars
+
+.add_null:
+    mov byte [rdi], NULL
+
+.done:
+    multipop rbx, rcx, rdx, r8, r9, r10, r12, rsi, rdi
     ret    
 ;------------------------------------------------------------------------------------------------------------
 ; strlen - returns the length of a NULL terminated string. Does not include NULL terminator in length

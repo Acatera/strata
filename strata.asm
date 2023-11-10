@@ -22,6 +22,40 @@ default rel
     jmp .read_token_loop
 %endmacro
 
+%define CompareOperatorWith(candidate) _CompareOperatorWith_ candidate
+%macro _CompareOperatorWith_ 1
+    multipush rdi, rsi, rcx, r10
+    strcmp(op, %1, %1.length)
+    multipop rdi, rsi, rcx, r10
+%endmacro
+
+%define CompareTokenWith(c) _CompareTokenWith_ c
+%macro _CompareTokenWith_ 1
+    multipush rdi, rsi, rcx, r10
+    strcmp(r10, %1, %1.length)
+    multipop rdi, rsi, rcx, r10
+%endmacro
+
+%define OperatorEquals         1
+%define OperatorNotEquals      2
+%define OperatorLess           3
+%define OperatorLessOrEqual    4
+%define OperatorGreater        5
+%define OperatorGreaterOrEqual 6
+%define OperatorAssignment     7
+
+; Reserve 4 bits for operator type
+%define OperandStringLiteral 0 + (1 << 4)
+%define OperandAsmLiteral    1 + (1 << 4)
+%define OperandLiteral       2 + (1 << 4)
+
+; Reserve 4 bits for operand type
+%define KeywordIf   0 + (1 << (4 + 4))
+%define KeywordThen 1 + (1 << (4 + 4))
+%define KeywordEnd  2 + (1 << (4 + 4))
+%define KeywordGStr 3 + (1 << (4 + 4))
+
+
 struc Token
     .TokenType:    resw 1
     .TokenStart:   resq 1
@@ -77,7 +111,7 @@ section .data
     szSectionData db "section .data", 0xd, 0xa
     szSectionDataLength equ $ - szSectionData
 
-    cStrPrintTokenFormat db "TokenStart: %d, Length: %d, Token: ", 0
+    cStrPrintTokenFormat db " TokenStart: %d, Length: %d, Token: ", 0
     cStrPrintTokenValueFormat db "%s", 0xd, 0xa, 0
 
 section .text
@@ -277,6 +311,89 @@ _start:
     mov r10, szSouceCode
     add r10, r8
 
+    push rbp
+    mov rbp, rsp
+    sub rsp, 8 ; reserve space on the stack for the token type
+    mov [rbp], word OperandLiteral ; initialize token type to 0
+    
+
+.if_token_is_if:
+    CompareTokenWith(szKeywordIf)
+    jne .endif_token_is_if
+.then_token_is_if:
+    mov [rbp], word KeywordIf
+.endif_token_is_if:
+
+.if_token_is_then:
+    CompareTokenWith(szKeywordThen)
+    jne .endif_token_is_then
+.then_token_is_then:
+    mov [rbp], word KeywordThen
+.endif_token_is_then:
+
+.if_token_is_end:
+    CompareTokenWith(szKeywordEnd)
+    jne .endif_token_is_end
+.then_token_is_end:
+    mov [rbp], word KeywordEnd
+.endif_token_is_end:
+
+.if_token_is_eq:
+    CompareTokenWith(szOperatorEquals)
+    jne .endif_token_is_eq
+.then_token_is_eq:
+    mov [rbp], word OperatorEquals
+.endif_token_is_eq:
+
+.if_token_is_neq:
+    CompareTokenWith(szOperatorNotEquals)
+    jne .endif_token_is_neq
+.then_token_is_neq:
+    mov [rbp], word OperatorNotEquals
+.endif_token_is_neq:
+
+.if_token_is_lteq:
+    CompareTokenWith(szOperatorLessOrEqual)
+    jne .endif_token_is_lteq
+.then_token_is_lteq:
+    mov [rbp], word OperatorLessOrEqual
+.endif_token_is_lteq:
+
+.if_token_is_lt:
+    CompareTokenWith(szOperatorLess)
+    jne .endif_token_is_lt
+.then_token_is_lt:
+    mov [rbp], word OperatorLess
+.endif_token_is_lt:
+
+.if_token_is_gteq:
+    CompareTokenWith(szOperatorGreaterOrEqual)
+    jne .endif_token_is_gteq
+.then_token_is_gteq:
+    mov [rbp], word OperatorGreaterOrEqual
+.endif_token_is_gteq:
+
+.if_token_is_gt:
+    CompareTokenWith(szOperatorGreater)
+    jne .endif_token_is_gt
+.then_token_is_gt:
+    mov [rbp], word OperatorGreater
+.endif_token_is_gt:
+
+.if_token_is_assign:
+    CompareTokenWith(szOperatorAssignment)
+    jne .endif_token_is_assign
+.then_token_is_assign:
+    mov [rbp], word OperatorAssignment
+.endif_token_is_assign:
+
+.if_token_is_gstr:
+    CompareTokenWith(szKeywordGStr)
+    jne .endif_token_is_gstr
+.then_token_is_gstr:
+    mov [rbp], word KeywordGStr
+.endif_token_is_gstr:
+
     ; create a token
     ; r8 - offset in source code, token start
     ; r9 - token length
@@ -286,10 +403,17 @@ _start:
     mov rdx, Token.size        ; and size
     mul rdx                    ; calculate offset
     add rbx, rax               ; add offset to pointer
+    mov rax, [rbp]    ; token type
+    and rax, 0xffff
+    mov [rbx + Token.TokenType], word ax ; token start
     mov [rbx + Token.TokenStart], r8 ; token start
     mov [rbx + Token.TokenLength], r9 ; token start
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r15
+
+    pop rbp
+
+    add rsp, 8 ; restore stack pointer
 
 .if_label_expected:
     cmp byte [bExpectLabel], 1
@@ -510,15 +634,8 @@ _start:
 
     mov [bIsIfCondition], byte 0
 
-%define CompareOperatorWith(candidate) _CompareOperatorWith_ candidate
-%macro _CompareOperatorWith_ 1
-    multipush rdi, rsi, rcx, r10
-    strcmp(op, %1, %1.length)
-    multipop rdi, rsi, rcx, r10
-%endmacro
-
 .if_if_operator_is_equal:
-    CompareOperatorWith(szOperatorEqual)
+    CompareOperatorWith(szOperatorEquals)
     jne .endif_if_operator_is_equal
 .then_if_operator_is_equal:
     ; when equal, we need to jump if not equal
@@ -549,7 +666,7 @@ _start:
 .endif_if_operator_is_equal:
 
 .if_if_operator_is_not_equal:
-    CompareOperatorWith(szOperatorNotEqual)
+    CompareOperatorWith(szOperatorNotEquals)
     jne .endif_if_operator_is_not_equal
 .then_if_operator_is_not_equal:
     ; when equal, we need to jump if not equal
@@ -750,6 +867,7 @@ _start:
     mov rdx, Token.size        ; and size
     mul rdx                    ; calculate offset
     add rbx, rax               ; add offset to pointer
+    mov [rbx + Token.TokenType], word OperandAsmLiteral ; token type
     mov [rbx + Token.TokenStart], r10 ; token start
     mov [rbx + Token.TokenLength], r14 ; token start
     inc dword [dwTokenCount]
@@ -775,6 +893,7 @@ _start:
     add r8, r14
     add r8, 2 
 
+    ; add token to token list
     multipush rax, rbx, rcx, rdx, r10, r14
     dec r10
     push r11
@@ -787,6 +906,7 @@ _start:
     mov rdx, Token.size        ; and size
     mul rdx                    ; calculate offset
     add rbx, rax               ; add offset to pointer
+    mov [rbx + Token.TokenType], word OperandStringLiteral ; token type
     mov [rbx + Token.TokenStart], r10 ; token start
     mov [rbx + Token.TokenLength], r14 ; token start
     inc dword [dwTokenCount]
@@ -862,15 +982,21 @@ _start:
     WriteFile([hndDestFile], szGlobalConstants, [qwGlobalConstantsLength], dwBytesWritten, 0)
 
 .print_tokens:
-    ; GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
     mov r15, 0
     mov r14, tokenList
 .tloop:
+    movzx rcx, word [r14 + Token.TokenType]
+    mov rdx, ptrBuffer64
+    mov r8, 16
+    call itoagb
+    WriteConsoleA([hStdOut], ptrBuffer64, rax, 0)
+
     mov rcx, ptrBuffer64
     mov rdx, cStrPrintTokenFormat
     mov r8, [r14 + Token.TokenStart]
     mov r9, [r14 + Token.TokenLength]
 .t:
+    push r14
     mov r13, szSouceCode
     add r13, r8
     call sprintf
@@ -879,6 +1005,10 @@ _start:
     pop r9
     WriteConsoleA([hStdOut], r13, r9, 0)
     WriteConsoleA([hStdOut], endline, 2, 0)
+    pop r14
+
+    ; print token type
+
 
     inc r15
     add r14, Token.size
@@ -932,10 +1062,10 @@ section .data
     szKeywordEnd.length equ $ - szKeywordEnd
     szKeywordGStr db "gstr"
     szKeywordGStr.length equ $ - szKeywordGStr
-    szOperatorEqual db "=="
-    szOperatorEqual.length equ $ - szOperatorEqual
-    szOperatorNotEqual db "!="
-    szOperatorNotEqual.length equ $ - szOperatorNotEqual
+    szOperatorEquals db "=="
+    szOperatorEquals.length equ $ - szOperatorEquals
+    szOperatorNotEquals db "!="
+    szOperatorNotEquals.length equ $ - szOperatorNotEquals
     szOperatorLess db "<"
     szOperatorLess.length equ $ - szOperatorLess
     szOperatorLessOrEqual db "<="
@@ -944,5 +1074,7 @@ section .data
     szOperatorGreater.length equ $ - szOperatorGreater
     szOperatorGreaterOrEqual db ">="
     szOperatorGreaterOrEqual.length equ $ - szOperatorGreaterOrEqual
+    szOperatorAssignment db "="
+    szOperatorAssignment.length equ $ - szOperatorAssignment
     szEndLabelForJump db ".endif_"
     szEndLabelForJump.length equ $ - szEndLabelForJump
