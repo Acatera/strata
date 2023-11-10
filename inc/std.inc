@@ -7,6 +7,7 @@ section .bss
     _internal_printf_buffer resb DEFAULT_BUFFER_SIZE
     _internal_printf_output_buffer resb DEFAULT_BUFFER_SIZE
     itoh_buffer resb 32
+    sprintfBuffer resb 32
 
 section d.data    
     itoh_digits db "0123456789abcdef"
@@ -282,120 +283,6 @@ printf:
     mov rax, r14
     multipop rcx, rdx, r8, r9, r12, r13, r14, r15, rdi, rsi
     ret
-;-------------------------------------------------------------------------------------------------------------
-; sprintf - writes formatted data to a buffer
-;-------------------------------------------------------------------------------------------------------------
-sprintf:
-    multipush rcx, rdx, r8, r9, r12, r13, r14, r15, rdi, rsi
-    mov r13, rsp
-    xor r14, r14 ; total length
-    xor r12, r12 ; arg count
-    mov rbx, '%'
-    mov rdi, rcx
-    mov rsi, rdx
-
-.loop:    
-    cmp byte [rsi], 0
-    je .done
-    cmp bl, [rsi]
-    jne .write_char
-    je .format
-    
-.write_char:
-    movzx r15, byte [rsi]
-    mov [rdi], r15
-    inc rdi
-    inc rsi
-    inc r14
-    jmp .loop
-
-.format:    
-    inc rsi
-    cmp byte [rsi], 'd'
-    je .decimal
-    cmp byte [rsi], 's'
-    je .string
-    mov [rdi], byte '%'
-    inc rdi
-    movzx r15, byte [rsi]
-    mov [rdi], r15
-    inc rdi
-    inc rsi
-    jmp .loop
-
-.decimal:
-    push rsi
-    cmp r12, 0
-    je .decimal_r8
-    cmp r12, 1
-    je .decimal_r9
-    mov rcx, [r13+8]
-    add r13, 8
-    jmp .decimal_start
-
-.decimal_r8:
-    mov rcx, r8
-    jmp .decimal_start
-
-.decimal_r9:
-    mov rcx, r9
-    jmp .decimal_start
-
-.decimal_start:
-    mov rdx, _internal_printf_buffer
-    call itoa
-    mov rsi, _internal_printf_buffer
-    cmp rax, DEFAULT_BUFFER_SIZE
-    jg .done
-    mov rcx, rax
-    add r14, rax
-    rep movsb
-    pop rsi
-    inc rsi
-    inc r12
-    jmp .loop
-
-.string:
-    push rsi
-    cmp r12, 0
-    je .string_r8
-    cmp r12, 1
-    je .string_r9
-    mov rsi, [r13+8]
-    add r13, 8
-    jmp .string_start
-
-.string_r8:
-    mov rsi, r8
-    jmp .string_start
-
-.string_r9:
-    mov rsi, r9
-
-.string_start:
-    inc r12
-
-.string_loop:
-    cmp byte [rsi], 0
-    je .string_done
-    mov r15, [rsi]
-    and r15, 0xFF
-    mov [rdi], r15
-    inc rdi
-    inc rsi
-    inc r14
-    jmp .string_loop
-
-.string_done:
-    pop rsi
-    inc rsi
-    jmp .loop    
-
-.done:
-    mov rax, r14
-    mov byte [rdi], 0 ; NULL terminate buffer
-    multipop rcx, rdx, r8, r9, r12, r13, r14, r15, rdi, rsi
-    ret
 
 ;------------------------------------------------------------------------------------------------------------
 ; itoa - converts a signed integer to a string in base 10
@@ -494,6 +381,7 @@ itoa:
 
 %define itoab(a, b) _itoab_ a, b, 2
 %define itoao(a, b) _itoab_ a, b, 8
+%define itoad(a, b) _itoab_ a, b, 10
 %define itoah(a, b) _itoab_ a, b, 16
 %macro _itoab_ 3
     ; Arguments: %1=integer (RCX), %2=buffer (RDX), %3=base (R8)
@@ -587,3 +475,190 @@ strlen:
 
 %endif
 
+
+;-------------------------------------------------------------------------------------------------------------
+; sprintf - writes formatted data to a buffer
+;-------------------------------------------------------------------------------------------------------------
+sprintf:
+    ; set up stack frame
+    push rbp
+    mov rbp, rsp
+
+    ; according to windows x64 calling convention
+    ; rbx, rbp, rsi, rdi, r12, r13, r14, r15 are callee-saved
+    ; rcx, rdx, r8, r9, r10, r11 are volatile  
+    multipush rbx, rsi, rdi, r12, r13, r14, r15
+
+    ; save params on the stack, to ease the use of printf
+    mov [rbp + 0x28], r9
+    mov [rbp + 0x20], r8
+    mov [rbp + 0x18], rdx
+    mov [rbp + 0x10], rcx
+
+    xor rax, rax    ; rax = return value
+    xor r14, r14    ; r14 = param counter
+
+    ; todo - strata-fy this
+.if_buffer_is_null:
+    cmp rcx, 0
+    jne .endif_buffer_is_null
+.then_buffer_is_null:
+    mov rax, 0
+    jmp .done 
+.endif_buffer_is_null:
+
+    mov rsi, rdx     ; rsi = format string, null terminated
+    mov rdi, rcx     ; rdi = buffer
+
+.while_format_not_null:
+    cmp byte [rsi], 0
+    je .end_format_not_null
+    ; todo - should check for buffer overflow
+    ; no idea how to do that yet
+.do_format_not_null:
+.if_char_is_not_percent:
+    cmp byte [rsi], '%'
+    je .endif_char_is_not_percent
+.then_char_is_not_percent:
+    movzx r15, byte [rsi]
+    mov [rdi], r15
+    inc rsi
+    inc rdi
+    inc rax
+    ; continue
+    jmp .while_format_not_null
+.endif_char_is_not_percent:
+
+    ; char is percent
+    inc rsi
+.if_percent_specifier:    
+    cmp byte [rsi], '%'
+    jne .endif_percent_specifier
+.then_percent_specifier:
+    mov byte [rdi], '%'
+    inc rdi
+    inc rsi          ; next char after '%%'
+    inc rax
+.endif_percent_specifier:
+
+.if_decimal_specifier:    
+    cmp byte [rsi], 'd'
+    jne .endif_decimal_specifier
+.then_decimal_specifier:
+    multipush rsi, rax
+    ; convert number to string
+    itoa([rbp + 0x20 + r14 * 8], sprintfBuffer)
+    mov rsi, sprintfBuffer
+    mov rcx, rax     ; char count of number
+    rep movsb        ; copy number to buffer
+    mov rcx, rax     ; char count of number
+    
+    multipop rsi, rax
+
+    inc rsi          ; next char after '%d'
+    inc r14          ; increment param counter
+    add rax, rcx     ; add char count of number to return value
+.endif_decimal_specifier:
+
+.if_unsigned_specifier:    
+    cmp byte [rsi], 'u'
+    jne .endif_unsigned_specifier
+.then_unsigned_specifier:
+    multipush rsi, rax
+    ; convert number to string
+    itoad([rbp + 0x20 + r14 * 8], sprintfBuffer)
+    mov rsi, sprintfBuffer
+    mov rcx, rax     ; char count of number
+    rep movsb        ; copy number to buffer
+    mov rcx, rax     ; char count of number
+    
+    multipop rsi, rax
+
+    inc rsi          ; next char after '%d'
+    inc r14          ; increment param counter
+    add rax, rcx     ; add char count of number to return value
+.endif_unsigned_specifier:
+
+.if_hexadecimal_specifier:    
+    cmp byte [rsi], 'x'
+    jne .endif_hexadecimal_specifier
+.then_hexadecimal_specifier:
+    multipush rsi, rax
+
+    ; convert number to string
+    itoah([rbp + 0x20 + r14 * 8], sprintfBuffer)
+    mov rsi, sprintfBuffer
+    mov rcx, rax     ; char count of number
+    rep movsb        ; copy number to buffer
+    mov rcx, rax     ; char count of number
+    
+    multipop rsi, rax
+
+    inc rsi          ; next char after '%d'
+    inc r14          ; increment param counter
+    add rax, rcx     ; add char count of number to return value
+.endif_hexadecimal_specifier:
+
+.if_pointer_specifier:    
+    cmp byte [rsi], 'p'
+    jne .endif_pointer_specifier
+.then_pointer_specifier:
+    multipush rsi, rax
+
+    ; add '0x' to output
+    mov byte [rdi], '0'
+    mov byte [rdi + 1], 'x'
+    add rdi, 2
+    add rax, 2
+
+    ; convert number to string
+    itoah([rbp + 0x20 + r14 * 8], sprintfBuffer)
+    mov rsi, sprintfBuffer
+    mov rcx, rax     ; char count of number
+    rep movsb        ; copy number to buffer
+    mov rcx, rax     ; char count of number
+    
+    multipop rsi, rax
+
+    inc rsi          ; next char after '%d'
+    inc r14          ; increment param counter
+    add rax, rcx     ; add char count of number to return value
+.endif_pointer_specifier:
+
+.if_string_specifier:
+    cmp byte [rsi], 's'
+    jne .endif_string_specifier
+.then_string_specifier:
+    push rsi
+
+    ; get string pointer from stack
+    mov rsi, [rbp + 0x20 + r14 * 8]
+
+.while_string_not_null:
+    cmp byte [rsi], 0
+    je .end_string_not_null
+.do_string_not_null:
+    movzx r15, byte [rsi]
+    mov [rdi], r15
+    inc rsi
+    inc rdi
+    inc rax
+    jmp .while_string_not_null
+.end_string_not_null:    
+
+    pop rsi
+    inc rsi          ; next char after '%d'
+    inc r14          ; increment param counter
+.endif_string_specifier:
+    jmp .while_format_not_null
+.end_format_not_null:
+
+    ; add null terminator
+    mov byte [rdi], 0
+
+.done:
+    multipop rbx, rsi, rdi, r12, r13, r14, r15
+
+    ; tear down stack frame
+    pop rbp
+    ret

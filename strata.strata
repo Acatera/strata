@@ -1007,11 +1007,43 @@ end
     WriteConsoleA([hStdOut], szGenericError, szGenericError.length, 0)
 
 .source_code_parsed:
+
+; iterate over tokens
+    push rbp
+    mov rbp, rsp
+
+    ; cannot directly move mem to mem
+    mov eax, [dwTokenCount]
+    mov [rbp], rax
+    xor rbx, rbx ; counter
+    mov rdx, tokenList
+
+.while_counter_less_than_token_count:
+    cmp ebx, [rbp]
+    jge .end_counter_less_than_token_count
+
+    .if_token_is_if_0:
+        cmp word [rdx + Token.TokenType], word KeywordIf
+        jne .endif_token_is_if_0
+    .then_token_is_if_0:
+        multipush rcx, rdx, r8, r9
+        WriteConsoleA([hStdOut], szKeywordIf, szKeywordIf.length, 0)
+        multipop rcx, rdx, r8, r9
+    .endif_token_is_if_0:
+        
+    add rdx, Token.size ; jump to next token
+    inc rbx
+    jmp .while_counter_less_than_token_count
+.end_counter_less_than_token_count:
+
+    pop rbp
+    jmp .exit
+    ; disable for the moment
     ; write global constants
-    WriteFile([hndDestFile], endline, 2, dwBytesWritten, 0)
-    WriteFile([hndDestFile], szSectionData, szSectionDataLength, dwBytesWritten, 0)
-    ; strlen(szGlobalConstants)
-    WriteFile([hndDestFile], szGlobalConstants, [qwGlobalConstantsLength], dwBytesWritten, 0)
+    ; WriteFile([hndDestFile], endline, 2, dwBytesWritten, 0)
+    ; WriteFile([hndDestFile], szSectionData, szSectionDataLength, dwBytesWritten, 0)
+    ; ; strlen(szGlobalConstants)
+    ; WriteFile([hndDestFile], szGlobalConstants, [qwGlobalConstantsLength], dwBytesWritten, 0)
 
 .print_tokens:
     mov r15, 0

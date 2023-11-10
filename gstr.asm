@@ -46,13 +46,3 @@
 .then_6:
 
 .endif_6:
-
-section .data
-    string db "Hello World!"
-    string.length equ $ - string
-    string db "Hello World!"
-    string.length equ $ - string
-    string db "Hello World!"
-    string.length equ $ - string
-    string db "Hello World!"
-    string.length equ $ - string
