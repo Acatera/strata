@@ -3,7 +3,8 @@ default rel
 
 %include "inc/std.inc"
 
-%define BUFFER_SIZE 1024*1024
+%define SOURCE_CODE_SIZE 1024*1024
+%define SMALL_BUFFER_SIZE 64
 %define OPERATOR_BUFFER_SIZE 16
 
 %macro _reset_counters_ 0
@@ -28,12 +29,12 @@ endstruc
 
 section .bss
     hStdOut resq 0
-    szSouceCode resb BUFFER_SIZE
+    szSouceCode resb SOURCE_CODE_SIZE
+    ptrBuffer64 resb SMALL_BUFFER_SIZE
     hndSourceFile resq 1
     hndDestFile resq 1
     dwBytesRead resd 1
     dwBytesWritten resd 1
-    ptrSmallBuffer resb 64
     t1 resb 32
     t1Length resq 1
     t2 resb 32
@@ -174,9 +175,9 @@ _start:
     WriteConsoleA([hStdOut], szFileOpenError, szFileOpenError.length, 0)
     call GetLastError
     mov rcx, rax
-    mov rdx, ptrSmallBuffer
+    mov rdx, ptrBuffer64
     call itoa
-    WriteConsoleA([hStdOut], ptrSmallBuffer, rax, 0)
+    WriteConsoleA([hStdOut], ptrBuffer64, rax, 0)
     ExitProcess(1)
 .endif_0:
 
@@ -187,7 +188,7 @@ _start:
     ; Preparing the parameters for ReadFile
     mov rcx, [hndSourceFile]      ; Handle to the file (HANDLE)
     mov rdx, szSouceCode        ; Pointer to the buffer that receives the data read from the file (LPVOID)
-    mov r8, dword BUFFER_SIZE   ; Number of bytes to be read from the file (DWORD)
+    mov r8, dword SOURCE_CODE_SIZE   ; Number of bytes to be read from the file (DWORD)
     mov r9, dwBytesRead         ; Pointer to the variable that receives the number of bytes read (LPDWORD)
     sub rsp, 32
     push 0
@@ -322,9 +323,9 @@ _start:
     WriteFile([hndDestFile], szIfLabel, szIfLabelLength, dwBytesWritten, 0)
     multipop r8, r9, rdi
     mov rcx, [dwIfKeywordCount]
-    mov rdx, ptrSmallBuffer
+    mov rdx, ptrBuffer64
     call itoa
-    mov rdx, ptrSmallBuffer
+    mov rdx, ptrBuffer64
     add rdx, rax
     inc rax
     mov byte [rdx], ':'
@@ -335,7 +336,7 @@ _start:
     inc rax
     mov byte [rdx], 0xa
     multipush r8, r9, rdi
-    WriteFile([hndDestFile], ptrSmallBuffer, rax, dwBytesWritten, 0)
+    WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten, 0)
     multipop r8, r9, rdi
     inc qword [dwIfKeywordCount]
 
@@ -357,9 +358,9 @@ _start:
     dec qword [dwIfKeywordCount] ; temporarly decrement the counter
 
     mov rcx, [dwIfKeywordCount]
-    mov rdx, ptrSmallBuffer
+    mov rdx, ptrBuffer64
     call itoa
-    mov rdx, ptrSmallBuffer
+    mov rdx, ptrBuffer64
     add rdx, rax
     inc rax
     mov byte [rdx], ':'
@@ -370,7 +371,7 @@ _start:
     inc rax
     mov byte [rdx], 0xa
     multipush r8, r9, rdi
-    WriteFile([hndDestFile], ptrSmallBuffer, rax, dwBytesWritten, 0)
+    WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten, 0)
     multipop r8, r9, rdi
 
     inc qword [dwIfKeywordCount] ; restore the counter
@@ -391,9 +392,9 @@ _start:
     dec qword [dwIfKeywordCount] ; temporarly decrement the counter
 
     mov rcx, [dwIfKeywordCount]
-    mov rdx, ptrSmallBuffer
+    mov rdx, ptrBuffer64
     call itoa
-    mov rdx, ptrSmallBuffer
+    mov rdx, ptrBuffer64
     add rdx, rax
     inc rax
     mov byte [rdx], ':'
@@ -404,7 +405,7 @@ _start:
     inc rax
     mov byte [rdx], 0xa
     multipush r8, r9, rdi
-    WriteFile([hndDestFile], ptrSmallBuffer, rax, dwBytesWritten, 0)
+    WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten, 0)
     multipop r8, r9, rdi
 
     inc qword [dwIfKeywordCount] ; restore the counter
@@ -451,7 +452,7 @@ _start:
 
     ; write t1 <comparison> t2
     multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrSmallBuffer
+    mov r11, ptrBuffer64
     memset(r11, ' ', 4)
     add r11, 4
     mov r8, 4
@@ -478,7 +479,7 @@ _start:
     inc r11
     inc r8
     mov byte [r11], 0xa
-    WriteFile([hndDestFile], ptrSmallBuffer, r8, dwBytesWritten, 0)
+    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
     multipop rcx, rdx, r8, r9, rdi, rsi, r11
 
     mov [bIsIfCondition], byte 0
@@ -496,7 +497,7 @@ _start:
 .then_if_operator_is_equal:
     ; when equal, we need to jump if not equal
     multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrSmallBuffer
+    mov r11, ptrBuffer64
     memset(r11, ' ', 4)
     add r11, 4
     mov r8, 4
@@ -516,7 +517,7 @@ _start:
     add r8, rax
     multipop rax, rcx, rdx
 
-    WriteFile([hndDestFile], ptrSmallBuffer, r8, dwBytesWritten, 0)
+    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
     multipop rcx, rdx, r8, r9, rdi, rsi, r11
     _reset_counters_
 .endif_if_operator_is_equal:
@@ -527,7 +528,7 @@ _start:
 .then_if_operator_is_not_equal:
     ; when equal, we need to jump if not equal
     multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrSmallBuffer
+    mov r11, ptrBuffer64
     memset(r11, ' ', 4)
     add r11, 4
     mov r8, 4
@@ -547,7 +548,7 @@ _start:
     add r8, rax
     multipop rax, rcx, rdx
 
-    WriteFile([hndDestFile], ptrSmallBuffer, r8, dwBytesWritten, 0)
+    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
     multipop rcx, rdx, r8, r9, rdi, rsi, r11
     _reset_counters_
 .endif_if_operator_is_not_equal:
@@ -558,7 +559,7 @@ _start:
 .then_if_operator_is_less_or_equal:
     ; when equal, we need to jump if not equal
     multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrSmallBuffer
+    mov r11, ptrBuffer64
     memset(r11, ' ', 4)
     add r11, 4
     mov r8, 4
@@ -578,7 +579,7 @@ _start:
     add r8, rax
     multipop rax, rcx, rdx
 
-    WriteFile([hndDestFile], ptrSmallBuffer, r8, dwBytesWritten, 0)
+    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
     multipop rcx, rdx, r8, r9, rdi, rsi, r11
     _reset_counters_
 .endif_if_operator_is_less_or_equal:
@@ -589,7 +590,7 @@ _start:
 .then_if_operator_is_less:
     ; when equal, we need to jump if not equal
     multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrSmallBuffer
+    mov r11, ptrBuffer64
     memset(r11, ' ', 4)
     add r11, 4
     mov r8, 4
@@ -609,7 +610,7 @@ _start:
     add r8, rax
     multipop rax, rcx, rdx
 
-    WriteFile([hndDestFile], ptrSmallBuffer, r8, dwBytesWritten, 0)
+    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
     multipop rcx, rdx, r8, r9, rdi, rsi, r11
     _reset_counters_
 .endif_if_operator_is_less:
@@ -620,7 +621,7 @@ _start:
 .then_if_operator_is_greater_or_equal:
     ; when equal, we need to jump if not equal
     multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrSmallBuffer
+    mov r11, ptrBuffer64
     memset(r11, ' ', 4)
     add r11, 4
     mov r8, 4
@@ -640,7 +641,7 @@ _start:
     add r8, rax
     multipop rax, rcx, rdx
 
-    WriteFile([hndDestFile], ptrSmallBuffer, r8, dwBytesWritten, 0)
+    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
     multipop rcx, rdx, r8, r9, rdi, rsi, r11
     _reset_counters_
 .endif_if_operator_is_greater_or_equal:
@@ -651,7 +652,7 @@ _start:
 .then_if_operator_is_greater:
     ; when equal, we need to jump if not equal
     multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrSmallBuffer
+    mov r11, ptrBuffer64
     memset(r11, ' ', 4)
     add r11, 4
     mov r8, 4
@@ -671,7 +672,7 @@ _start:
     add r8, rax
     multipop rax, rcx, rdx
 
-    WriteFile([hndDestFile], ptrSmallBuffer, r8, dwBytesWritten, 0)
+    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
     multipop rcx, rdx, r8, r9, rdi, rsi, r11
     _reset_counters_
 .endif_if_operator_is_greater:
