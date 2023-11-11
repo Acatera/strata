@@ -1,5 +1,4 @@
-`
-    mov rax, 2`
-if then 
-`    mov rax, 1`
+if rax == 0 then 
+
 end
+

@@ -85,15 +85,17 @@ endstruc
 
 %define MAX_TOKEN_COUNT 1024
 
+%define BLOCK_ITEM_SIZE 4
 section .bss
     szSourceCode resb SOURCE_CODE_SIZE
     ptrBuffer64 resb SMALL_BUFFER_SIZE
     pBuffer resb SOURCE_CODE_SIZE
-    blockStack resw 256 ; todo - revisit this
+    blockStack resd 256 ; todo - revisit this
     blockCount resq 1
 
     tokenList resq MAX_TOKEN_COUNT * Token.size
     dwTokenCount resd 1
+
 
     hndSourceFile resq 1
     hndDestFile resq 1
@@ -119,6 +121,7 @@ section .data
     bExpectLabel db 0
     bIsIfCondition db 0
     dwIfKeywordCount dq 0
+    wScopedBlockCount dw 0
     chAsmStart equ 0x60
     chDoubleQuote equ 0x22
     chComma equ 0x2c
@@ -154,6 +157,7 @@ section .data
 
     ; generic formats
     cStrDecimalFormatNL db "%d", 0xd, 0xa, 0
+    cStrHexFormatNL db "%x", 0xd, 0xa, 0
 
 section .text
     global _start
@@ -1030,10 +1034,10 @@ _start:
     multipush rax, rbx, rdx
     mov rbx, blockStack
     mov rax, [blockCount]
-    mov rdx, TOKEN_TYPE_SIZE 
+    mov rdx, BLOCK_ITEM_SIZE 
     mul rdx
     add rbx, rax             ; rbx points to just after the top of the stack
-    mov word [rbx], word %1  ; push token type
+    mov [rbx], %1  ; push token type
     inc qword [blockCount]   ; increment block count
     multipop rax, rbx, rdx
 %endmacro
@@ -1050,10 +1054,10 @@ _start:
     mov rbx, blockStack
     dec qword [blockCount]   ; decrement block count
     mov rax, [blockCount]
-    mov rdx, TOKEN_TYPE_SIZE 
+    mov rdx, BLOCK_ITEM_SIZE 
     mul rdx
     add rbx, rax             ; rbx points to top of the stack
-    mov word ax, word [rbx]  ; load token type
+    mov eax, dword [rbx]  ; load token type
     multipop rbx, rdx
 %endmacro
 
@@ -1062,11 +1066,11 @@ _start:
     multipush rbx, rdx
     mov rbx, blockStack
     mov rax, [blockCount]
-    mov rdx, TOKEN_TYPE_SIZE 
+    mov rdx, BLOCK_ITEM_SIZE 
     mul rdx
     add rbx, rax             
-    sub rbx, TOKEN_TYPE_SIZE ; rbx points to top of the stack
-    mov word ax, word [rbx]  ; load token type
+    sub rbx, BLOCK_ITEM_SIZE ; rbx points to top of the stack
+    mov eax, [rbx]  ; load token type
     multipop rbx, rdx
 %endmacro
 
@@ -1081,9 +1085,10 @@ _start:
     mov [rbp], rax
     xor rbx, rbx ; counter
     mov rdx, tokenList
-    ; pa
+    
     ; initialize counters
-    mov [dwIfKeywordCount], dword 0
+    mov r10, 0
+    mov [wScopedBlockCount], r10
 
 %define currentToken.Type word [rdx + Token.TokenType]
 %define currentToken.Start dword [rdx + Token.TokenStart]
@@ -1098,59 +1103,44 @@ _start:
     jne .endif_2
 .then_2:
 
-        multipush rcx, rdx, r8, r9, r10, r11, r12
-  
-        ; write asm code
-        mov r10d, currentToken.Start
-        mov r11, szSourceCode
-        add r10, r11
-        inc r10 ; skip leading '0x40'
-        mov r11d, currentToken.Length
-        dec r11 ; skip trailing '0x40'
-
-        WriteFile([hndDestFile], r10, r11, dwBytesWritten)
-        multipop rcx, rdx, r8, r9, r10, r11, r12
-
-        nextToken
-.endif_2:
-
-
-    .if_token_is_asm_0:
-        cmp currentToken.Type, defOperandAsmLiteral
-        jne .endif_token_is_asm_0
-    .then_token_is_asm_0:
-        multipush rcx, rdx, r8, r9, r10, r11, r12
-  
-        ; write asm code
-        mov r10d, currentToken.Start
-        mov r11, szSourceCode
-        add r10, r11
-        inc r10 ; skip leading '0x40'
-        mov r11d, currentToken.Length
-        dec r11 ; skip trailing '0x40'
-
-        WriteFile([hndDestFile], r10, r11, dwBytesWritten)
-        multipop rcx, rdx, r8, r9, r10, r11, r12
-
-        nextToken
-    .endif_token_is_asm_0:
-
-    .if_token_is_if_0:
-        cmp currentToken.Type, word KeywordIf
-        jne .endif_token_is_if_0
-    .then_token_is_if_0:
         PushCallerSavedRegs()
+  
+        ; write asm code
+        mov r10d, currentToken.Start
+        mov r11, szSourceCode
+        add r10, r11
+        inc r10 ; skip leading '0x40'
+        mov r11d, currentToken.Length
+        dec r11 ; skip trailing '0x40'
 
-        sprintf(ptrBuffer64, cStrIfLabelFormat, [dwIfKeywordCount])
-        WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
-        inc qword [dwIfKeywordCount]
+        WriteFile([hndDestFile], r10, r11, dwBytesWritten)
 
-        PushBlockToken(KeywordIf)
-        
         PopCallerSavedRegs()
         NextToken()
-    .endif_token_is_if_0:
+.endif_2:
+ ; keyword 'if'
+.if_3:
+    cmp currentToken.Type, defKeywordIf
+    jne .endif_3
+.then_3:
 
+        PushCallerSavedRegs()
+        sprintf(ptrBuffer64, cStrIfLabelFormat, [wScopedBlockCount])
+        WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
+
+        mov cx, word [wScopedBlockCount]
+        shl rcx, 16
+        add cx, word defKeywordIf
+
+        PushBlockToken(ecx)
+        
+        inc word [wScopedBlockCount]
+        PopCallerSavedRegs()
+        NextToken()
+.endif_3:
+
+
+    
     .if_token_is_then_0:
         cmp currentToken.Type, word KeywordThen
         jne .endif_token_is_then_0
@@ -1158,25 +1148,28 @@ _start:
         PushCallerSavedRegs()
 
         PeekBlockToken()
-.if_3:
-    cmp rax, KeywordIf
-    je .endif_3
-.then_3:
+        mov rcx, rax
+       ;printf([hStdOut], cStrDecimalFormatNL, rax)
+.if_4:
+    cmp cx, KeywordIf
+    je .endif_4
+.then_4:
 
             printf([hStdOut], cStrErrorThenNotAfterIf, szSourceFile)
             jmp .exit
-.endif_3:
+.endif_4:
 
 
         ; todo - construct condition
-        ; todo - revisit temporary decrement
-        dec qword [dwIfKeywordCount] 
 
-        sprintf(ptrBuffer64, cStrThenLabelFormat, [dwIfKeywordCount])
+        shr rcx, 16 ; get block id
+        push rcx
+        sprintf(ptrBuffer64, cStrThenLabelFormat, rcx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
-
-        inc qword [dwIfKeywordCount] 
-        PushBlockToken(KeywordThen)
+        pop rcx
+        shl rcx, 16 ; restore block id
+        add cx, word KeywordThen
+        PushBlockToken(ecx)
 
         PopCallerSavedRegs()
         NextToken()
@@ -1189,23 +1182,20 @@ _start:
         PushCallerSavedRegs()
 
         PeekBlockToken()
-.if_4:
-    cmp rax, KeywordThen
-    je .endif_4
-.then_4:
+        mov rcx, rax
+.if_5:
+    cmp cx, KeywordThen
+    je .endif_5
+.then_5:
 
             printf([hStdOut], cStrErrorEndNotAfterThen, szSourceFile)
             jmp .exit
-.endif_4:
+.endif_5:
 
 
-        ; todo - revisit temporary decrement
-        dec qword [dwIfKeywordCount] 
-
-        sprintf(ptrBuffer64, cStrEndLabelFormat, [dwIfKeywordCount])
+        shr rcx, 16 ; get block id
+        sprintf(ptrBuffer64, cStrEndLabelFormat, rcx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
-
-        inc qword [dwIfKeywordCount] 
         QuickPopBlockToken() ; pop 'then'
         QuickPopBlockToken() ; pop 'if'
 
