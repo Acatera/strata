@@ -7,11 +7,12 @@ section .bss
     padding resq 1
     hStdOut resq 1
     buffer64 resb 64
-    sprintfBuffer resb 32
+    myprintfBuffer resb 32
 
 section .data
     name db "John", 0
-    format db "Hello %x %d %d %d %d %d %s %p %% <- this is a percent! %u", 0xd, 0xa, 0
+    format db "Hello %x %d %d %d %d %d %s %p %% %u", 0xd, 0xa, 0
+    format3 db "Hello %x", 0xd, 0xa, 0
 
 section .text
 global _start
@@ -21,23 +22,42 @@ _start:
     and rsp, 0xfffffffffffffff0
 
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
+
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    printf3 [hStdOut], format3, 16
+    ; push -3
+    ; mov rax, name
+    ; push rax
+    ; push rax
+    ; push 6
+    ; push 5
+    ; push 4
+    ; push -3
+    ; mov r9, 2
+    ; mov r8, 16
+    ; mov rdx, format
+    ; mov rcx, buffer64
+    ; sub rsp, 0x20
+    ; call mysprintf
+    ; add rsp, 0x20 + 8 * 7
     
-    push -3
-    mov rax, name
-    push rax
-    push rax
-    push 6
-    push 5
-    push 4
-    push -3
-    sub rsp, 0x20
-    mov r9, 2
-    mov r8, 16
-    mov rdx, format
-    mov rcx, buffer64
-    call mysprintf
-    
-    WriteConsoleA([hStdOut], buffer64, rax, 0)
+    ; WriteConsoleA([hStdOut], buffer64, rax, 0)
+
 
     ExitProcess(0)
 
@@ -109,8 +129,8 @@ mysprintf:
 .then_decimal_specifier:
     multipush rsi, rax
     ; convert number to string
-    itoa([rbp + 0x20 + r14 * 8], sprintfBuffer)
-    mov rsi, sprintfBuffer
+    itoa([rbp + 0x20 + r14 * 8], myprintfBuffer)
+    mov rsi, myprintfBuffer
     mov rcx, rax     ; char count of number
     rep movsb        ; copy number to buffer
     mov rcx, rax     ; char count of number
@@ -128,8 +148,8 @@ mysprintf:
 .then_unsigned_specifier:
     multipush rsi, rax
     ; convert number to string
-    itoad([rbp + 0x20 + r14 * 8], sprintfBuffer)
-    mov rsi, sprintfBuffer
+    itoad([rbp + 0x20 + r14 * 8], myprintfBuffer)
+    mov rsi, myprintfBuffer
     mov rcx, rax     ; char count of number
     rep movsb        ; copy number to buffer
     mov rcx, rax     ; char count of number
@@ -148,8 +168,8 @@ mysprintf:
     multipush rsi, rax
 
     ; convert number to string
-    itoah([rbp + 0x20 + r14 * 8], sprintfBuffer)
-    mov rsi, sprintfBuffer
+    itoah([rbp + 0x20 + r14 * 8], myprintfBuffer)
+    mov rsi, myprintfBuffer
     mov rcx, rax     ; char count of number
     rep movsb        ; copy number to buffer
     mov rcx, rax     ; char count of number
@@ -165,17 +185,17 @@ mysprintf:
     cmp byte [rsi], 'p'
     jne .endif_pointer_specifier
 .then_pointer_specifier:
+    add rax, 2
     multipush rsi, rax
 
     ; add '0x' to output
     mov byte [rdi], '0'
     mov byte [rdi + 1], 'x'
     add rdi, 2
-    add rax, 2
 
     ; convert number to string
-    itoah([rbp + 0x20 + r14 * 8], sprintfBuffer)
-    mov rsi, sprintfBuffer
+    itoah([rbp + 0x20 + r14 * 8], myprintfBuffer)
+    mov rsi, myprintfBuffer
     mov rcx, rax     ; char count of number
     rep movsb        ; copy number to buffer
     mov rcx, rax     ; char count of number

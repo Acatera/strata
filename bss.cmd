@@ -28,7 +28,7 @@ if exist %filename%.o (
 )
 @REM Compile file to object file. Treat warnings as errors
 @REM nasm -f win32 -o obj/%filename%.o %1 -w+all -w+error
-nasm -f win64 -g %1 -o %filename%.o
+nasm -f win64 -g %1 -o %filename%.o -w+all -w+error
 
 @REM del %1
 @REM Check if compilation was successful

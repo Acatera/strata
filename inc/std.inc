@@ -8,6 +8,7 @@ section .bss
     _internal_printf_output_buffer resb DEFAULT_BUFFER_SIZE
     itoh_buffer resb 32
     sprintfBuffer resb 32
+    printfBuffer resb 128
 
 section d.data    
     itoh_digits db "0123456789abcdef"
@@ -47,7 +48,11 @@ section .text
 %define TRUE 1
 %define FALSE 0
 
+%define VT_91 0x1b, "[91m"
+%define VT_END 0x1b, "[0m"
+
 %define WriteFile(hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten,lpOverlapped) _WriteFile_ hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten,lpOverlapped
+%define WriteFile(hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten) _WriteFile_ hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten, 0
 %macro _WriteFile_ 5
     mov rcx, %1
     mov rdx, %2
@@ -82,6 +87,15 @@ section .text
 
     %endmacro
 %endif
+
+%define CallerSavedRegs rcx, rdx, r8, r9, r10, r11
+%define CalleeSavedRegs rbx, rbp, rdi, rsi, rsp, r12, r13, r14, r15
+
+%define PushCallerSavedRegs() multipush CallerSavedRegs
+%define PopCallerSavedRegs() multipop CallerSavedRegs
+
+%define PushCalleeSavedRegs() multipush CalleeSavedRegs
+%define PopCalleeSavedRegs() multipop CalleeSavedRegs
 
 ;------------------------------------------------------------------------------------------------------------
 ; Copy `n` bytes from `src` to `dest`. 
@@ -128,6 +142,55 @@ section .text
     repe cmpsb
 %endmacro
 
+%define strcmp(s1, s2) strcmp s1, s2
+%macro strcmp 2
+    PushCallerSavedRegs()
+    mov rcx, %1
+    mov rdx, %2
+    call _strcmp
+    PopCallerSavedRegs()
+%endmacro
+_strcmp:
+    PushCalleeSavedRegs()
+    mov rdi, rcx
+    mov rsi, rdx
+    xor rax, rax
+    xor rbx, rbx
+
+.loop:
+    mov al, byte [rdi]
+    mov bl, byte [rsi]
+    cmp al, bl
+    jne .str_neq
+    cmp al, 0
+    je .str1_null
+    cmp bl, 0
+    je .str2_null
+    inc rdi
+    inc rsi
+    jmp .loop
+
+.str1_null:
+    cmp bl, 0
+    je .str_eq
+    jmp .str_neq
+
+.str2_null:
+    cmp al, 0
+    je .str_eq
+    jmp .str_neq    
+
+.str_neq:
+    sub rax, rbx
+    jmp .end
+
+.str_eq:
+    xor rax, rax
+
+.end:
+    PopCalleeSavedRegs()
+    ret   
+    
 %define GetStdHandle(nStdHandle, outHANDLE) _GetStdHandle_ nStdHandle, outHANDLE
 %macro _GetStdHandle_ 2
     ; Arguments: %1=handleType (rcx)
@@ -479,6 +542,30 @@ strlen:
 ;-------------------------------------------------------------------------------------------------------------
 ; sprintf - writes formatted data to a buffer
 ;-------------------------------------------------------------------------------------------------------------
+%define sprintf(buf, fmt, a) _sprintf3_ buf, fmt, a
+%macro _sprintf3_ 3
+    sub rsp, 0x20
+    mov r8,  %3
+    mov rdx, %2
+    mov rcx, %1
+    call sprintf
+    add rsp, 0x20
+%endmacro
+
+%define printf(hnd, fmt, a) printf3 hnd, fmt, a
+%macro printf3 3
+    multipush rbx, rcx, rdx, r8, r9, r10, r11, r12
+    sub rsp, 0x20
+    mov r8,  %3
+    mov rdx, %2
+    mov rcx, printfBuffer
+    call sprintf
+    add rsp, 0x20
+    WriteConsoleA(%1, printfBuffer, rax, 0)
+    multipop rbx, rcx, rdx, r8, r9, r10, r11, r12
+%endmacro
+
+
 sprintf:
     ; set up stack frame
     push rbp
@@ -603,13 +690,13 @@ sprintf:
     cmp byte [rsi], 'p'
     jne .endif_pointer_specifier
 .then_pointer_specifier:
+    add rax, 2
     multipush rsi, rax
 
     ; add '0x' to output
     mov byte [rdi], '0'
     mov byte [rdi + 1], 'x'
     add rdi, 2
-    add rax, 2
 
     ; convert number to string
     itoah([rbp + 0x20 + r14 * 8], sprintfBuffer)
