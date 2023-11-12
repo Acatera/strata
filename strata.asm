@@ -151,8 +151,8 @@ section .data
     cStrPrintTokenValueFormat db "%s", 0xd, 0xa, 0
 
     cStrSourceFile db "%s.strata", 0
-    cStrInputFileMessage db "Input file %s", 0xd, 0xa, 0
-    cStrOutputFileMessage db "Output file %s", 0xd, 0xa, 0
+    cStrInputFileMessage db "[Debug] Input file %s", 0xd, 0xa, 0
+    cStrOutputFileMessage db "[Debug] Output file %s", 0xd, 0xa, 0
     cStrCompileMessageFormat db "Compiling file %s...", 0xd, 0xa, 0
     cStrDoneCompiling db "Done compiling.", 0xd, 0xa, 0
 
@@ -170,6 +170,8 @@ section .data
     cStrJmpGreaterOrEqual db "    jl %s", 0xd, 0xa, 0
 
     ; error messages
+    cStrFileOpenError db "Error opening file '%s'. Error code: %d", 0
+    cStrFileReadError db "Error reading file '%s'. Error code: %d", 0
     cStrErrorThenNotAfterIf db "Error: '", VT_91, "then", VT_END, "' not after '", VT_91, "if", VT_END, "'.", 0xd, 0xa, 0
     cStrErrorEndNotAfterThen db "Error: '", VT_91, "end", VT_END, "' not after '", VT_91, "then", VT_END, "'.", 0xd, 0xa, 0
     cStrUnknownWord db "Error: unknown word '", VT_91, "%s", VT_END, "'", 0xd, 0xa, 0
@@ -188,7 +190,6 @@ section .data
     ;junk 
     cStrDebugWritingExpression db "Writing expression -------------", 0xd, 0xa, 0
     cStrDebugToken2 db "Writing token to file: start: %d, length: %d", 0xd, 0xa, 0
-    cStrEquals db "Equals", 0xd, 0xa, 0
 
 section .text
     global _start
@@ -276,7 +277,6 @@ _start:
     printf([hStdOut], cStrInputFileMessage, szSourceFile)
     printf([hStdOut], cStrOutputFileMessage, szDestFile)
 
-    printf([hStdOut], cStrCompileMessageFormat, szSourceFile)
 
     ; Preparing the parameters for CreateFileA to open a file for reading
     mov rcx, szSourceFile                       ; First parameter: Pointer to the filename (LPCSTR)
@@ -295,16 +295,12 @@ _start:
     cmp rax, 0
     jge .endif_0
 .then_0:
-    WriteConsoleA([hStdOut], szFileOpenError, szFileOpenError.length, 0)
-    call GetLastError
-    mov rcx, rax
-    mov rdx, ptrBuffer64
-    call itoa
-    WriteConsoleA([hStdOut], ptrBuffer64, rax, 0)
+   call GetLastError
+    printf([hStdOut], cStrFileOpenError, szSourceFile, rax)
     ExitProcess(1)
 .endif_0:
 
-   
+
 .file_opened:    
     mov [hndSourceFile], rax
 
@@ -318,8 +314,15 @@ _start:
     call ReadFile
 
     ; Check if the function succeeded
+.if_1:
     cmp rax, 0
-    je .error
+    jne .endif_1
+.then_1:
+   call GetLastError
+    printf([hStdOut], cStrFileReadError, rax)
+    ExitProcess(1)
+.endif_1:
+
 
     ; Preparing the parameters for CreateFileA to open a file for writing
     mov rcx, szDestFile                         ; Pointer to the filename (LPCSTR)
@@ -334,11 +337,21 @@ _start:
     add rsp, 4*8 + 3*8
 
     ; Check if the function succeeded
+.if_2:
     cmp rax, 0
-    je .error
+    jge .endif_2
+.then_2:
+   call GetLastError
+    printf([hStdOut], cStrFileOpenError, szDestFile, rax)
+    ExitProcess(1)
+.endif_2:
+
 
     mov [hndDestFile], rax
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
+
+    printf([hStdOut], cStrCompileMessageFormat, szSourceFile)
+
 
 .start_parsing_source_code:
     ; reset offset
@@ -374,15 +387,16 @@ _start:
     je .source_code_parsed
 
 .token_found:
-; is token length 0?
-.if_1:
+    ; is token length 0?
+.if_3:
     cmp r9, 0
-    jne .endif_1
-.then_1:
-    inc rdi
-    inc r8
-    jmp .read_token_loop
-.endif_1:
+    jne .endif_3
+.then_3:
+
+        inc rdi
+        inc r8
+        jmp .read_token_loop
+.endif_3:
 
 
 .print_token:
@@ -424,7 +438,6 @@ _start:
     jne .endif_token_is_eq
 .then_token_is_eq:
     mov [rbp], word OperatorEquals
-    printf([hStdOut], cStrEquals)
     jmp .token_type_set
 .endif_token_is_eq:
 
@@ -570,366 +583,6 @@ _start:
     _reset_counters_
 .endif_keyword_gstr:
 
-.if_keyword_if:
-    ; check if token is 'if'
-    multipush rdi, rsi, rcx, r10
-    strcmp(r10, szKeywordIf, szKeywordIf.length)
-    multipop rdi, rsi, rcx, r10
-    jne .endif_keyword_if
-.then_keyword_if:
-    ; write label
-    multipush r8, r9, rdi
-    WriteFile([hndDestFile], szIfLabel, szIfLabelLength, dwBytesWritten, 0)
-    multipop r8, r9, rdi
-    mov rcx, [dwIfKeywordCount]
-    mov rdx, ptrBuffer64
-    call itoa
-    mov rdx, ptrBuffer64
-    add rdx, rax
-    inc rax
-    mov byte [rdx], ':'
-    inc rdx
-    inc rax
-    mov byte [rdx], 0xd
-    inc rdx
-    inc rax
-    mov byte [rdx], 0xa
-    multipush r8, r9, rdi
-    WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten, 0)
-    multipop r8, r9, rdi
-    inc qword [dwIfKeywordCount]
-
-    mov [bIsIfCondition], byte 1
-
-    _reset_counters_
-.endif_keyword_if:
-
-.if_keyword_then:
-    multipush rdi, rsi, rcx, r10
-    strcmp(r10, szKeywordThen, szKeywordThen.length)
-    multipop rdi, rsi, rcx, r10
-    jne .endif_keyword_then
-.then_keyword_then:
-    ; write label
-    multipush r8, r9, rdi
-    WriteFile([hndDestFile], szThenLabel, szThenLabelLength, dwBytesWritten, 0)
-    multipop r8, r9, rdi
-    dec qword [dwIfKeywordCount] ; temporarly decrement the counter
-
-    mov rcx, [dwIfKeywordCount]
-    mov rdx, ptrBuffer64
-    call itoa
-    mov rdx, ptrBuffer64
-    add rdx, rax
-    inc rax
-    mov byte [rdx], ':'
-    inc rdx
-    inc rax
-    mov byte [rdx], 0xd
-    inc rdx
-    inc rax
-    mov byte [rdx], 0xa
-    multipush r8, r9, rdi
-    WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten, 0)
-    multipop r8, r9, rdi
-
-    inc qword [dwIfKeywordCount] ; restore the counter
-
-    _reset_counters_  
-.endif_keyword_then:
-
-.if_keyword_end:
-    multipush rdi, rsi, rcx, r10
-    strcmp(r10, szKeywordEnd, szKeywordEnd.length)
-    multipop rdi, rsi, rcx, r10
-    jne .endif_keyword_end
-.then_keyword_end:
-    ; write label
-    multipush r8, r9, rdi
-    WriteFile([hndDestFile], szEndLabel, szEndLabelLength, dwBytesWritten, 0)
-    multipop r8, r9, rdi
-    dec qword [dwIfKeywordCount] ; temporarly decrement the counter
-
-    mov rcx, [dwIfKeywordCount]
-    mov rdx, ptrBuffer64
-    call itoa
-    mov rdx, ptrBuffer64
-    add rdx, rax
-    inc rax
-    mov byte [rdx], ':'
-    inc rdx
-    inc rax
-    mov byte [rdx], 0xd
-    inc rdx
-    inc rax
-    mov byte [rdx], 0xa
-    multipush r8, r9, rdi
-    WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten, 0)
-    multipop r8, r9, rdi
-
-    inc qword [dwIfKeywordCount] ; restore the counter
-
-    _reset_counters_
-.endif_keyword_end:
-
-.if_is_first_if_condition_operand:
-    cmp [bIsIfCondition], byte 1
-    jne .endif_is_first_if_condition_operand
-.then_is_first_if_condition_operand:
-    ; set t1
-    multipush rcx, rdx, r8, rdi, rsi
-    memcpy(t1, r10, r9)
-    mov [t1Length], r9
-    multipop rcx, rdx, r8, rdi, rsi
-    inc byte [bIsIfCondition]
-    jmp .advance_token
-.endif_is_first_if_condition_operand:
-
-.if_is_if_condition_operator:
-    cmp [bIsIfCondition], byte 2
-    jne .endif_is_if_condition_operator
-.then_is_if_condition_operator:
-    ; set op
-    multipush rcx, rdx, r8, rdi, rsi
-    memset(op, 0, OPERATOR_BUFFER_SIZE)
-    memcpy(op, r10, r9)
-    mov [opLength], r9
-    multipop rcx, rdx, r8, rdi, rsi
-    inc byte [bIsIfCondition]
-    jmp .advance_token
-.endif_is_if_condition_operator:
-
-.if_is_second_if_condition_operand:
-    cmp [bIsIfCondition], byte 3
-    jne .endif_is_second_if_condition_operand
-.then_is_second_if_condition_operand:
-    ; set t2
-    multipush rcx, rdx, r8, rdi, rsi
-    memcpy(t2, r10, r9)
-    mov [t2Length], r9
-    multipop rcx, rdx, r8, rdi, rsi
-
-    ; write t1 <comparison> t2
-    multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrBuffer64
-    memset(r11, ' ', 4)
-    add r11, 4
-    mov r8, 4
-    memcpy(r11, szAsmCmp, szAsmCmp.length)
-    add r8, szAsmCmp.length ; r8 stores counter
-    add r11, szAsmCmp.length
-    memcpy(r11, t1, [t1Length])
-    add r8, [t1Length]
-    add r11, [t1Length]
-    ; add comma
-    mov byte [r11], ','
-    inc r11
-    inc r8
-    ; add space
-    mov byte [r11], ' '
-    inc r11
-    inc r8
-    memcpy(r11, t2, [t2Length])
-    add r8, [t2Length]
-    add r11, [t2Length]
-    ; inc r11
-    inc r8
-    mov byte [r11], 0xd
-    inc r11
-    inc r8
-    mov byte [r11], 0xa
-    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
-    multipop rcx, rdx, r8, r9, rdi, rsi, r11
-
-    mov [bIsIfCondition], byte 0
-
-.if_if_operator_is_equal:
-    CompareOperatorWith(szOperatorEquals)
-    jne .endif_if_operator_is_equal
-.then_if_operator_is_equal:
-    ; when equal, we need to jump if not equal
-    multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrBuffer64
-    memset(r11, ' ', 4)
-    add r11, 4
-    mov r8, 4
-    memcpy(r11, szAsmEqual, szAsmEqual.length)
-    add r8, szAsmEqual.length 
-    add r11, szAsmEqual.length
-    memcpy(r11, szEndLabelForJump, szEndLabelForJump.length)
-    add r8, szEndLabelForJump.length
-    add r11, szEndLabelForJump.length
-    multipush rax, rcx, rdx
-
-    mov rcx, [dwIfKeywordCount]
-    dec rcx ; decrement the counter
-    mov rdx, r11
-    call itoa
-    add r11, rax
-    add r8, rax
-    multipop rax, rcx, rdx
-
-    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
-    multipop rcx, rdx, r8, r9, rdi, rsi, r11
-    _reset_counters_
-.endif_if_operator_is_equal:
-
-.if_if_operator_is_not_equal:
-    CompareOperatorWith(szOperatorNotEquals)
-    jne .endif_if_operator_is_not_equal
-.then_if_operator_is_not_equal:
-    ; when equal, we need to jump if not equal
-    multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrBuffer64
-    memset(r11, ' ', 4)
-    add r11, 4
-    mov r8, 4
-    memcpy(r11, szAsmNotEqual, szAsmNotEqual.length)
-    add r8, szAsmNotEqual.length 
-    add r11, szAsmNotEqual.length
-    memcpy(r11, szEndLabelForJump, szEndLabelForJump.length)
-    add r8, szEndLabelForJump.length
-    add r11, szEndLabelForJump.length
-    multipush rax, rcx, rdx
-
-    mov rcx, [dwIfKeywordCount]
-    dec rcx ; decrement the counter
-    mov rdx, r11
-    call itoa
-    add r11, rax
-    add r8, rax
-    multipop rax, rcx, rdx
-
-    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
-    multipop rcx, rdx, r8, r9, rdi, rsi, r11
-    _reset_counters_
-.endif_if_operator_is_not_equal:
-
-.if_if_operator_is_less_or_equal:
-    CompareOperatorWith(szOperatorLessOrEqual)
-    jne .endif_if_operator_is_less_or_equal
-.then_if_operator_is_less_or_equal:
-    ; when equal, we need to jump if not equal
-    multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrBuffer64
-    memset(r11, ' ', 4)
-    add r11, 4
-    mov r8, 4
-    memcpy(r11, szAsmLessOrEqual, szAsmLessOrEqual.length)
-    add r8, szAsmLessOrEqual.length 
-    add r11, szAsmLessOrEqual.length
-    memcpy(r11, szEndLabelForJump, szEndLabelForJump.length)
-    add r8, szEndLabelForJump.length
-    add r11, szEndLabelForJump.length
-    multipush rax, rcx, rdx
-
-    mov rcx, [dwIfKeywordCount]
-    dec rcx ; decrement the counter
-    mov rdx, r11
-    call itoa
-    add r11, rax
-    add r8, rax
-    multipop rax, rcx, rdx
-
-    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
-    multipop rcx, rdx, r8, r9, rdi, rsi, r11
-    _reset_counters_
-.endif_if_operator_is_less_or_equal:
-
-.if_if_operator_is_less:
-    CompareOperatorWith(szOperatorLess)
-    jne .endif_if_operator_is_less
-.then_if_operator_is_less:
-    ; when equal, we need to jump if not equal
-    multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrBuffer64
-    memset(r11, ' ', 4)
-    add r11, 4
-    mov r8, 4
-    memcpy(r11, szAsmLess, szAsmLess.length)
-    add r8, szAsmLess.length 
-    add r11, szAsmLess.length
-    memcpy(r11, szEndLabelForJump, szEndLabelForJump.length)
-    add r8, szEndLabelForJump.length
-    add r11, szEndLabelForJump.length
-    multipush rax, rcx, rdx
-
-    mov rcx, [dwIfKeywordCount]
-    dec rcx ; decrement the counter
-    mov rdx, r11
-    call itoa
-    add r11, rax
-    add r8, rax
-    multipop rax, rcx, rdx
-
-    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
-    multipop rcx, rdx, r8, r9, rdi, rsi, r11
-    _reset_counters_
-.endif_if_operator_is_less:
-
-.if_if_operator_is_greater_or_equal:
-    CompareOperatorWith(szOperatorGreaterOrEqual)
-    jne .endif_if_operator_is_greater_or_equal
-.then_if_operator_is_greater_or_equal:
-    ; when equal, we need to jump if not equal
-    multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrBuffer64
-    memset(r11, ' ', 4)
-    add r11, 4
-    mov r8, 4
-    memcpy(r11, szAsmGreaterOrEqual, szAsmGreaterOrEqual.length)
-    add r8, szAsmGreaterOrEqual.length 
-    add r11, szAsmGreaterOrEqual.length
-    memcpy(r11, szEndLabelForJump, szEndLabelForJump.length)
-    add r8, szEndLabelForJump.length
-    add r11, szEndLabelForJump.length
-    multipush rax, rcx, rdx
-
-    mov rcx, [dwIfKeywordCount]
-    dec rcx ; decrement the counter
-    mov rdx, r11
-    call itoa
-    add r11, rax
-    add r8, rax
-    multipop rax, rcx, rdx
-
-    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
-    multipop rcx, rdx, r8, r9, rdi, rsi, r11
-    _reset_counters_
-.endif_if_operator_is_greater_or_equal:
-
-.if_if_operator_is_greater:
-    CompareOperatorWith(szOperatorGreater)
-    jne .endif_if_operator_is_greater
-.then_if_operator_is_greater:
-    ; when equal, we need to jump if not equal
-    multipush rcx, rdx, r8, r9, rdi, rsi, r11
-    mov r11, ptrBuffer64
-    memset(r11, ' ', 4)
-    add r11, 4
-    mov r8, 4
-    memcpy(r11, szAsmGreater, szAsmGreater.length)
-    add r8, szAsmGreater.length 
-    add r11, szAsmGreater.length
-    memcpy(r11, szEndLabelForJump, szEndLabelForJump.length)
-    add r8, szEndLabelForJump.length
-    add r11, szEndLabelForJump.length
-    multipush rax, rcx, rdx
-
-    mov rcx, [dwIfKeywordCount]
-    dec rcx ; decrement the counter
-    mov rdx, r11
-    call itoa
-    add r11, rax
-    add r8, rax
-    multipop rax, rcx, rdx
-
-    WriteFile([hndDestFile], ptrBuffer64, r8, dwBytesWritten, 0)
-    multipop rcx, rdx, r8, r9, rdi, rsi, r11
-    _reset_counters_
-.endif_if_operator_is_greater:
-
-.endif_is_second_if_condition_operand:
     ; jg .error
 
     ; multipush r8, r9, rdi
@@ -959,10 +612,6 @@ _start:
     pop r10 ; restore start of asm code from rdi to r10
     add r8, r14
     add r8, 2 
-
-    multipush r8, r9, r10, rdi 
-    WriteFile([hndDestFile], r10, r14, dwBytesWritten, 0)
-    multipop r8, r9, r10, rdi
 
     multipush rax, rbx, rcx, rdx, r10, r14
     dec r10
@@ -1021,65 +670,8 @@ _start:
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r10, r14
 
-    ; write to global constants
-    multipush rax, rcx, rdi, rsi
-    ; Add leading quotes
-    mov rax, [ptrGlobalConstants]
-    mov byte [rax], chDoubleQuote
-    add qword [qwGlobalConstantsLength], 1
-    add qword [ptrGlobalConstants], 1
-    ; Write string literal
-    memcpy([ptrGlobalConstants], r10, r14)
-    add qword [qwGlobalConstantsLength], r14
-    add qword [ptrGlobalConstants], r14
-    ; Add trailing quotes
-    mov rax, [ptrGlobalConstants]
-    mov byte [rax], chDoubleQuote
-    add qword [qwGlobalConstantsLength], 1
-    add qword [ptrGlobalConstants], 1
-    ; ; Add trailing null terminator
-    ; memcpy([ptrGlobalConstants], szAsmStringLiteralNullTerminator, szAsmStringLiteralNullTerminator.length)
-    ; add qword [qwGlobalConstantsLength], szAsmStringLiteralNullTerminator.length
-    ; add qword [ptrGlobalConstants], szAsmStringLiteralNullTerminator.length
-    ; add newline
-    memcpy([ptrGlobalConstants], endline, 2)
-    add qword [qwGlobalConstantsLength], 2
-    add qword [ptrGlobalConstants], 2
-
-    ; write length of string literal
-    ; write a szTab
-    memcpy([ptrGlobalConstants], szTab, szTab.length)
-    add qword [qwGlobalConstantsLength], szTab.length
-    add qword [ptrGlobalConstants], szTab.length
-    ; write last label
-    memcpy([ptrGlobalConstants], szLastLabel, [szLastLabelLength])
-    mov rax, [szLastLabelLength]
-    add qword [qwGlobalConstantsLength], rax
-    add qword [ptrGlobalConstants], rax
-    ; write suffix
-    memcpy([ptrGlobalConstants], szAsmDataStringSuffix, szAsmDataStringSuffix.length)
-    add qword [qwGlobalConstantsLength], szAsmDataStringSuffix.length
-    add qword [ptrGlobalConstants], szAsmDataStringSuffix.length
-    ; write type (aka "equ $ - ")
-    memcpy([ptrGlobalConstants], szAsmDataStringLengthType, szAsmDataStringLengthType.length)
-    add qword [qwGlobalConstantsLength], szAsmDataStringLengthType.length
-    add qword [ptrGlobalConstants], szAsmDataStringLengthType.length
-    ; write last label
-    memcpy([ptrGlobalConstants], szLastLabel, [szLastLabelLength])
-    mov rax, [szLastLabelLength]
-    add qword [qwGlobalConstantsLength], rax
-    add qword [ptrGlobalConstants], rax
-    ; write newline
-    memcpy([ptrGlobalConstants], endline, 2)
-    add qword [qwGlobalConstantsLength], 2
-    add qword [ptrGlobalConstants], 2
-    multipop rax, rcx, rdi, rsi
-    ; multipush r8, r9, rdi
-    ; WriteFile([hndDestFile], r10, r14, dwBytesWritten, 0)
-
-    ; multipop r8, r9, rdi
-
     jmp .read_token_loop
+
 .error:
     WriteConsoleA([hStdOut], szGenericError, szGenericError.length, 0)
 
@@ -1138,13 +730,11 @@ _start:
 ; this will only decrement the block count
 %define QuickPopBlockToken() dec qword [blockCount]
 
-    WriteFile([hndDestFile], szHorizontalLine, szHorizontalLine.length, dwBytesWritten, 0)
     ; todo - remove this temp code
     push rbx
     mov ebx, dword [dwTokenCount]
     printf([hStdOut], cStrDebugTokenCount, rbx)
     pop rbx
-    ; WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
     ; end of temp code
 
     ; iterate over tokens
@@ -1163,8 +753,6 @@ _start:
 %define currentToken.Start dword [rdx + Token.TokenStart]
 %define currentToken.Length dword [rdx + Token.TokenLength]
 
-    
-
 .while_counter_less_than_token_count:
     mov rbx, [tokenIndex]
     ; printf([hStdOut], cStrHexFormatNL, rbx)
@@ -1174,14 +762,17 @@ _start:
     ; mov r10w, currentToken.Type
     ; mov r11d, currentToken.Start
     ; mov r12d, currentToken.Length
+
+%ifdef DEBUG    
     PushCallerSavedRegs()
     printf([hStdOut], cStrDebugTokenCurrentTokenIndex, rbx)
     PopCallerSavedRegs()
+%endif
 
-.if_2:
+.if_4:
     cmp currentToken.Type, defOperandAsmLiteral
-    jne .endif_2
-.then_2:
+    jne .endif_4
+.then_4:
 
         PushCallerSavedRegs()
   
@@ -1197,12 +788,12 @@ _start:
 
         PopCallerSavedRegs()
         NextToken()
-.endif_2:
+.endif_4:
  ; keyword 'if'
-.if_3:
+.if_5:
     cmp currentToken.Type, defKeywordIf
-    jne .endif_3
-.then_3:
+    jne .endif_5
+.then_5:
 
         PushCallerSavedRegs()
         sprintf(ptrBuffer64, cStrIfLabelFormat, [wScopedBlockCurrentId])
@@ -1213,7 +804,7 @@ _start:
         inc word [wScopedBlockCurrentId]
         PopCallerSavedRegs()
         NextToken()
-.endif_3:
+.endif_5:
 
 
     
@@ -1225,17 +816,19 @@ _start:
         PeekBlockToken()
         mov rbx, [rax + Block.TokenType]
 
-        ; this prints previous block token type
-        ; printf([hStdOut], cStrHexFormatNL, rbx)
+%ifdef DEBUG
+        this prints previous block token type
+        printf([hStdOut], cStrHexFormatNL, rbx)
+%endif
         
-.if_4:
+.if_6:
     cmp bx, KeywordIf
-    je .endif_4
-.then_4:
+    je .endif_6
+.then_6:
 
             printf([hStdOut], cStrErrorThenNotAfterIf, szSourceFile)
             jmp .exit
-.endif_4:
+.endif_6:
 
         
         push rax ; rax stores pointer to block struct
@@ -1246,14 +839,14 @@ _start:
         inc r11d ; skip 'if' token
         sub r10d, r11d ; r10d stores number of tokens in if condition
         
-.if_5:
+.if_7:
     cmp r10d, 3
-    je .endif_5
-.then_5:
+    je .endif_7
+.then_7:
 
             printf([hStdOut], cStrErrorUnsupportedIfCondition, r10)
             jmp .exit
-.endif_5:
+.endif_7:
 
 
         ; todo - construct condition
@@ -1263,10 +856,11 @@ _start:
         PushCallerSavedRegs()
         call compile_condition_3
         PopCallerSavedRegs()
-.q: 
+    
         pop rax ; rax stores pointer to block struct
         
         mov bx, word [rax + Block.BlockId]
+        and rbx, 0xffff
         sprintf(ptrBuffer64, cStrThenLabelFormat, rbx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
         ; bx stores block id
@@ -1286,14 +880,14 @@ _start:
 
         PeekBlockToken()
         mov rbx, [rax + Block.TokenType]
-.if_6:
+.if_8:
     cmp bx, KeywordThen
-    je .endif_6
-.then_6:
+    je .endif_8
+.then_8:
 
             printf([hStdOut], cStrErrorEndNotAfterThen, szSourceFile)
             jmp .exit
-.endif_6:
+.endif_8:
 
 
         mov bx, word [rax + Block.BlockId]
@@ -1307,13 +901,13 @@ _start:
         NextToken()
     .endif_token_is_end_0:
 
+%ifdef DEBUG
     mov r10w, currentToken.Type
     mov r11d, currentToken.Start
     mov r12d, currentToken.Length
 
     printf([hStdOut], cStrDebugToken, r10, r11, r12)
 
-.t:
     push rax
     mov rax, szSourceCode
     add r11, rax
@@ -1322,8 +916,9 @@ _start:
     add rax, r12
     mov byte [rax], 0
 
-    ; printf([hStdOut], cStrUnknownWord, ptrBuffer64)
+    printf([hStdOut], cStrUnknownWord, ptrBuffer64)
     pop rax
+%endif
 
     NextToken()
 .end_counter_less_than_token_count:
@@ -1389,7 +984,9 @@ _start:
 ; rcx must hold the token index of the first token of the if condition
 ; rdx must hold the scope id of the current scope
 compile_condition_3:
+%ifdef DEBUG
     printf([hStdOut], cStrDebugWritingExpression)
+%endif
     push rbp
     mov rbp, rsp
     sub rsp, 0x10 ; reserve space on the stack for the token index
@@ -1435,59 +1032,59 @@ compile_condition_3:
     sprintf(ptrBuffer64, cStrEndLabelFormatForJump, r13)
     ; printf([hStdOut], cStrDebugTokenValue, ptrBuffer64)
     
-.if_7:
-    cmp r10, OperatorEquals
-    jne .endif_7
-.then_7:
-
-        sprintf(ptrBuffer256, cStrJmpEquals, ptrBuffer64)
-        jmp .valid_operator_found
-.endif_7:
-
-.if_8:
-    cmp r10, OperatorNotEquals
-    jne .endif_8
-.then_8:
-
-        sprintf(ptrBuffer256, cStrJmpNotEquals, ptrBuffer64)
-        jmp .valid_operator_found
-.endif_8:
-
 .if_9:
-    cmp r10, OperatorLess
+    cmp r10, OperatorEquals
     jne .endif_9
 .then_9:
 
-        sprintf(ptrBuffer256, cStrJmpLess, ptrBuffer64)
+        sprintf(ptrBuffer256, cStrJmpEquals, ptrBuffer64)
         jmp .valid_operator_found
 .endif_9:
 
 .if_10:
-    cmp r10, OperatorLessOrEqual
+    cmp r10, OperatorNotEquals
     jne .endif_10
 .then_10:
 
-        sprintf(ptrBuffer256, cStrJmpLessOrEqual, ptrBuffer64)
+        sprintf(ptrBuffer256, cStrJmpNotEquals, ptrBuffer64)
         jmp .valid_operator_found
 .endif_10:
 
 .if_11:
-    cmp r10, OperatorGreater
+    cmp r10, OperatorLess
     jne .endif_11
 .then_11:
 
-        sprintf(ptrBuffer256, cStrJmpGreater, ptrBuffer64)
+        sprintf(ptrBuffer256, cStrJmpLess, ptrBuffer64)
         jmp .valid_operator_found
 .endif_11:
 
 .if_12:
-    cmp r10, OperatorGreaterOrEqual
+    cmp r10, OperatorLessOrEqual
     jne .endif_12
 .then_12:
 
-        sprintf(ptrBuffer256, cStrJmpGreaterOrEqual, ptrBuffer64)
+        sprintf(ptrBuffer256, cStrJmpLessOrEqual, ptrBuffer64)
         jmp .valid_operator_found
 .endif_12:
+
+.if_13:
+    cmp r10, OperatorGreater
+    jne .endif_13
+.then_13:
+
+        sprintf(ptrBuffer256, cStrJmpGreater, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_13:
+
+.if_14:
+    cmp r10, OperatorGreaterOrEqual
+    jne .endif_14
+.then_14:
+
+        sprintf(ptrBuffer256, cStrJmpGreaterOrEqual, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_14:
 
 
     printf([hStdOut], cStrErrorUnsupportedOperator, r10)
@@ -1504,8 +1101,6 @@ compile_condition_3:
     ret
 
 section .data
-    szFileOpenError db "Error opening file. Error code:"
-    szFileOpenError.length equ $ - szFileOpenError
     szFileReadError db "Error reading file. Error code:"
     szFileReadError.length equ $ - szFileReadError
     szGenericError db "Generic error."
@@ -1516,28 +1111,12 @@ section .data
     szAsmFileExtension.length equ $ - szAsmFileExtension
     szTab db "    "
     szTab.length equ $ - szTab
-    szAsmCmp db "cmp "
-    szAsmCmp.length equ $ - szAsmCmp
     szAsmDataStringType db " db "
     szAsmDataStringType.length equ $ - szAsmDataStringType
-    szAsmStringLiteralNullTerminator db ", 0"
-    szAsmStringLiteralNullTerminator.length equ $ - szAsmStringLiteralNullTerminator
     szAsmDataStringLengthType db " equ $ - "
     szAsmDataStringLengthType.length equ $ - szAsmDataStringLengthType
     szAsmDataStringSuffix db ".length"
     szAsmDataStringSuffix.length equ $ - szAsmDataStringSuffix
-    szAsmEqual db "jne "
-    szAsmEqual.length equ $ - szAsmEqual
-    szAsmNotEqual db "je "
-    szAsmNotEqual.length equ $ - szAsmNotEqual
-    szAsmLess db "jge "
-    szAsmLess.length equ $ - szAsmLess
-    szAsmLessOrEqual db "jg "
-    szAsmLessOrEqual.length equ $ - szAsmLessOrEqual
-    szAsmGreater db "jle "
-    szAsmGreater.length equ $ - szAsmGreater
-    szAsmGreaterOrEqual db "jl "
-    szAsmGreaterOrEqual.length equ $ - szAsmGreaterOrEqual
     szKeywordIf db "if"
     szKeywordIf.length equ $ - szKeywordIf
     szKeywordThen db "then"
@@ -1560,7 +1139,3 @@ section .data
     szOperatorGreaterOrEqual.length equ $ - szOperatorGreaterOrEqual
     szOperatorAssignment db "="
     szOperatorAssignment.length equ $ - szOperatorAssignment
-    szEndLabelForJump db ".endif_"
-    szEndLabelForJump.length equ $ - szEndLabelForJump
-    szHorizontalLine db ";-----------------------------  refactored output -------------------------------"
-    szHorizontalLine.length equ $ - szHorizontalLine
