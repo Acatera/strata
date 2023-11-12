@@ -5,6 +5,7 @@ default rel
 
 %define SOURCE_CODE_SIZE 1024*1024
 %define SMALL_BUFFER_SIZE 64
+%define MED_BUFFER_SIZE 256
 %define OPERATOR_BUFFER_SIZE 16
 
 %macro _reset_counters_ 0
@@ -96,7 +97,8 @@ endstruc
 section .bss
     szSourceCode resb SOURCE_CODE_SIZE
     ptrBuffer64 resb SMALL_BUFFER_SIZE
-    pBuffer resb SOURCE_CODE_SIZE
+    ptr2Buffer64 resb SMALL_BUFFER_SIZE
+    ptrBuffer256 resb MED_BUFFER_SIZE
     blockStack resb 256 * Block.size ; todo - revisit this
     blockCount resq 1
 
@@ -154,16 +156,26 @@ section .data
     cStrCompileMessageFormat db "Compiling file %s...", 0xd, 0xa, 0
     cStrDoneCompiling db "Done compiling.", 0xd, 0xa, 0
 
-    ; asm output labels
+    ; asm output 
     cStrIfLabelFormat db 0xd, 0xa, ".if_%d:", 0xd, 0xa, 0
-    cStrThenLabelFormat db 0xd, 0xa, ".then_%d:", 0xd, 0xa, 0
+    cStrThenLabelFormat db ".then_%d:", 0xd, 0xa, 0
     cStrEndLabelFormat db 0xd, 0xa, ".endif_%d:", 0xd, 0xa, 0
+    cStrEndLabelFormatForJump db ".endif_%d:", 0
+    cStrCmpFormat db "    cmp %s, %s", 0xd, 0xa, 0
+    cStrJmpEquals db "    jne %s", 0xd, 0xa, 0
+    cStrJmpNotEquals db "    je %s", 0xd, 0xa, 0
+    cStrJmpLess db "    jge %s", 0xd, 0xa, 0
+    cStrJmpLessOrEqual db "    jg %s", 0xd, 0xa, 0
+    cStrJmpGreater db "    jle %s", 0xd, 0xa, 0
+    cStrJmpGreaterOrEqual db "    jl %s", 0xd, 0xa, 0
 
     ; error messages
     cStrErrorThenNotAfterIf db "Error: '", VT_91, "then", VT_END, "' not after '", VT_91, "if", VT_END, "'.", 0xd, 0xa, 0
     cStrErrorEndNotAfterThen db "Error: '", VT_91, "end", VT_END, "' not after '", VT_91, "then", VT_END, "'.", 0xd, 0xa, 0
     cStrUnknownWord db "Error: unknown word '", VT_91, "%s", VT_END, "'", 0xd, 0xa, 0
     cStrGenericError db "Error: generic error.", 0xd, 0xa, 0
+    cStrErrorUnsupportedIfCondition db "Error: Unsupported if condition. Found %d tokens", 0xd, 0xa, 0
+    cStrErrorUnsupportedOperator db "Error: Unsupported operator: %d", 0xd, 0xa, 0
 
     ; generic formats
     cStrDecimalFormatNL db "%d", 0xd, 0xa, 0
@@ -172,6 +184,11 @@ section .data
     cStrDebugTokenValue db "[Debug] Token value: %s", 0xd, 0xa, 0
     cStrDebugTokenCount db 0xd, 0xa, "[Debug] Token count: %d", 0xd, 0xa, 0
     cStrDebugTokenCurrentTokenIndex db "[Debug] Current token index: %d", 0xd, 0xa, 0
+
+    ;junk 
+    cStrDebugWritingExpression db "Writing expression -------------", 0xd, 0xa, 0
+    cStrDebugToken2 db "Writing token to file: start: %d, length: %d", 0xd, 0xa, 0
+    cStrEquals db "Equals", 0xd, 0xa, 0
 
 section .text
     global _start
@@ -383,6 +400,7 @@ _start:
     jne .endif_token_is_if
 .then_token_is_if:
     mov [rbp], word KeywordIf
+    jmp .token_type_set
 .endif_token_is_if:
 
 .if_token_is_then:
@@ -390,6 +408,7 @@ _start:
     jne .endif_token_is_then
 .then_token_is_then:
     mov [rbp], word KeywordThen
+    jmp .token_type_set
 .endif_token_is_then:
 
 .if_token_is_end:
@@ -397,6 +416,7 @@ _start:
     jne .endif_token_is_end
 .then_token_is_end:
     mov [rbp], word KeywordEnd
+    jmp .token_type_set
 .endif_token_is_end:
 
 .if_token_is_eq:
@@ -404,6 +424,8 @@ _start:
     jne .endif_token_is_eq
 .then_token_is_eq:
     mov [rbp], word OperatorEquals
+    printf([hStdOut], cStrEquals)
+    jmp .token_type_set
 .endif_token_is_eq:
 
 .if_token_is_neq:
@@ -411,6 +433,7 @@ _start:
     jne .endif_token_is_neq
 .then_token_is_neq:
     mov [rbp], word OperatorNotEquals
+    jmp .token_type_set
 .endif_token_is_neq:
 
 .if_token_is_lteq:
@@ -418,6 +441,7 @@ _start:
     jne .endif_token_is_lteq
 .then_token_is_lteq:
     mov [rbp], word OperatorLessOrEqual
+    jmp .token_type_set
 .endif_token_is_lteq:
 
 .if_token_is_lt:
@@ -425,6 +449,7 @@ _start:
     jne .endif_token_is_lt
 .then_token_is_lt:
     mov [rbp], word OperatorLess
+    jmp .token_type_set
 .endif_token_is_lt:
 
 .if_token_is_gteq:
@@ -432,6 +457,7 @@ _start:
     jne .endif_token_is_gteq
 .then_token_is_gteq:
     mov [rbp], word OperatorGreaterOrEqual
+    jmp .token_type_set
 .endif_token_is_gteq:
 
 .if_token_is_gt:
@@ -439,6 +465,7 @@ _start:
     jne .endif_token_is_gt
 .then_token_is_gt:
     mov [rbp], word OperatorGreater
+    jmp .token_type_set
 .endif_token_is_gt:
 
 .if_token_is_assign:
@@ -446,6 +473,7 @@ _start:
     jne .endif_token_is_assign
 .then_token_is_assign:
     mov [rbp], word OperatorAssignment
+    jmp .token_type_set
 .endif_token_is_assign:
 
 .if_token_is_gstr:
@@ -453,15 +481,17 @@ _start:
     jne .endif_token_is_gstr
 .then_token_is_gstr:
     mov [rbp], word KeywordGStr
+    jmp .token_type_set
 .endif_token_is_gstr:
 
+.token_type_set:
     ; test if token type is 0
     push rax
     mov rax, [rbp]
     cmp rax, 0
     pop rax
     jne .endif_token_type_is_not_zero
-    printf([hStdOut], cStrGenericError)
+    ; printf([hStdOut], cStrGenericError)
 
 .endif_token_type_is_not_zero:
     ; create a token
@@ -481,14 +511,14 @@ _start:
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r15
 
-    multipush r8, r9, rdi, rsi, rcx, rdx, r10, r11
-    mov r11, szSourceCode
-    add r8, r11
-    memcpy(ptrBuffer64, r8, r9)
-    inc rdi
-    mov byte [rdi], 0
-    printf([hStdOut], cStrDebugTokenValue, ptrBuffer64)
-    multipop r8, r9, rdi, rsi, rcx, rdx, r10, r11
+    ; multipush r8, r9, rdi, rsi, rcx, rdx, r10, r11
+    ; mov r11, szSourceCode
+    ; add r8, r11
+    ; memcpy(ptrBuffer64, r8, r9)
+    ; inc rdi
+    ; mov byte [rdi], 0
+    ; printf([hStdOut], cStrDebugTokenValue, ptrBuffer64)
+    ; multipop r8, r9, rdi, rsi, rcx, rdx, r10, r11
 
     pop rbp
 
@@ -1107,13 +1137,16 @@ _start:
 
 ; this will only decrement the block count
 %define QuickPopBlockToken() dec qword [blockCount]
+
     WriteFile([hndDestFile], szHorizontalLine, szHorizontalLine.length, dwBytesWritten, 0)
+    ; todo - remove this temp code
     push rbx
     mov ebx, dword [dwTokenCount]
-    sprintf(ptrBuffer64, cStrDebugTokenCount, rbx)
+    printf([hStdOut], cStrDebugTokenCount, rbx)
     pop rbx
-    WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
- 
+    ; WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
+    ; end of temp code
+
     ; iterate over tokens
     push rbp
     mov rbp, rsp
@@ -1191,8 +1224,12 @@ _start:
         PushCallerSavedRegs()
         PeekBlockToken()
         mov rbx, [rax + Block.TokenType]
+
+        ; this prints previous block token type
+        ; printf([hStdOut], cStrHexFormatNL, rbx)
+        
 .if_4:
-    cmp rbx, KeywordIf
+    cmp bx, KeywordIf
     je .endif_4
 .then_4:
 
@@ -1201,8 +1238,33 @@ _start:
 .endif_4:
 
         
-        ; investigate why then has then_16777216
+        push rax ; rax stores pointer to block struct
+
+        ; get number of tokens in if condition
+        mov r10d, [tokenIndex] ; current token index
+        mov r11d, dword [rax + Block.TokenIndex] ; if token index
+        inc r11d ; skip 'if' token
+        sub r10d, r11d ; r10d stores number of tokens in if condition
+        
+.if_5:
+    cmp r10d, 3
+    je .endif_5
+.then_5:
+
+            printf([hStdOut], cStrErrorUnsupportedIfCondition, r10)
+            jmp .exit
+.endif_5:
+
+
         ; todo - construct condition
+        mov rcx, r11 ; rcx stores token index of first token of if condition
+        mov dx, word [rax + Block.BlockId]
+        and rdx, 0xffff
+        PushCallerSavedRegs()
+        call compile_condition_3
+        PopCallerSavedRegs()
+.q: 
+        pop rax ; rax stores pointer to block struct
         
         mov bx, word [rax + Block.BlockId]
         sprintf(ptrBuffer64, cStrThenLabelFormat, rbx)
@@ -1224,14 +1286,14 @@ _start:
 
         PeekBlockToken()
         mov rbx, [rax + Block.TokenType]
-.if_5:
+.if_6:
     cmp bx, KeywordThen
-    je .endif_5
-.then_5:
+    je .endif_6
+.then_6:
 
             printf([hStdOut], cStrErrorEndNotAfterThen, szSourceFile)
             jmp .exit
-.endif_5:
+.endif_6:
 
 
         mov bx, word [rax + Block.BlockId]
@@ -1260,7 +1322,7 @@ _start:
     add rax, r12
     mov byte [rax], 0
 
-    printf([hStdOut], cStrUnknownWord, ptrBuffer64)
+    ; printf([hStdOut], cStrUnknownWord, ptrBuffer64)
     pop rax
 
     NextToken()
@@ -1317,6 +1379,130 @@ _start:
 
 .exit:
     ExitProcess(0)
+    
+; this routine will compile simple if conditions
+; the *MUST* be in the form of:
+;   <operand> <operator> <operand>
+; it will simply write this asm code:
+;   cmp <operand>, <operand>
+;   !<operator> <label>
+; rcx must hold the token index of the first token of the if condition
+; rdx must hold the scope id of the current scope
+compile_condition_3:
+    printf([hStdOut], cStrDebugWritingExpression)
+    push rbp
+    mov rbp, rsp
+    sub rsp, 0x10 ; reserve space on the stack for the token index
+    mov [rbp], rcx ; store token index on the stack
+    mov [rbp - 0x8], rdx ; store scope id on the stack
+    PushCalleeSavedRegs()
+
+    ; get first operand
+    mov rax, rcx
+    mov rdx, Token.size
+    mul rdx
+    mov rcx, tokenList
+    add rcx, rax
+    mov rbx, rcx
+
+    mov r10, szSourceCode
+    mov r11, [rbx + Token.TokenStart]
+    mov r12, [rbx + Token.TokenLength]
+    add r10, r11
+
+    strcpy(ptrBuffer64, r10, r12)
+
+    add rbx, Token.size * 2 ; advance to second operand
+    mov r10, szSourceCode
+    mov r11, [rbx + Token.TokenStart]
+    mov r12, [rbx + Token.TokenLength]
+    add r10, r11
+
+    strcpy(ptr2Buffer64, r10, r12)
+
+    sprintf(ptrBuffer256, cStrCmpFormat, ptrBuffer64, ptr2Buffer64)
+
+    ; write first operand
+    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+   
+    ; write operator
+    sub rbx, Token.size ; move back to operator
+    mov r10, [rbx - Token.TokenType]
+    and r10, 0xffff
+
+    ; printf([hStdOut], cStrHexFormatNL, r10)
+    mov r13, [rbp - 0x8] ; r13 stores scope id
+    sprintf(ptrBuffer64, cStrEndLabelFormatForJump, r13)
+    ; printf([hStdOut], cStrDebugTokenValue, ptrBuffer64)
+    
+.if_7:
+    cmp r10, OperatorEquals
+    jne .endif_7
+.then_7:
+
+        sprintf(ptrBuffer256, cStrJmpEquals, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_7:
+
+.if_8:
+    cmp r10, OperatorNotEquals
+    jne .endif_8
+.then_8:
+
+        sprintf(ptrBuffer256, cStrJmpNotEquals, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_8:
+
+.if_9:
+    cmp r10, OperatorLess
+    jne .endif_9
+.then_9:
+
+        sprintf(ptrBuffer256, cStrJmpLess, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_9:
+
+.if_10:
+    cmp r10, OperatorLessOrEqual
+    jne .endif_10
+.then_10:
+
+        sprintf(ptrBuffer256, cStrJmpLessOrEqual, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_10:
+
+.if_11:
+    cmp r10, OperatorGreater
+    jne .endif_11
+.then_11:
+
+        sprintf(ptrBuffer256, cStrJmpGreater, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_11:
+
+.if_12:
+    cmp r10, OperatorGreaterOrEqual
+    jne .endif_12
+.then_12:
+
+        sprintf(ptrBuffer256, cStrJmpGreaterOrEqual, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_12:
+
+
+    printf([hStdOut], cStrErrorUnsupportedOperator, r10)
+    ExitProcess(1)
+
+.valid_operator_found:
+    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+
+.end:
+    PopCalleeSavedRegs()
+    add rsp, 0x10
+    pop rbp
+    mov rax, 0
+    ret
+
 section .data
     szFileOpenError db "Error opening file. Error code:"
     szFileOpenError.length equ $ - szFileOpenError

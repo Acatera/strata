@@ -1,1 +1,43 @@
-if then if then asd end end
+if rax == 0 then 
+`; `
+end
+
+
+if rbx != 0 then 
+`; `
+end 
+
+
+if rbx < 0 then 
+`; `
+end 
+
+
+if rbx <= 0 then 
+`; `
+end 
+
+
+if rbx > 0 then 
+`; `
+end 
+
+
+if rbx <= 0 then 
+`; `
+end 
+
+
+if rax == 0 then 
+    if rbx != 0 then 
+        if rbx < 0 then 
+            if rbx <= 0 then 
+                if rbx > 0 then 
+                    if rbx <= 0 then 
+                        `mov rax, 1`
+                    end 
+                end 
+            end 
+        end 
+    end 
+end

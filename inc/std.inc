@@ -54,6 +54,7 @@ section .text
 %define WriteFile(hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten,lpOverlapped) _WriteFile_ hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten,lpOverlapped
 %define WriteFile(hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten) _WriteFile_ hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten, 0
 %macro _WriteFile_ 5
+    PushCallerSavedRegs()
     mov rcx, %1
     mov rdx, %2
     mov r8, %3
@@ -62,6 +63,7 @@ section .text
     sub rsp, 32
     call WriteFile
     add rsp, 32 + 8
+    PopCallerSavedRegs()
 %endmacro
 
 %ifndef  _multipush_
@@ -115,6 +117,25 @@ section .text
     mov rsi, %2 ; `src`
     rep movsb   ; `rep` = repeat while `rcx` != 0; `movsb` = move byte from `rsi` to `rdi`
 %endmacro
+
+%define strcpy(dest, src, num) _strcpy dest, src, num    
+%macro _strcpy 3
+    PushCallerSavedRegs()
+    mov rcx, %1
+    mov rdx, %2
+    mov r8, %3
+    call strcpy
+    PopCallerSavedRegs()
+%endmacro
+strcpy:
+    mov rdi, rcx ; dest
+    mov rsi, rdx ; src
+    mov rcx, r8 ; num bytes
+    rep movsb   ; rep
+    inc rdi
+    mov byte [rdi], 0
+.end:
+    ret
 
 ;------------------------------------------------------------------------------------------------------------
 ; Set `n` bytes of `s` to `c`.
@@ -552,6 +573,17 @@ strlen:
     add rsp, 0x20
 %endmacro
 
+%define sprintf(buf, fmt, a, b) _sprintf4_ buf, fmt, a, b
+%macro _sprintf4_ 4
+    sub rsp, 0x20
+    mov r9,  %4
+    mov r8,  %3
+    mov rdx, %2
+    mov rcx, %1
+    call sprintf
+    add rsp, 0x20
+%endmacro
+
 %define printf(hnd, fmt) printf2 hnd, fmt
 %macro printf2 2
     multipush rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
@@ -575,6 +607,20 @@ strlen:
     add rsp, 0x20
     WriteConsoleA(%1, printfBuffer, rax, 0)
     multipop rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
+%endmacro
+
+%define printf(hnd, fmt, a, b) printf4 hnd, fmt, a, b
+%macro printf4 4
+    PushCallerSavedRegs()
+    sub rsp, 0x20
+    mov r9,  %4
+    mov r8,  %3
+    mov rdx, %2
+    mov rcx, printfBuffer
+    call sprintf
+    add rsp, 0x20
+    WriteConsoleA(%1, printfBuffer, rax, 0)
+    PopCallerSavedRegs()
 %endmacro
 
 %define printf(hnd, fmt, a, b, c) printf5 hnd, fmt, a, b, c
