@@ -54,8 +54,6 @@ default rel
 %define KeywordIf   0 + (1 << (4 + 4))
 %define KeywordThen 1 + (1 << (4 + 4))
 %define KeywordEnd  2 + (1 << (4 + 4))
-%define KeywordGStr 3 + (1 << (4 + 4))
-
 
 ; todo - revisit this
 %define defOperatorEquals word OperatorEquals
@@ -73,7 +71,6 @@ default rel
 %define defKeywordIf word KeywordIf
 %define defKeywordThen word KeywordThen
 %define defKeywordEnd word KeywordEnd
-%define defKeywordGStr word KeywordGStr
 
 %define TOKEN_TYPE_SIZE 2
 
@@ -105,25 +102,12 @@ section .bss
     tokenList resq MAX_TOKEN_COUNT * Token.size
     dwTokenCount resd 1
 
-
     hndSourceFile resq 1
     hndDestFile resq 1
     dwBytesRead resd 1
     dwBytesWritten resd 1
-    t1 resb 32
-    t1Length resq 1
-    t2 resb 32
-    t2Length resq 1
-    op resb OPERATOR_BUFFER_SIZE
-    opLength resq 1
-    firstArgStart resq 1
     szSourceFile resb 256
     szDestFile resb 256
-    szGlobalConstants resb 1024*64
-    qwGlobalConstantsLength resq 1
-    ptrGlobalConstants resq 1
-    szLastLabel resb 128
-    szLastLabelLength resb 1
 
 section .data
     tokenIndex dq 0
@@ -200,8 +184,6 @@ section .text
     extern GetCommandLineA
 
 _start:
-    mov rax, szGlobalConstants
-    mov [ptrGlobalConstants], rax
     sub rsp, 32
     call GetCommandLineA
     add rsp, 32
@@ -488,14 +470,6 @@ _start:
     jmp .token_type_set
 .endif_token_is_assign:
 
-.if_token_is_gstr:
-    CompareTokenWith(szKeywordGStr)
-    jne .endif_token_is_gstr
-.then_token_is_gstr:
-    mov [rbp], word KeywordGStr
-    jmp .token_type_set
-.endif_token_is_gstr:
-
 .token_type_set:
     ; test if token type is 0
     push rax
@@ -535,52 +509,6 @@ _start:
     pop rbp
 
     add rsp, 8 ; restore stack pointer
-
-.if_label_expected:
-    cmp byte [bExpectLabel], 1
-    jne .endif_label_expected
-.then_label_expected:
-    multipush rax, rcx, rdi, rsi
-    ; write szTab
-    memcpy([ptrGlobalConstants], szTab, szTab.length)
-    add qword [qwGlobalConstantsLength], szTab.length
-    add qword [ptrGlobalConstants], szTab.length
-    
-    ; write label
-    memcpy([ptrGlobalConstants], r10, r9)
-    add qword [qwGlobalConstantsLength], r9
-    add qword [ptrGlobalConstants], r9
-
-    ; save last label
-    memcpy(szLastLabel, r10, r9)
-    mov [szLastLabelLength], r9
-
-    ; write separator
-    memcpy([ptrGlobalConstants], szAsmDataStringType, szAsmDataStringType.length)
-    add qword [qwGlobalConstantsLength], szAsmDataStringType.length
-    add qword [ptrGlobalConstants], szAsmDataStringType.length
-
-    multipop rax, rcx, rdi, rsi
-    ; multipush r8, r9, rdi
-    ; WriteFile([hndDestFile], r10, r9, dwBytesWritten, 0)
-    ; multipop r8, r9, rdi
-
-    mov [bExpectLabel], byte 0
-    
-    _reset_counters_
-.endif_label_expected:
-
-    ; this is temporary, we will write to file as we go
-.if_keyword_gstr:
-    multipush rdi, rsi, rcx, r10
-    strcmp(r10, szKeywordGStr, szKeywordGStr.length)
-    multipop rdi, rsi, rcx, r10
-    jne .endif_keyword_gstr
-.then_keyword_gstr:
-    mov [bExpectLabel], byte 1
-
-    _reset_counters_
-.endif_keyword_gstr:
 
     ; multipush r8, r9, rdi
     ; WriteFile([hndDestFile], r10, r9, dwBytesWritten, 0)
@@ -926,12 +854,6 @@ _start:
     printf([hStdOut], cStrDoneCompiling, szSourceFile)
 
     jmp .exit
-    ; disable for the moment
-    ; write global constants
-    ; WriteFile([hndDestFile], endline, 2, dwBytesWritten, 0)
-    ; WriteFile([hndDestFile], szSectionData, szSectionDataLength, dwBytesWritten, 0)
-    ; ; strlen(szGlobalConstants)
-    ; WriteFile([hndDestFile], szGlobalConstants, [qwGlobalConstantsLength], dwBytesWritten, 0)
 
 .print_tokens:
     mov r15, 0
@@ -1127,3 +1049,6 @@ section .data
     szOperatorGreaterOrEqual.length equ $ - szOperatorGreaterOrEqual
     szOperatorAssignment db "="
     szOperatorAssignment.length equ $ - szOperatorAssignment
+
+
+section .data
