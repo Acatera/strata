@@ -552,9 +552,21 @@ strlen:
     add rsp, 0x20
 %endmacro
 
+%define printf(hnd, fmt) printf2 hnd, fmt
+%macro printf2 2
+    multipush rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
+    sub rsp, 0x20
+    mov rdx, %2
+    mov rcx, printfBuffer
+    call sprintf
+    add rsp, 0x20
+    WriteConsoleA(%1, printfBuffer, rax, 0)
+    multipop rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
+%endmacro
+
 %define printf(hnd, fmt, a) printf3 hnd, fmt, a
 %macro printf3 3
-    multipush rbx, rcx, rdx, r8, r9, r10, r11, r12
+    multipush rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
     sub rsp, 0x20
     mov r8,  %3
     mov rdx, %2
@@ -562,7 +574,22 @@ strlen:
     call sprintf
     add rsp, 0x20
     WriteConsoleA(%1, printfBuffer, rax, 0)
-    multipop rbx, rcx, rdx, r8, r9, r10, r11, r12
+    multipop rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
+%endmacro
+
+%define printf(hnd, fmt, a, b, c) printf5 hnd, fmt, a, b, c
+%macro printf5 5
+    multipush rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
+    push %5
+    sub rsp, 0x20
+    mov r9,  %4
+    mov r8,  %3
+    mov rdx, %2
+    mov rcx, printfBuffer
+    call sprintf
+    add rsp, 0x20 + 8
+    WriteConsoleA(%1, printfBuffer, rax, 0)
+    multipop rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
 %endmacro
 
 

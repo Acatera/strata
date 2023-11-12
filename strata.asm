@@ -83,14 +83,21 @@ struc Token
     .size equ $ - .TokenType
 endstruc
 
+struc Block
+    .TokenIndex   resd 1
+    .BlockId   resw 1
+    .TokenType resw 1
+    .size equ $ - .TokenIndex
+endstruc
+
 %define MAX_TOKEN_COUNT 1024
 
-%define BLOCK_ITEM_SIZE 4
+%define BLOCK_ITEM_SIZE 8
 section .bss
     szSourceCode resb SOURCE_CODE_SIZE
     ptrBuffer64 resb SMALL_BUFFER_SIZE
     pBuffer resb SOURCE_CODE_SIZE
-    blockStack resd 256 ; todo - revisit this
+    blockStack resb 256 * Block.size ; todo - revisit this
     blockCount resq 1
 
     tokenList resq MAX_TOKEN_COUNT * Token.size
@@ -117,14 +124,15 @@ section .bss
     szLastLabelLength resb 1
 
 section .data
+    tokenIndex dq 0
     hStdOut dq 0
     bExpectLabel db 0
     bIsIfCondition db 0
     dwIfKeywordCount dq 0
-    wScopedBlockCount dw 0
     chAsmStart equ 0x60
     chDoubleQuote equ 0x22
     chComma equ 0x2c
+    wScopedBlockCurrentId dw 0
     
     szIfLabel db 0xd, 0xa, ".if_"
     szIfLabelLength equ $ - szIfLabel
@@ -154,10 +162,16 @@ section .data
     ; error messages
     cStrErrorThenNotAfterIf db "Error: '", VT_91, "then", VT_END, "' not after '", VT_91, "if", VT_END, "'.", 0xd, 0xa, 0
     cStrErrorEndNotAfterThen db "Error: '", VT_91, "end", VT_END, "' not after '", VT_91, "then", VT_END, "'.", 0xd, 0xa, 0
+    cStrUnknownWord db "Error: unknown word '", VT_91, "%s", VT_END, "'", 0xd, 0xa, 0
+    cStrGenericError db "Error: generic error.", 0xd, 0xa, 0
 
     ; generic formats
     cStrDecimalFormatNL db "%d", 0xd, 0xa, 0
     cStrHexFormatNL db "%x", 0xd, 0xa, 0
+    cStrDebugToken db "Type %x, Start: %d, Length: %d", 0xd, 0xa, 0
+    cStrDebugTokenValue db "[Debug] Token value: %s", 0xd, 0xa, 0
+    cStrDebugTokenCount db 0xd, 0xa, "[Debug] Token count: %d", 0xd, 0xa, 0
+    cStrDebugTokenCurrentTokenIndex db "[Debug] Current token index: %d", 0xd, 0xa, 0
 
 section .text
     global _start
@@ -361,7 +375,7 @@ _start:
     push rbp
     mov rbp, rsp
     sub rsp, 8 ; reserve space on the stack for the token type
-    mov [rbp], word OperandLiteral ; initialize token type to 0
+    mov [rbp], word 0 ; initialize token type to 0
     
 
 .if_token_is_if:
@@ -441,6 +455,15 @@ _start:
     mov [rbp], word KeywordGStr
 .endif_token_is_gstr:
 
+    ; test if token type is 0
+    push rax
+    mov rax, [rbp]
+    cmp rax, 0
+    pop rax
+    jne .endif_token_type_is_not_zero
+    printf([hStdOut], cStrGenericError)
+
+.endif_token_type_is_not_zero:
     ; create a token
     ; r8 - offset in source code, token start
     ; r9 - token length
@@ -452,11 +475,20 @@ _start:
     add rbx, rax               ; add offset to pointer
     mov rax, [rbp]    ; token type
     and rax, 0xffff
-    mov [rbx + Token.TokenType], word ax ; token start
+    mov [rbx + Token.TokenType], word ax ; token type
     mov [rbx + Token.TokenStart], r8 ; token start
-    mov [rbx + Token.TokenLength], r9 ; token start
+    mov [rbx + Token.TokenLength], r9 ; token length
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r15
+
+    multipush r8, r9, rdi, rsi, rcx, rdx, r10, r11
+    mov r11, szSourceCode
+    add r8, r11
+    memcpy(ptrBuffer64, r8, r9)
+    inc rdi
+    mov byte [rdi], 0
+    printf([hStdOut], cStrDebugTokenValue, ptrBuffer64)
+    multipop r8, r9, rdi, rsi, rcx, rdx, r10, r11
 
     pop rbp
 
@@ -1025,27 +1057,28 @@ _start:
 %define NextToken() nextToken
 %macro nextToken 0
     add rdx, Token.size ; jump to next token
+    mov rbx, [tokenIndex]
     inc rbx
+    mov [tokenIndex], rbx
     jmp .while_counter_less_than_token_count
 %endmacro
 
-%define PushBlockToken(tokenType) pushBlockToken tokenType
-%macro pushBlockToken 1
+%define PushBlockToken(tokenType, scopeId) pushBlockToken tokenType, scopeId
+%macro pushBlockToken 2
     multipush rax, rbx, rdx
     mov rbx, blockStack
     mov rax, [blockCount]
-    mov rdx, BLOCK_ITEM_SIZE 
+    mov rdx, Block.size 
     mul rdx
-    add rbx, rax             ; rbx points to just after the top of the stack
-    mov [rbx], %1  ; push token type
-    inc qword [blockCount]   ; increment block count
+    add rbx, rax                          ; rbx points to just after the top of the stack
+    mov rax, [tokenIndex]
+    mov [rbx + Block.TokenIndex], rax
+    ; this is a bug, current scope needs to be passed as arg
+    mov rax, %2
+    mov [rbx + Block.BlockId], rax
+    mov [rbx + Block.TokenType], word %1  ; push token type
+    inc qword [blockCount]                ; increment block count
     multipop rax, rbx, rdx
-%endmacro
-
-; this will only decrement the block count
-%define QuickPopBlockToken() quickPopBlockToken
-%macro quickPopBlockToken 0
-    dec qword [blockCount]
 %endmacro
 
 %define PopBlockToken() popBlockToken
@@ -1054,10 +1087,9 @@ _start:
     mov rbx, blockStack
     dec qword [blockCount]   ; decrement block count
     mov rax, [blockCount]
-    mov rdx, BLOCK_ITEM_SIZE 
+    mov rdx, Block.size 
     mul rdx
-    add rbx, rax             ; rbx points to top of the stack
-    mov eax, dword [rbx]  ; load token type
+    add rax, rbx             ; rbx points to top of the stack
     multipop rbx, rdx
 %endmacro
 
@@ -1066,37 +1098,52 @@ _start:
     multipush rbx, rdx
     mov rbx, blockStack
     mov rax, [blockCount]
-    mov rdx, BLOCK_ITEM_SIZE 
+    mov rdx, Block.size 
     mul rdx
-    add rbx, rax             
-    sub rbx, BLOCK_ITEM_SIZE ; rbx points to top of the stack
-    mov eax, [rbx]  ; load token type
+    add rax, rbx
+    sub rax, Block.size ; rbx points to top of the stack
     multipop rbx, rdx
 %endmacro
 
+; this will only decrement the block count
+%define QuickPopBlockToken() dec qword [blockCount]
     WriteFile([hndDestFile], szHorizontalLine, szHorizontalLine.length, dwBytesWritten, 0)
-
+    push rbx
+    mov ebx, dword [dwTokenCount]
+    sprintf(ptrBuffer64, cStrDebugTokenCount, rbx)
+    pop rbx
+    WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
+ 
     ; iterate over tokens
     push rbp
     mov rbp, rsp
+    sub rsp, 0x10 ; reserve space on the stack for the token index
 
-    ; cannot directly move mem to mem
-    mov eax, [dwTokenCount]
-    mov [rbp], rax
     xor rbx, rbx ; counter
     mov rdx, tokenList
     
     ; initialize counters
     mov r10, 0
-    mov [wScopedBlockCount], r10
+    mov [wScopedBlockCurrentId], r10
 
 %define currentToken.Type word [rdx + Token.TokenType]
 %define currentToken.Start dword [rdx + Token.TokenStart]
 %define currentToken.Length dword [rdx + Token.TokenLength]
 
+    
+
 .while_counter_less_than_token_count:
-    cmp ebx, [rbp]
+    mov rbx, [tokenIndex]
+    ; printf([hStdOut], cStrHexFormatNL, rbx)
+    cmp ebx, [dwTokenCount]
     jge .end_counter_less_than_token_count
+
+    ; mov r10w, currentToken.Type
+    ; mov r11d, currentToken.Start
+    ; mov r12d, currentToken.Length
+    PushCallerSavedRegs()
+    printf([hStdOut], cStrDebugTokenCurrentTokenIndex, rbx)
+    PopCallerSavedRegs()
 
 .if_2:
     cmp currentToken.Type, defOperandAsmLiteral
@@ -1125,16 +1172,12 @@ _start:
 .then_3:
 
         PushCallerSavedRegs()
-        sprintf(ptrBuffer64, cStrIfLabelFormat, [wScopedBlockCount])
+        sprintf(ptrBuffer64, cStrIfLabelFormat, [wScopedBlockCurrentId])
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
 
-        mov cx, word [wScopedBlockCount]
-        shl rcx, 16
-        add cx, word defKeywordIf
-
-        PushBlockToken(ecx)
+        PushBlockToken(defKeywordIf, [wScopedBlockCurrentId])
         
-        inc word [wScopedBlockCount]
+        inc word [wScopedBlockCurrentId]
         PopCallerSavedRegs()
         NextToken()
 .endif_3:
@@ -1146,12 +1189,10 @@ _start:
         jne .endif_token_is_then_0
     .then_token_is_then_0:
         PushCallerSavedRegs()
-
         PeekBlockToken()
-        mov rcx, rax
-       ;printf([hStdOut], cStrDecimalFormatNL, rax)
+        mov rbx, [rax + Block.TokenType]
 .if_4:
-    cmp cx, KeywordIf
+    cmp rbx, KeywordIf
     je .endif_4
 .then_4:
 
@@ -1159,22 +1200,22 @@ _start:
             jmp .exit
 .endif_4:
 
-
+        
+        ; investigate why then has then_16777216
         ; todo - construct condition
-
-        shr rcx, 16 ; get block id
-        push rcx
-        sprintf(ptrBuffer64, cStrThenLabelFormat, rcx)
+        
+        mov bx, word [rax + Block.BlockId]
+        sprintf(ptrBuffer64, cStrThenLabelFormat, rbx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
-        pop rcx
-        shl rcx, 16 ; restore block id
-        add cx, word KeywordThen
-        PushBlockToken(ecx)
+        ; bx stores block id
+        mov cx, bx
+        PushBlockToken(KeywordThen, rcx)
 
         PopCallerSavedRegs()
         NextToken()
     .endif_token_is_then_0:
 
+    
     .if_token_is_end_0:
         cmp currentToken.Type, word KeywordEnd
         jne .endif_token_is_end_0
@@ -1182,9 +1223,9 @@ _start:
         PushCallerSavedRegs()
 
         PeekBlockToken()
-        mov rcx, rax
+        mov rbx, [rax + Block.TokenType]
 .if_5:
-    cmp cx, KeywordThen
+    cmp bx, KeywordThen
     je .endif_5
 .then_5:
 
@@ -1193,8 +1234,9 @@ _start:
 .endif_5:
 
 
-        shr rcx, 16 ; get block id
-        sprintf(ptrBuffer64, cStrEndLabelFormat, rcx)
+        mov bx, word [rax + Block.BlockId]
+        and rbx, 0xffff
+        sprintf(ptrBuffer64, cStrEndLabelFormat, rbx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
         QuickPopBlockToken() ; pop 'then'
         QuickPopBlockToken() ; pop 'if'
@@ -1202,8 +1244,26 @@ _start:
         PopCallerSavedRegs()
         NextToken()
     .endif_token_is_end_0:
-        
-    nextToken
+
+    mov r10w, currentToken.Type
+    mov r11d, currentToken.Start
+    mov r12d, currentToken.Length
+
+    printf([hStdOut], cStrDebugToken, r10, r11, r12)
+
+.t:
+    push rax
+    mov rax, szSourceCode
+    add r11, rax
+    memcpy(ptrBuffer64, r11, r12)
+    mov rax, ptrBuffer64
+    add rax, r12
+    mov byte [rax], 0
+
+    printf([hStdOut], cStrUnknownWord, ptrBuffer64)
+    pop rax
+
+    NextToken()
 .end_counter_less_than_token_count:
 
 %undef currentToken.Type
@@ -1236,7 +1296,6 @@ _start:
     mov rdx, cStrPrintTokenFormat
     mov r8, [r14 + Token.TokenStart]
     mov r9, [r14 + Token.TokenLength]
-.t:
     push r14
     mov r13, szSourceCode
     add r13, r8
