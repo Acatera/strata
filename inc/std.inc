@@ -132,7 +132,6 @@ strcpy:
     mov rsi, rdx ; src
     mov rcx, r8 ; num bytes
     rep movsb   ; rep
-    inc rdi
     mov byte [rdi], 0
 .end:
     ret

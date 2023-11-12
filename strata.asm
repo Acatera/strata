@@ -91,7 +91,7 @@ struc Block
     .size equ $ - .TokenIndex
 endstruc
 
-%define MAX_TOKEN_COUNT 1024
+%define MAX_TOKEN_COUNT 1024 * 16
 
 %define BLOCK_ITEM_SIZE 8
 section .bss
@@ -352,7 +352,6 @@ _start:
 
     printf([hStdOut], cStrCompileMessageFormat, szSourceFile)
 
-
 .start_parsing_source_code:
     ; reset offset
     xor r8, r8          ; token start
@@ -583,8 +582,6 @@ _start:
     _reset_counters_
 .endif_keyword_gstr:
 
-    ; jg .error
-
     ; multipush r8, r9, rdi
     ; WriteFile([hndDestFile], r10, r9, dwBytesWritten, 0)
     ; multipop r8, r9, rdi
@@ -671,9 +668,6 @@ _start:
     multipop rax, rbx, rcx, rdx, r10, r14
 
     jmp .read_token_loop
-
-.error:
-    WriteConsoleA([hStdOut], szGenericError, szGenericError.length, 0)
 
 .source_code_parsed:
 %define NextToken() nextToken
@@ -1006,7 +1000,6 @@ compile_condition_3:
     mov r11, [rbx + Token.TokenStart]
     mov r12, [rbx + Token.TokenLength]
     add r10, r11
-
     strcpy(ptrBuffer64, r10, r12)
 
     add rbx, Token.size * 2 ; advance to second operand
@@ -1014,12 +1007,11 @@ compile_condition_3:
     mov r11, [rbx + Token.TokenStart]
     mov r12, [rbx + Token.TokenLength]
     add r10, r11
-
     strcpy(ptr2Buffer64, r10, r12)
 
     sprintf(ptrBuffer256, cStrCmpFormat, ptrBuffer64, ptr2Buffer64)
 
-    ; write first operand
+    ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
    
     ; write operator
@@ -1101,10 +1093,6 @@ compile_condition_3:
     ret
 
 section .data
-    szFileReadError db "Error reading file. Error code:"
-    szFileReadError.length equ $ - szFileReadError
-    szGenericError db "Generic error."
-    szGenericError.length equ $ - szGenericError
     szStrataFileExtension db ".strata"
     szStrataFileExtension.length equ $ - szStrataFileExtension
     szAsmFileExtension db ".asm"
