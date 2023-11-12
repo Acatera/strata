@@ -160,7 +160,7 @@ section .data
     cStrIfLabelFormat db 0xd, 0xa, ".if_%d:", 0xd, 0xa, 0
     cStrThenLabelFormat db ".then_%d:", 0xd, 0xa, 0
     cStrEndLabelFormat db 0xd, 0xa, ".endif_%d:", 0xd, 0xa, 0
-    cStrEndLabelFormatForJump db ".endif_%d:", 0
+    cStrEndLabelFormatForJump db ".endif_%d", 0
     cStrCmpFormat db "    cmp %s, %s", 0xd, 0xa, 0
     cStrJmpEquals db "    jne %s", 0xd, 0xa, 0
     cStrJmpNotEquals db "    je %s", 0xd, 0xa, 0
