@@ -136,78 +136,15 @@ section .data
     chDoubleQuote equ 0x22
     chComma equ 0x2c
     wScopedBlockCurrentId dw 0
-    
-    szIfLabel db 0xd, 0xa, ".if_"
-    szIfLabelLength equ $ - szIfLabel
-    szThenLabel db 0xd, 0xa, ".then_"
-    szThenLabelLength equ $ - szThenLabel
-    szEndLabel db 0xd, 0xa, ".endif_"
-    szEndLabelLength equ $ - szEndLabel
     argCount dq 0
-    endline db 0xd, 0xa
-    szSectionData db "section .data", 0xd, 0xa
-    szSectionDataLength equ $ - szSectionData
-
-    cStrPrintTokenFormat db " TokenStart: %d, Length: %d, Token: ", 0
-    cStrPrintTokenValueFormat db "%s", 0xd, 0xa, 0
-
-    cStrInputFileMessage db "[Debug] Input file %s", 0xd, 0xa, 0
-    cStrOutputFileMessage db "[Debug] Output file %s", 0xd, 0xa, 0
-    cStrCompileMessageFormat db "Compiling file %s...", 0xd, 0xa, 0
-    cStrDoneCompiling db "Done compiling.", 0xd, 0xa, 0
-    cStrAssemblyMessage db "[INFO] nasm -f win64 -g %s.asm -o %s.o -w+all -w+error", 0xd, 0xa, 0
-    cStrAssemblyApplication db "nasm.exe", 0
-    cStrAssemblyCommand db "nasm.exe -f win64 -g %s.asm -o %s.o -w+all -w+error", 0
-    cStrLinkingMessage db "[INFO] ld -e _start %s.o -o %s.exe -lkernel32 -lWs2_32 -Llib", 0xd, 0xa, 0
-    cStrLinkingCommand db "ld -e _start %s.o -o %s.exe -lkernel32 -lWs2_32 -Llib", 0
-    cStrGeneratedMessage db "[INFO] Generated %s.exe", 0xd, 0xa, 0
-
-    ; filenames
-    cStrObjectFile db "%s.o", 0
 
     ; asm output 
-    cStrIfLabelFormat db 0xd, 0xa, ".if_%d:", 0xd, 0xa, 0
-    cStrThenLabelFormat db ".then_%d:", 0xd, 0xa, 0
-    cStrEndLabelFormat db 0xd, 0xa, ".endif_%d:", 0xd, 0xa, 0
-    cStrEndLabelFormatForJump db ".endif_%d", 0
-    cStrCmpFormat db "    cmp %s, %s", 0xd, 0xa, 0
-    cStrJmpEquals db "    jne %s", 0xd, 0xa, 0
-    cStrJmpNotEquals db "    je %s", 0xd, 0xa, 0
-    cStrJmpLess db "    jge %s", 0xd, 0xa, 0
-    cStrJmpLessOrEqual db "    jg %s", 0xd, 0xa, 0
-    cStrJmpGreater db "    jle %s", 0xd, 0xa, 0
-    cStrJmpGreaterOrEqual db "    jl %s", 0xd, 0xa, 0
-    cStrStringLiteral db "roStr_%d", 0
-    cStrReadOnlySectionHeader db "section .rdata", 0xd, 0xa, 0
+    cStrReadOnlySectionHeader db "section .rodata", 0xd, 0xa, 0
     cStrReadOnlySectionHeaderLength equ $ - cStrReadOnlySectionHeader - 1
-    cStrReadOnlySectionEntry db "    roStr_%d db %s, 0", 0xd, 0xa, 0
 
     ; error messages
-    cStrFileOpenError db "Error opening file '%s'. Error code: %d", 0
-    cStrFileReadError db "Error reading file '%s'. Error code: %d", 0
-    cStrErrorThenNotAfterIf db "Error: '", VT_91, "then", VT_END, "' not after '", VT_91, "if", VT_END, "'.", 0xd, 0xa, 0
-    cStrErrorEndNotAfterThen db "Error: '", VT_91, "end", VT_END, "' not after '", VT_91, "then", VT_END, "'.", 0xd, 0xa, 0
-    cStrUnknownWord db "Error: unknown word '", VT_91, "%s", VT_END, "'", 0xd, 0xa, 0
-    cStrGenericError db "Error: generic error.", 0xd, 0xa, 0
-    cStrErrorUnsupportedIfCondition db "Error: Unsupported if condition. Found %d tokens", 0xd, 0xa, 0
-    cStrErrorUnsupportedOperator db "Error: Unsupported operator: %d", 0xd, 0xa, 0
-    cStrErrorAssembling db "Error: Assembling failed.", 0xd, 0xa, 0
-    cStrErrorLinking db "Error: Linking failed.", 0xd, 0xa, 0
-    cStrErrorStringListFull db "Error: String list full.", 0xd, 0xa, 0
-
-    ; generic formats
-    cStrInfoString db "[INFO] %s", 0xd, 0xa, 0
-    cStrDecimalFormatNL db "%d", 0xd, 0xa, 0
-    cStrHexFormatNL db "%x", 0xd, 0xa, 0
-    cStrDebugToken db "Type %x, Start: %d, Length: %d", 0xd, 0xa, 0
-    cStrDebugTokenValue db "[Debug] Token value: %s", 0xd, 0xa, 0
-    cStrDebugTokenCount db 0xd, 0xa, "[Debug] Token count: %d", 0xd, 0xa, 0
-    cStrDebugTokenCurrentTokenIndex db "[Debug] Current token index: %d", 0xd, 0xa, 0
-
-    ;junk 
-    cStrDebugWritingExpression db "Writing expression -------------", 0xd, 0xa, 0
-    cStrDebugToken2 db "Writing token to file: start: %d, length: %d", 0xd, 0xa, 0
-    cStrpush_string_literal db "push_string_literal", 0xd, 0xa, 0
+    ; cStrErrorThenNotAfterIf db "Error: '", VT_91, "then", VT_END, "' not after '", VT_91, "if", VT_END, "'.", 0xd, 0xa, 0
+    ; cStrErrorEndNotAfterThen db "Error: '", VT_91, "end", VT_END, "' not after '", VT_91, "then", VT_END, "'.", 0xd, 0xa, 0
 
 section .text
     global _start
@@ -296,8 +233,8 @@ _start:
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
 
     ; print input and output file names
-    printf([hStdOut], cStrInputFileMessage, szSourceFile)
-    printf([hStdOut], cStrOutputFileMessage, szDestFile)
+    printf([hStdOut], `"[INFO] Input file '%s'\r\n"`, szSourceFile)
+    printf([hStdOut], `"[INFO] Output file '%s'\r\n"`, szDestFile)
 
 
     ; Preparing the parameters for CreateFileA to open a file for reading
@@ -315,7 +252,7 @@ _start:
     ; Check if the file handle is valid`
 if rax < 0 then
 `   call GetLastError
-    printf([hStdOut], cStrFileOpenError, szSourceFile, rax)
+    printf([hStdOut], `"[ERROR] Error opening file '%s'. Error code: %d\r\n"`, szSourceFile, rax)
     ExitProcess(1)`
 end `
 
@@ -334,7 +271,7 @@ end `
     ; Check if the function succeeded`
 if rax == 0 then
 `   call GetLastError
-    printf([hStdOut], cStrFileReadError, rax)
+    printf([hStdOut], `"[ERROR] Error reading file '%s'. Error code: %d\r\n"`, rax)
     ExitProcess(1)`
 end `
 
@@ -353,14 +290,14 @@ end `
     ; Check if the function succeeded`
 if rax < 0 then
 `   call GetLastError
-    printf([hStdOut], cStrFileOpenError, szDestFile, rax)
+    printf([hStdOut], `"[ERROR] Error opening file '%s'. Error code: %d\r\n"`, szDestFile, rax)
     ExitProcess(1)`
 end `
 
     mov [hndDestFile], rax
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
 
-    printf([hStdOut], cStrCompileMessageFormat, szSourceFile)
+    printf([hStdOut], `"[INFO] Compiling file '%s'...\r\n"`, szSourceFile)
 
 .init_string_literal_buffer:
     ; initialize string count
@@ -509,7 +446,6 @@ end `
     cmp rax, 0
     pop rax
     jne .endif_token_type_is_not_zero
-    ; printf([hStdOut], cStrGenericError)
 
 .endif_token_type_is_not_zero:
     ; create a token
@@ -529,23 +465,9 @@ end `
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r15
 
-    ; multipush r8, r9, rdi, rsi, rcx, rdx, r10, r11
-    ; mov r11, szSourceCode
-    ; add r8, r11
-    ; memcpy(ptrBuffer64, r8, r9)
-    ; inc rdi
-    ; mov byte [rdi], 0
-    ; printf([hStdOut], cStrDebugTokenValue, ptrBuffer64)
-    ; multipop r8, r9, rdi, rsi, rcx, rdx, r10, r11
-
     pop rbp
 
     add rsp, 8 ; restore stack pointer
-
-    ; multipush r8, r9, rdi
-    ; WriteFile([hndDestFile], r10, r9, dwBytesWritten, 0)
-    ; multipop r8, r9, rdi
-    ; end of temporary
 
 .advance_token:
     ; advance token start and reset token length
@@ -687,7 +609,7 @@ end `
     ; todo - remove this temp code
     push rbx
     mov ebx, dword [dwTokenCount]
-    printf([hStdOut], cStrDebugTokenCount, rbx)
+    printf([hStdOut], `"[DEBUG] Found %d tokens.\r\n"`, rbx)
     pop rbx
     ; end of temp code
 
@@ -709,7 +631,6 @@ end `
 
 .while_counter_less_than_token_count:
     mov rbx, [tokenIndex]
-    ; printf([hStdOut], cStrHexFormatNL, rbx)
     cmp ebx, [dwTokenCount]
     jge .end_counter_less_than_token_count
 
@@ -719,7 +640,7 @@ end `
 
 %ifdef DEBUG    
     PushCallerSavedRegs()
-    printf([hStdOut], cStrDebugTokenCurrentTokenIndex, rbx)
+    printf([hStdOut], `"[DEBUG] Current token index: %d\r\n"`, rbx)
     PopCallerSavedRegs()
 %endif
 `
@@ -743,7 +664,7 @@ end `
     ` ; keyword 'if'`
     if currentToken.Type == defKeywordIf then `
         PushCallerSavedRegs()
-        sprintf(ptrBuffer64, cStrIfLabelFormat, [wScopedBlockCurrentId])
+        sprintf(ptrBuffer64, `"\r\n.if_%d:\r\n"`, [wScopedBlockCurrentId])
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
 
         PushBlockToken(defKeywordIf, [wScopedBlockCurrentId])
@@ -763,11 +684,11 @@ end `
         mov rbx, [rax + Block.TokenType]
 
 %ifdef DEBUG
-        printf([hStdOut], cStrHexFormatNL, rbx)
+        printf([hStdOut], `"[DEBUG] .if_token_is_then_0 - rbx %x\r\n"`, rbx)
 %endif
         `
         if bx != KeywordIf then `
-            printf([hStdOut], cStrErrorThenNotAfterIf, szSourceFile)
+            printf([hStdOut], `"[ERROR] Keyword 'then' is not after 'if'\r\n"`, szSourceFile)
             jmp .exit`
         end `
         
@@ -780,7 +701,7 @@ end `
         sub r10d, r11d ; r10d stores number of tokens in if condition
         `
         if r10d != 3 then `
-            printf([hStdOut], cStrErrorUnsupportedIfCondition, r10)
+            printf([hStdOut], `"[ERROR] Unsupported 'if' condition. Expected 3 tokens, found %d\r\n"`, r10)
             jmp .exit`
         end `
 
@@ -796,7 +717,7 @@ end `
         
         mov bx, word [rax + Block.BlockId]
         and rbx, 0xffff
-        sprintf(ptrBuffer64, cStrThenLabelFormat, rbx)
+        sprintf(ptrBuffer64, `".then_%d:\r\n"`, rbx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
         ; bx stores block id
         mov cx, bx
@@ -816,13 +737,13 @@ end `
         PeekBlockToken()
         mov rbx, [rax + Block.TokenType]`
         if bx != KeywordThen then `
-            printf([hStdOut], cStrErrorEndNotAfterThen, szSourceFile)
+            printf([hStdOut], `"[ERROR] Keyword 'end' is not after 'then'\r\n"`, szSourceFile)
             jmp .exit`
         end `
 
         mov bx, word [rax + Block.BlockId]
         and rbx, 0xffff
-        sprintf(ptrBuffer64, cStrEndLabelFormat, rbx)
+        sprintf(ptrBuffer64, `"\r\n.endif_%d:\r\n"`, rbx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
         QuickPopBlockToken() ; pop 'then'
         QuickPopBlockToken() ; pop 'if'
@@ -839,7 +760,7 @@ end `
         PushCallerSavedRegs()
 
         push rdx
-        sprintf(ptrBuffer64, cStrStringLiteral, [dwStringCount])
+        sprintf(ptrBuffer64, `"roStr_%d"`, [dwStringCount])
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
         pop rdx
 
@@ -857,7 +778,7 @@ end `
     mov r11d, currentToken.Start
     mov r12d, currentToken.Length
 
-    printf([hStdOut], cStrDebugToken, r10, r11, r12)
+    printf([hStdOut], `"[DEBUG] Token type %x; start: %d; length: %d\r\n"`, r10, r11, r12)
 
     push rax
     mov rax, szSourceCode
@@ -867,7 +788,7 @@ end `
     add rax, r12
     mov byte [rax], 0
 
-    printf([hStdOut], cStrUnknownWord, ptrBuffer64)
+    printf([hStdOut], `"[ERROR] Unknown token '%s'\r\n"`, ptrBuffer64)
     pop rax
 %endif
 
@@ -885,7 +806,7 @@ end `
     mov rcx, [hndDestFile]
     call CloseHandle
 
-    printf([hStdOut], cStrDoneCompiling, szSourceFile)
+    printf([hStdOut], `"[INFO] Done compiling.\r\n"`, szSourceFile)
 
     jmp .assemble_object_file
 
@@ -893,8 +814,8 @@ end `
     ExitProcess(0)
     
 .assemble_object_file:
-    sprintf(ptrBuffer256, cStrAssemblyCommand, szFilenameWithoutExtension, szFilenameWithoutExtension)
-    printf([hStdOut], cStrInfoString, ptrBuffer256)
+    sprintf(ptrBuffer256, `"nasm.exe -f win64 -g %s.asm -o %s.o -w+all -w+error"`, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    printf([hStdOut], `"[INFO] Assembling using 'nasm':\r\n\t%s\r\n"`, ptrBuffer256)
 
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
@@ -917,12 +838,12 @@ end `
     call CreateProcessA
     add rsp, 0x20 + 7 * 0x8`
     if rax != 1 then `
-        printf([hStdOut], cStrErrorAssembling)
+        printf([hStdOut], `"[ERROR] Assembling failed."`)
         ExitProcess(1)`
     end `
 
-    sprintf(ptrBuffer256, cStrLinkingCommand, szFilenameWithoutExtension, szFilenameWithoutExtension)
-    printf([hStdOut], cStrInfoString, ptrBuffer256)
+    sprintf(ptrBuffer256, `"ld -e _start %s.o -o %s.exe -lkernel32 -lWs2_32 -Llib"`, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    printf([hStdOut], `"[INFO] Linking using 'ld':\r\n\t%s\r\n"`, ptrBuffer256)
     
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
@@ -945,13 +866,13 @@ end `
     call CreateProcessA
     add rsp, 0x20 + 7 * 0x8`
         if rax != 1 then `
-        printf([hStdOut], cStrErrorLinking)
+        printf([hStdOut], `"[ERROR] Linking failed."`)
         ExitProcess(1)`
     end `
 
     ; todo - delete object file
 
-    printf([hStdOut], cStrGeneratedMessage, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    printf([hStdOut], `"[INFO] Generated %s.exe"`, szFilenameWithoutExtension, szFilenameWithoutExtension)
     jmp .exit
 
 ; this routine will save a string literal to the string list
@@ -963,16 +884,13 @@ push_string_literal:
     add r15, rcx
     mov r14, rdx
 
-    ; strcpy(ptrBuffer64, r15, r14)
-    ; printf([hStdOut], cStrInfoString, ptrBuffer64)
-
     ; todo - check if string literal already exists
 
     ; load next available string list pointer into rax
     mov rax, [dwStringCount]`
 
     if rax >= CONST_STRING_COUNT then `
-        printf([hStdOut], cStrErrorStringListFull)
+        printf([hStdOut], `"[ERROR]: String list full. Max strings allowed: %d\r\n"`, CONST_STRING_COUNT)
         ExitProcess(1)`
     end `
 
@@ -1025,9 +943,7 @@ write_string_list:
 .do_not_less_than_0:   
     mov r14, [r15]
 
-    ; printf([hStdOut], cStrReadOnlySectionEntry, r14)
-
-    sprintf(ptrBuffer256, cStrReadOnlySectionEntry, r13, r14)
+    sprintf(ptrBuffer256, `"    roStr_%d db %s, 0\r\n"`, r13, r14)
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
     dec r13
@@ -1048,9 +964,6 @@ write_string_list:
 ; rcx must hold the token index of the first token of the if condition
 ; rdx must hold the scope id of the current scope
 compile_condition_3:
-%ifdef DEBUG
-    printf([hStdOut], cStrDebugWritingExpression)
-%endif
     push rbp
     mov rbp, rsp
     sub rsp, 0x10 ; reserve space on the stack for the token index
@@ -1079,7 +992,7 @@ compile_condition_3:
     add r10, r11
     strcpy(ptr2Buffer64, r10, r12)
 
-    sprintf(ptrBuffer256, cStrCmpFormat, ptrBuffer64, ptr2Buffer64)
+    sprintf(ptrBuffer256, `"    cmp %s, %s\r\n"`, ptrBuffer64, ptr2Buffer64)
 
     ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
@@ -1089,42 +1002,40 @@ compile_condition_3:
     mov r10, [rbx - Token.TokenType]
     and r10, 0xffff
 
-    ; printf([hStdOut], cStrHexFormatNL, r10)
     mov r13, [rbp - 0x8] ; r13 stores scope id
-    sprintf(ptrBuffer64, cStrEndLabelFormatForJump, r13)
-    ; printf([hStdOut], cStrDebugTokenValue, ptrBuffer64)
+    sprintf(ptrBuffer64, `".endif_%d"`, r13)
     `
     if r10 == OperatorEquals then `
-        sprintf(ptrBuffer256, cStrJmpEquals, ptrBuffer64)
+        sprintf(ptrBuffer256, `"    jne %s\r\n"`, ptrBuffer64)
         jmp .valid_operator_found`
     end 
 
     if r10 == OperatorNotEquals then `
-        sprintf(ptrBuffer256, cStrJmpNotEquals, ptrBuffer64)
+        sprintf(ptrBuffer256, `"    je %s\r\n"`, ptrBuffer64)
         jmp .valid_operator_found`
     end
     
     if r10 == OperatorLess then `
-        sprintf(ptrBuffer256, cStrJmpLess, ptrBuffer64)
+        sprintf(ptrBuffer256, `"    jge %s\r\n"`, ptrBuffer64)
         jmp .valid_operator_found`
     end
     
     if r10 == OperatorLessOrEqual then `
-        sprintf(ptrBuffer256, cStrJmpLessOrEqual, ptrBuffer64)
+        sprintf(ptrBuffer256, `"    jg %s\r\n"`, ptrBuffer64)
         jmp .valid_operator_found`
     end
     
     if r10 == OperatorGreater then `
-        sprintf(ptrBuffer256, cStrJmpGreater, ptrBuffer64)
+        sprintf(ptrBuffer256, `"    jle %s\r\n"`, ptrBuffer64)
         jmp .valid_operator_found`
     end
     
     if r10 == OperatorGreaterOrEqual then `
-        sprintf(ptrBuffer256, cStrJmpGreaterOrEqual, ptrBuffer64)
+        sprintf(ptrBuffer256, `"    jl %s\r\n"`, ptrBuffer64)
         jmp .valid_operator_found`
     end `
 
-    printf([hStdOut], cStrErrorUnsupportedOperator, r10)
+    printf([hStdOut], `"Error: Unsupported operator: %d"`, r10)
     ExitProcess(1)
 
 .valid_operator_found:
