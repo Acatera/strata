@@ -9,6 +9,7 @@ section .bss
     itoh_buffer resb 32
     sprintfBuffer resb 32
     printfBuffer resb 128
+    escapeBuffer resb 128
 
 section d.data    
     itoh_digits db "0123456789abcdef"
@@ -564,9 +565,12 @@ strlen:
 ;-------------------------------------------------------------------------------------------------------------
 %define sprintf(buf, fmt, a) _sprintf3_ buf, fmt, a
 %macro _sprintf3_ 3
+    mov rdx, %2
+    mov rcx, escapeBuffer
+    call escape
     sub rsp, 0x20
     mov r8,  %3
-    mov rdx, %2
+    mov rdx, escapeBuffer
     mov rcx, %1
     call sprintf
     add rsp, 0x20
@@ -574,10 +578,13 @@ strlen:
 
 %define sprintf(buf, fmt, a, b) _sprintf4_ buf, fmt, a, b
 %macro _sprintf4_ 4
+    mov rdx, %2
+    mov rcx, escapeBuffer
+    call escape
     sub rsp, 0x20
     mov r9,  %4
     mov r8,  %3
-    mov rdx, %2
+    mov rdx, escapeBuffer
     mov rcx, %1
     call sprintf
     add rsp, 0x20
@@ -588,6 +595,9 @@ strlen:
     multipush rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
     sub rsp, 0x20
     mov rdx, %2
+    mov rcx, escapeBuffer
+    call escape
+    mov rdx, escapeBuffer
     mov rcx, printfBuffer
     call sprintf
     add rsp, 0x20
@@ -599,8 +609,11 @@ strlen:
 %macro printf3 3
     multipush rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
     sub rsp, 0x20
-    mov r8,  %3
     mov rdx, %2
+    mov rcx, escapeBuffer
+    call escape
+    mov r8,  %3
+    mov rdx, escapeBuffer
     mov rcx, printfBuffer
     call sprintf
     add rsp, 0x20
@@ -612,9 +625,12 @@ strlen:
 %macro printf4 4
     PushCallerSavedRegs()
     sub rsp, 0x20
+    mov rdx, %2
+    mov rcx, escapeBuffer
+    call escape
     mov r9,  %4
     mov r8,  %3
-    mov rdx, %2
+    mov rdx, escapeBuffer
     mov rcx, printfBuffer
     call sprintf
     add rsp, 0x20
@@ -625,11 +641,14 @@ strlen:
 %define printf(hnd, fmt, a, b, c) printf5 hnd, fmt, a, b, c
 %macro printf5 5
     multipush rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
+    mov rdx, %2
+    mov rcx, escapeBuffer
     push %5
     sub rsp, 0x20
+    call escape
     mov r9,  %4
     mov r8,  %3
-    mov rdx, %2
+    mov rdx, escapeBuffer
     mov rcx, printfBuffer
     call sprintf
     add rsp, 0x20 + 8
@@ -821,3 +840,115 @@ sprintf:
     ; tear down stack frame
     pop rbp
     ret
+
+
+
+%define escape(dest, src) _escape dest, src
+%macro _escape 2
+    mov rcx, %1
+    mov rdx, %2
+    call escape
+%endmacro
+
+escape:
+    PushCalleeSavedRegs()
+
+    mov rdi, rcx
+    mov rsi, rdx
+    xor rax, rax
+
+.while:
+    cmp byte [rsi], NULL
+    je .end_while
+.do:
+    
+.if_backslash:
+    cmp byte [rsi], '\'
+    jne .end_backslash
+.then_backslash:
+    cmp byte [rsi + 1], NULL
+    je .end_while
+    ; \r: Carriage return
+    cmp byte [rsi + 1], 'r'
+    jne .else_newline
+    mov byte [rdi], 13
+    add rsi, 2
+    add rdi, 1
+    inc rax
+    jmp .while
+
+.else_newline:
+    ; \n: New line
+    cmp byte [rsi + 1], 'n'
+    jne .else_tab
+    mov byte [rdi], 10
+    add rsi, 2
+    add rdi, 1
+    inc rax
+    jmp .while
+
+.else_tab:
+    ; \t: Horizontal tab
+    cmp byte [rsi + 1], 't'
+    jne .else_backspace
+    mov byte [rdi], 9
+    add rsi, 2
+    add rdi, 1
+    inc rax
+    jmp .while
+
+.else_backspace:
+    ; \b: Backspace
+    cmp byte [rsi + 1], 'b'
+    jne .else_null_char
+    mov byte [rdi], 8
+    add rsi, 2
+    add rdi, 1
+    inc rax
+    jmp .while
+
+.else_null_char:
+    ; \0: Null character (terminates a string)
+    cmp byte [rsi + 1], '0'
+    jne .else_backslash
+    mov byte [rdi], 0
+    add rsi, 2
+    add rdi, 1
+    inc rax
+    jmp .while
+
+.else_backslash:
+    ; \\: Backslash (\)
+    cmp byte [rsi + 1], '\'
+    jne .else_double_quotes
+    mov byte [rdi], '\'
+    add rsi, 2
+    add rdi, 1
+    inc rax
+    jmp .while
+
+.else_double_quotes:
+    ; \": Double quotation mark (")
+    cmp byte [rsi + 1], '"'
+    jne .else_undefined_escape_sequence
+    mov byte [rdi], '"'
+    add rsi, 2
+    add rdi, 1
+    inc rax
+    jmp .while
+.else_undefined_escape_sequence:
+
+.end_backslash:    
+
+.undefined_escape_sequence:
+
+    movsb
+    inc rax
+    jmp .while
+.end_while:    
+
+    mov byte [rdi], NULL ; Null-terminate the string
+
+.end:
+    PopCalleeSavedRegs()
+    ret    
