@@ -98,7 +98,8 @@ section .bss
     ptrBuffer256 resb MED_BUFFER_SIZE
     blockStack resb 256 * Block.size ; todo - revisit this
     blockCount resq 1
-
+    lpProcessInformation resb 24
+    lpStartupInfo resb 104
     tokenList resq MAX_TOKEN_COUNT * Token.size
     dwTokenCount resd 1
 
@@ -108,6 +109,7 @@ section .bss
     dwBytesWritten resd 1
     szSourceFile resb 256
     szDestFile resb 256
+    szFilenameWithoutExtension resb 256
 
 section .data
     tokenIndex dq 0
@@ -134,11 +136,19 @@ section .data
     cStrPrintTokenFormat db " TokenStart: %d, Length: %d, Token: ", 0
     cStrPrintTokenValueFormat db "%s", 0xd, 0xa, 0
 
-    cStrSourceFile db "%s.strata", 0
     cStrInputFileMessage db "[Debug] Input file %s", 0xd, 0xa, 0
     cStrOutputFileMessage db "[Debug] Output file %s", 0xd, 0xa, 0
     cStrCompileMessageFormat db "Compiling file %s...", 0xd, 0xa, 0
     cStrDoneCompiling db "Done compiling.", 0xd, 0xa, 0
+    cStrAssemblyMessage db "[INFO] nasm -f win64 -g %s.asm -o %s.o -w+all -w+error", 0xd, 0xa, 0
+    cStrAssemblyApplication db "nasm.exe", 0
+    cStrAssemblyCommand db "nasm.exe -f win64 -g %s.asm -o %s.o -w+all -w+error", 0
+    cStrLinkingMessage db "[INFO] ld -e _start %s.o -o %s.exe -lkernel32 -lWs2_32 -Llib", 0xd, 0xa, 0
+    cStrLinkingCommand db "ld -e _start %s.o -o %s.exe -lkernel32 -lWs2_32 -Llib", 0
+    cStrGeneratedMessage db "[INFO] Generated %s.exe", 0xd, 0xa, 0
+
+    ; filenames
+    cStrObjectFile db "%s.o", 0
 
     ; asm output 
     cStrIfLabelFormat db 0xd, 0xa, ".if_%d:", 0xd, 0xa, 0
@@ -162,8 +172,11 @@ section .data
     cStrGenericError db "Error: generic error.", 0xd, 0xa, 0
     cStrErrorUnsupportedIfCondition db "Error: Unsupported if condition. Found %d tokens", 0xd, 0xa, 0
     cStrErrorUnsupportedOperator db "Error: Unsupported operator: %d", 0xd, 0xa, 0
+    cStrErrorAssembling db "Error: Assembling failed.", 0xd, 0xa, 0
+    cStrErrorLinking db "Error: Linking failed.", 0xd, 0xa, 0
 
     ; generic formats
+    cStrInfoString db "[INFO] %s", 0xd, 0xa, 0
     cStrDecimalFormatNL db "%d", 0xd, 0xa, 0
     cStrHexFormatNL db "%x", 0xd, 0xa, 0
     cStrDebugToken db "Type %x, Start: %d, Length: %d", 0xd, 0xa, 0
@@ -180,8 +193,11 @@ section .text
     extern CreateFileA
     extern ReadFile
     extern WriteFile
+    extern CloseHandle
+    extern DeleteFile
     extern GetLastError
     extern GetCommandLineA
+    extern CreateProcessA
 
 _start:
     sub rsp, 32
@@ -242,7 +258,10 @@ _start:
     push r14
     memcpy(szSourceFile, r14, r13)
     pop r14
+    push r14
     memcpy(szDestFile, r14, r13)
+    pop r14
+    strcpy(szFilenameWithoutExtension, szSourceFile, r13)
     
     mov r14, szSourceFile
     add r14, r13
@@ -811,9 +830,12 @@ end `
 
     pop rbp
 
+    mov rcx, [hndDestFile]
+    call CloseHandle
+
     printf([hStdOut], cStrDoneCompiling, szSourceFile)
 
-    jmp .exit
+    jmp .assemble_object_file
 
 .print_tokens:
     mov r15, 0
@@ -851,6 +873,66 @@ end `
 .exit:
     ExitProcess(0)
     
+.assemble_object_file:
+    sprintf(ptrBuffer256, cStrAssemblyCommand, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    printf([hStdOut], cStrInfoString, ptrBuffer256)
+
+    memset(lpProcessInformation, 0, 24)
+    memset(lpStartupInfo, 0, 104)
+
+    mov rax, lpProcessInformation
+    mov rbx, lpStartupInfo
+    mov [rbx], dword 104
+    and rsp, 0xfffffffffffffff0
+    push     rax                        ; lpProcessInformation   
+    push     rbx                        ; lpStartupInfo  
+    push     NULL                       ; lpCurrentDirectory
+    push     NULL                       ; lpEnvironment
+    push     0x00000000                 ; dwCreationFlags
+    push     0x00000000                 ; bInheritHandles
+    sub rsp, 0x20
+    mov r9,  NULL                       ; lpThreadAttributes
+    mov r8,  NULL                       ; lpProcessAttributes
+    mov rdx, ptrBuffer256                       ; lpCommandLine
+    mov rcx, NULL
+    call CreateProcessA
+    add rsp, 0x20 + 7 * 0x8`
+    if rax != 1 then `
+        printf([hStdOut], cStrErrorAssembling)
+        ExitProcess(1)`
+    end `
+
+    sprintf(ptrBuffer256, cStrLinkingCommand, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    printf([hStdOut], cStrInfoString, ptrBuffer256)
+    
+    memset(lpProcessInformation, 0, 24)
+    memset(lpStartupInfo, 0, 104)
+
+    mov rax, lpProcessInformation
+    mov rbx, lpStartupInfo
+    mov [rbx], dword 104
+    and rsp, 0xfffffffffffffff0
+    push     rax                        ; lpProcessInformation   
+    push     rbx                        ; lpStartupInfo  
+    push     NULL                       ; lpCurrentDirectory
+    push     NULL                       ; lpEnvironment
+    push     0x00000000                 ; dwCreationFlags
+    push     0x00000000                 ; bInheritHandles
+    sub rsp, 0x20
+    mov r9,  NULL                       ; lpThreadAttributes
+    mov r8,  NULL                       ; lpProcessAttributes
+    mov rdx, ptrBuffer256                       ; lpCommandLine
+    mov rcx, NULL
+    call CreateProcessA
+    add rsp, 0x20 + 7 * 0x8`
+        if rax != 1 then `
+        printf([hStdOut], cStrErrorLinking)
+        ExitProcess(1)`
+    end `
+
+    printf([hStdOut], cStrGeneratedMessage, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    jmp .exit
+
 ; this routine will compile simple if conditions
 ; the *MUST* be in the form of:
 ;   <operand> <operator> <operand>

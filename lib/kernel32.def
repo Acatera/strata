@@ -12,5 +12,7 @@ EXPORTS
     CreateFileA
     ReadFile 
     WriteFile
+    DeleteFile
+    CloseHandle
     GetLastError
     CreateProcessA 

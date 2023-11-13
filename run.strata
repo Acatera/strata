@@ -1,0 +1,81 @@
+`bits 64
+default rel
+
+%include "inc/std.inc"
+
+section .bss
+    hStdOut resq 1
+
+section .data
+    string0           db "Starting process...", 0xd, 0xa, 0
+    string1           db "Application name: '%s'", 0xd, 0xa, 0
+    string2           db "Command line: '%s'", 0xd, 0xa, 0
+    lpApplicationName db "nasm.exe", 0
+    lpCommandLine     db "-f win64 -g gstr.asm -o gstr.o -w+all -w+error", 0
+
+struc STARTUPINFOA 
+    .cb:              resd 1
+    .lpReserved:      resd 1
+    .lpDesktop:       resd 1
+    .lpTitle:         resd 1
+    .dwX:             resd 1
+    .dwY:             resd 1
+    .dwXSize:         resd 1
+    .dwYSize:         resd 1
+    .dwXCountChars:   resd 1
+    .dwYCountChars:   resd 1
+    .dwFillAttribute: resd 1
+    .dwFlags:         resd 1
+    .wShowWindow:     resw 1
+    .cbReserved2:     resw 1
+    .lpReserved2:     resd 1
+    .hStdInput:       resd 1
+    .hStdOutput:      resd 1
+    .hStdError:       resd 1
+    .size equ $ - STARTUPINFOA
+endstruc
+    
+section .bss
+    lpProcessInformation resb 24
+    lpStartupInfo resb STARTUPINFOA.size
+
+section .text
+    global _start
+    extern CreateProcessA
+
+_start:
+    GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
+
+    printf([hStdOut], string0)
+    printf([hStdOut], string1, lpApplicationName)
+    printf([hStdOut], string2, lpCommandLine)
+
+    ; CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes,
+    ;     lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment,
+    ;     lpCurrentDirectory, lpStartupInfo, lpProcessInformation
+    ; )
+    mov rax, STARTUPINFOA.size
+    mov [lpStartupInfo], rax
+    
+
+    push lpProcessInformation   ; TDB
+    push lpStartupInfo  ; TDB
+    push NULL  ; lpCurrentDirectory
+    push NULL  ; lpEnvironment
+    push 0x00000000  ; dwCreationFlags
+    push 0x00000001  ; bInheritHandles
+    sub rsp, 0x20
+    mov r9, 0 ; lpThreadAttributes
+    mov r8, 0 ; lpProcessAttributes
+    mov rdx, lpCommandLine
+    mov rcx, lpApplicationName
+    call CreateProcessA
+    add rsp, 0x20 + 6 * 0x8
+
+    
+
+    ; printf([hStdOut], cStrDecimalFormatNL, rax)
+
+    ExitProcess(0)
+
+`
