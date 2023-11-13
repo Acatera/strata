@@ -2,6 +2,7 @@ bits 64
 default rel
 
 %include "inc/std.inc"
+; %define DEBUG 0
 
 %define SOURCE_CODE_SIZE 1024*1024
 %define SMALL_BUFFER_SIZE 64
@@ -111,6 +112,20 @@ section .bss
     szDestFile resb 256
     szFilenameWithoutExtension resb 256
 
+%define CONST_STRING_COUNT 1024
+%define CONST_STRING_CAPACITY 1024*256 
+
+    ; constant string literals
+    ; allow for 1024 constant string literal pointers
+    pStringListPointers resq CONST_STRING_COUNT 
+    dwStringCount resq 1
+    ; pointer to a buffer that holds the string literals
+    ; all strings are NULL terminated
+    ; to index this, use 'pStringListPointers'
+    pStringList resb CONST_STRING_CAPACITY
+    ; this points to the next available byte in the string list
+    pStringListEnd resq 1
+
 section .data
     tokenIndex dq 0
     hStdOut dq 0
@@ -162,6 +177,10 @@ section .data
     cStrJmpLessOrEqual db "    jg %s", 0xd, 0xa, 0
     cStrJmpGreater db "    jle %s", 0xd, 0xa, 0
     cStrJmpGreaterOrEqual db "    jl %s", 0xd, 0xa, 0
+    cStrStringLiteral db "roStr_%d", 0
+    cStrReadOnlySectionHeader db "section .rdata", 0xd, 0xa, 0
+    cStrReadOnlySectionHeaderLength equ $ - cStrReadOnlySectionHeader - 1
+    cStrReadOnlySectionEntry db "    roStr_%d db %s, 0", 0xd, 0xa, 0
 
     ; error messages
     cStrFileOpenError db "Error opening file '%s'. Error code: %d", 0
@@ -174,6 +193,7 @@ section .data
     cStrErrorUnsupportedOperator db "Error: Unsupported operator: %d", 0xd, 0xa, 0
     cStrErrorAssembling db "Error: Assembling failed.", 0xd, 0xa, 0
     cStrErrorLinking db "Error: Linking failed.", 0xd, 0xa, 0
+    cStrErrorStringListFull db "Error: String list full.", 0xd, 0xa, 0
 
     ; generic formats
     cStrInfoString db "[INFO] %s", 0xd, 0xa, 0
@@ -187,6 +207,7 @@ section .data
     ;junk 
     cStrDebugWritingExpression db "Writing expression -------------", 0xd, 0xa, 0
     cStrDebugToken2 db "Writing token to file: start: %d, length: %d", 0xd, 0xa, 0
+    cStrpush_string_literal db "push_string_literal", 0xd, 0xa, 0
 
 section .text
     global _start
@@ -352,6 +373,15 @@ _start:
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
 
     printf([hStdOut], cStrCompileMessageFormat, szSourceFile)
+
+.init_string_literal_buffer:
+    ; initialize string count
+    mov rax, 0
+    mov [dwStringCount], rax
+
+    ; initialize string list end pointer
+    mov rax, pStringList
+    mov [pStringListEnd], rax
 
 .start_parsing_source_code:
     ; reset offset
@@ -758,7 +788,6 @@ _start:
         mov rbx, [rax + Block.TokenType]
 
 %ifdef DEBUG
-        this prints previous block token type
         printf([hStdOut], cStrHexFormatNL, rbx)
 %endif
         
@@ -842,6 +871,27 @@ _start:
         NextToken()
     .endif_token_is_end_0:
 
+    .if_token_is_string_literal_0:
+        cmp currentToken.Type, word OperandStringLiteral
+        jne .endif_token_is_string_literal_0
+    .then_token_is_string_literal_0:
+        ; todo - optimize strings by removing duplicate strings
+        PushCallerSavedRegs()
+
+        push rdx
+        sprintf(ptrBuffer64, cStrStringLiteral, [dwStringCount])
+        WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
+        pop rdx
+
+        mov ecx, currentToken.Start
+        mov edx, currentToken.Length
+        call push_string_literal
+
+        PopCallerSavedRegs()
+
+        NextToken()
+    .endif_token_is_string_literal_0:
+
 %ifdef DEBUG
     mov r10w, currentToken.Type
     mov r11d, currentToken.Start
@@ -868,6 +918,8 @@ _start:
 %undef currentToken.Start
 %undef currentToken.Length
 
+    call write_string_list
+
     pop rbp
 
     mov rcx, [hndDestFile]
@@ -876,39 +928,6 @@ _start:
     printf([hStdOut], cStrDoneCompiling, szSourceFile)
 
     jmp .assemble_object_file
-
-.print_tokens:
-    mov r15, 0
-    mov r14, tokenList
-.tloop:
-    movzx rcx, word [r14 + Token.TokenType]
-    mov rdx, ptrBuffer64
-    mov r8, 16
-    call itoagb
-    WriteConsoleA([hStdOut], ptrBuffer64, rax, 0)
-
-    mov rcx, ptrBuffer64
-    mov rdx, cStrPrintTokenFormat
-    mov r8, [r14 + Token.TokenStart]
-    mov r9, [r14 + Token.TokenLength]
-    push r14
-    mov r13, szSourceCode
-    add r13, r8
-    call sprintf
-    push r9
-    WriteConsoleA([hStdOut], ptrBuffer64, rax, 0)
-    pop r9
-    WriteConsoleA([hStdOut], r13, r9, 0)
-    WriteConsoleA([hStdOut], endline, 2, 0)
-    pop r14
-
-    ; print token type
-
-
-    inc r15
-    add r14, Token.size
-    cmp r15d, [dwTokenCount]
-    jl .tloop
 
 .exit:
     ExitProcess(0)
@@ -980,8 +999,99 @@ _start:
 .endif_10:
 
 
+    ; todo - delete object file
+
     printf([hStdOut], cStrGeneratedMessage, szFilenameWithoutExtension, szFilenameWithoutExtension)
     jmp .exit
+
+; this routine will save a string literal to the string list
+; rcx holds token start, rdx holds token length
+push_string_literal:
+    PushCalleeSavedRegs()
+
+    mov r15, szSourceCode
+    add r15, rcx
+    mov r14, rdx
+
+    ; strcpy(ptrBuffer64, r15, r14)
+    ; printf([hStdOut], cStrInfoString, ptrBuffer64)
+
+    ; todo - check if string literal already exists
+
+    ; load next available string list pointer into rax
+    mov rax, [dwStringCount]
+.if_11:
+    cmp rax, CONST_STRING_COUNT
+    jl .endif_11
+.then_11:
+
+        printf([hStdOut], cStrErrorStringListFull)
+        ExitProcess(1)
+.endif_11:
+
+
+    mov rdx, qword 8 ; size of pointer
+    mul rdx
+    mov rdx, pStringListPointers
+    add rax, rdx
+
+    ; store pointer to string in pointer list
+    mov rbx, [pStringListEnd]
+    mov [rax], rbx 
+    
+    ; increment pointer count
+    mov rcx, [dwStringCount]
+    inc rcx
+    mov [dwStringCount], rcx
+
+    ; copy string literal to string list
+    strcpy(rbx, r15, r14)
+
+    ; advance string list end pointer
+    mov rax, [pStringListEnd]
+    add rax, r14
+    inc rax ; null terminator
+    mov [pStringListEnd], rax
+.end:
+    PopCalleeSavedRegs()
+    ret
+
+; this routine writes constant string literals to file
+; they will be stored in the readonly section (rodata)
+write_string_list:
+    PushCalleeSavedRegs()
+
+    mov r13, [dwStringCount]
+    dec r13 
+    mov rax, r13
+    mov rdx, qword 8 ; size of pointer
+    mul rdx
+    ; rax hold offset
+    mov rdx, pStringListPointers
+    add rax, rdx 
+    mov r15, rax ; r15 holds pointer to last string literal
+
+    WriteFile([hndDestFile], cStrReadOnlySectionHeader, cStrReadOnlySectionHeaderLength, dwBytesWritten)
+
+.while_not_less_than_0:
+    cmp r13, 0
+    jl .end_not_less_than_0
+.do_not_less_than_0:   
+    mov r14, [r15]
+
+    ; printf([hStdOut], cStrReadOnlySectionEntry, r14)
+
+    sprintf(ptrBuffer256, cStrReadOnlySectionEntry, r13, r14)
+    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+
+    dec r13
+    sub r15, qword 8 ; move back to previous string literal
+    jmp .while_not_less_than_0
+.end_not_less_than_0:
+
+.end:
+    PopCalleeSavedRegs()
+    ret
 
 ; this routine will compile simple if conditions
 ; the *MUST* be in the form of:
@@ -1038,59 +1148,59 @@ compile_condition_3:
     sprintf(ptrBuffer64, cStrEndLabelFormatForJump, r13)
     ; printf([hStdOut], cStrDebugTokenValue, ptrBuffer64)
     
-.if_11:
-    cmp r10, OperatorEquals
-    jne .endif_11
-.then_11:
-
-        sprintf(ptrBuffer256, cStrJmpEquals, ptrBuffer64)
-        jmp .valid_operator_found
-.endif_11:
-
 .if_12:
-    cmp r10, OperatorNotEquals
+    cmp r10, OperatorEquals
     jne .endif_12
 .then_12:
 
-        sprintf(ptrBuffer256, cStrJmpNotEquals, ptrBuffer64)
+        sprintf(ptrBuffer256, cStrJmpEquals, ptrBuffer64)
         jmp .valid_operator_found
 .endif_12:
 
 .if_13:
-    cmp r10, OperatorLess
+    cmp r10, OperatorNotEquals
     jne .endif_13
 .then_13:
 
-        sprintf(ptrBuffer256, cStrJmpLess, ptrBuffer64)
+        sprintf(ptrBuffer256, cStrJmpNotEquals, ptrBuffer64)
         jmp .valid_operator_found
 .endif_13:
 
 .if_14:
-    cmp r10, OperatorLessOrEqual
+    cmp r10, OperatorLess
     jne .endif_14
 .then_14:
 
-        sprintf(ptrBuffer256, cStrJmpLessOrEqual, ptrBuffer64)
+        sprintf(ptrBuffer256, cStrJmpLess, ptrBuffer64)
         jmp .valid_operator_found
 .endif_14:
 
 .if_15:
-    cmp r10, OperatorGreater
+    cmp r10, OperatorLessOrEqual
     jne .endif_15
 .then_15:
 
-        sprintf(ptrBuffer256, cStrJmpGreater, ptrBuffer64)
+        sprintf(ptrBuffer256, cStrJmpLessOrEqual, ptrBuffer64)
         jmp .valid_operator_found
 .endif_15:
 
 .if_16:
-    cmp r10, OperatorGreaterOrEqual
+    cmp r10, OperatorGreater
     jne .endif_16
 .then_16:
 
-        sprintf(ptrBuffer256, cStrJmpGreaterOrEqual, ptrBuffer64)
+        sprintf(ptrBuffer256, cStrJmpGreater, ptrBuffer64)
         jmp .valid_operator_found
 .endif_16:
+
+.if_17:
+    cmp r10, OperatorGreaterOrEqual
+    jne .endif_17
+.then_17:
+
+        sprintf(ptrBuffer256, cStrJmpGreaterOrEqual, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_17:
 
 
     printf([hStdOut], cStrErrorUnsupportedOperator, r10)

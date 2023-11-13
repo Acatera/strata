@@ -1,3 +1,4 @@
+@echo off
 strata-sh strata
 call bss strata.asm
 
