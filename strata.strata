@@ -129,12 +129,9 @@ section .bss
 section .data
     tokenIndex dq 0
     hStdOut dq 0
-    bExpectLabel db 0
-    bIsIfCondition db 0
     dwIfKeywordCount dq 0
     chAsmStart equ 0x60
     chDoubleQuote equ 0x22
-    chComma equ 0x2c
     wScopedBlockCurrentId dw 0
     argCount dq 0
 
