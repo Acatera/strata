@@ -930,6 +930,8 @@ end `
         ExitProcess(1)`
     end `
 
+    ; todo - delete object file
+
     printf([hStdOut], cStrGeneratedMessage, szFilenameWithoutExtension, szFilenameWithoutExtension)
     jmp .exit
 
