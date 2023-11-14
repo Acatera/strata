@@ -24,13 +24,6 @@ default rel
     jmp .read_token_loop
 %endmacro
 
-%define CompareOperatorWith(candidate) _CompareOperatorWith_ candidate
-%macro _CompareOperatorWith_ 1
-    multipush rdi, rsi, rcx, r10
-    strcmp(op, %1, %1.length)
-    multipop rdi, rsi, rcx, r10
-%endmacro
-
 %define CompareTokenWith(c) _CompareTokenWith_ c
 %macro _CompareTokenWith_ 1
     multipush rdi, rsi, rcx, r10
@@ -355,86 +348,56 @@ end `
     sub rsp, 8 ; reserve space on the stack for the token type
     mov [rbp], word 0 ; initialize token type to 0
     
-
-.if_token_is_if:
-    CompareTokenWith(szKeywordIf)
-    jne .endif_token_is_if
-.then_token_is_if:
+`
+if CompareTokenWith(szKeywordIf) then `
     mov [rbp], word KeywordIf
-    jmp .token_type_set
-.endif_token_is_if:
+    jmp .token_type_set`
+end 
 
-.if_token_is_then:
-    CompareTokenWith(szKeywordThen)
-    jne .endif_token_is_then
-.then_token_is_then:
+if CompareTokenWith(szKeywordThen) then `
     mov [rbp], word KeywordThen
-    jmp .token_type_set
-.endif_token_is_then:
+    jmp .token_type_set`
+end 
 
-.if_token_is_end:
-    CompareTokenWith(szKeywordEnd)
-    jne .endif_token_is_end
-.then_token_is_end:
+if CompareTokenWith(szKeywordEnd) then `
     mov [rbp], word KeywordEnd
-    jmp .token_type_set
-.endif_token_is_end:
+    jmp .token_type_set`
+end
 
-.if_token_is_eq:
-    CompareTokenWith(szOperatorEquals)
-    jne .endif_token_is_eq
-.then_token_is_eq:
+if CompareTokenWith(szOperatorEquals) then `
     mov [rbp], word OperatorEquals
-    jmp .token_type_set
-.endif_token_is_eq:
+    jmp .token_type_set`
+end
 
-.if_token_is_neq:
-    CompareTokenWith(szOperatorNotEquals)
-    jne .endif_token_is_neq
-.then_token_is_neq:
+if CompareTokenWith(szOperatorNotEquals) then `
     mov [rbp], word OperatorNotEquals
-    jmp .token_type_set
-.endif_token_is_neq:
+    jmp .token_type_set`
+end
 
-.if_token_is_lteq:
-    CompareTokenWith(szOperatorLessOrEqual)
-    jne .endif_token_is_lteq
-.then_token_is_lteq:
+if CompareTokenWith(szOperatorLessOrEqual) then `
     mov [rbp], word OperatorLessOrEqual
-    jmp .token_type_set
-.endif_token_is_lteq:
+    jmp .token_type_set`
+end
 
-.if_token_is_lt:
-    CompareTokenWith(szOperatorLess)
-    jne .endif_token_is_lt
-.then_token_is_lt:
+if CompareTokenWith(szOperatorLess) then `
     mov [rbp], word OperatorLess
-    jmp .token_type_set
-.endif_token_is_lt:
+    jmp .token_type_set`
+end
 
-.if_token_is_gteq:
-    CompareTokenWith(szOperatorGreaterOrEqual)
-    jne .endif_token_is_gteq
-.then_token_is_gteq:
+if CompareTokenWith(szOperatorGreaterOrEqual) then `
     mov [rbp], word OperatorGreaterOrEqual
-    jmp .token_type_set
-.endif_token_is_gteq:
+    jmp .token_type_set`
+end
 
-.if_token_is_gt:
-    CompareTokenWith(szOperatorGreater)
-    jne .endif_token_is_gt
-.then_token_is_gt:
+if CompareTokenWith(szOperatorGreater) then `
     mov [rbp], word OperatorGreater
-    jmp .token_type_set
-.endif_token_is_gt:
+    jmp .token_type_set`
+end
 
-.if_token_is_assign:
-    CompareTokenWith(szOperatorAssignment)
-    jne .endif_token_is_assign
-.then_token_is_assign:
+if CompareTokenWith(szOperatorAssignment) then `
     mov [rbp], word OperatorAssignment
-    jmp .token_type_set
-.endif_token_is_assign:
+    jmp .token_type_set`
+end `
 
 .token_type_set:
     ; test if token type is 0

@@ -24,13 +24,6 @@ default rel
     jmp .read_token_loop
 %endmacro
 
-%define CompareOperatorWith(candidate) _CompareOperatorWith_ candidate
-%macro _CompareOperatorWith_ 1
-    multipush rdi, rsi, rcx, r10
-    strcmp(op, %1, %1.length)
-    multipop rdi, rsi, rcx, r10
-%endmacro
-
 %define CompareTokenWith(c) _CompareTokenWith_ c
 %macro _CompareTokenWith_ 1
     multipush rdi, rsi, rcx, r10
@@ -45,7 +38,6 @@ default rel
 %define OperatorGreater        5
 %define OperatorGreaterOrEqual 6
 %define OperatorAssignment     7
-%define OperatorNot            8
 
 ; Reserve 4 bits for operator type
 %define OperandStringLiteral 0 + (1 << 4)
@@ -374,93 +366,96 @@ _start:
     mov [rbp], word 0 ; initialize token type to 0
     
 
-.if_token_is_if:
+.if_4:
     CompareTokenWith(szKeywordIf)
-    jne .endif_token_is_if
-.then_token_is_if:
+    jne .endif_4
+.then_4:
+
     mov [rbp], word KeywordIf
     jmp .token_type_set
-.endif_token_is_if:
+.endif_4:
 
-.if_token_is_then:
+.if_5:
     CompareTokenWith(szKeywordThen)
-    jne .endif_token_is_then
-.then_token_is_then:
+    jne .endif_5
+.then_5:
+
     mov [rbp], word KeywordThen
     jmp .token_type_set
-.endif_token_is_then:
+.endif_5:
 
-.if_token_is_end:
+.if_6:
     CompareTokenWith(szKeywordEnd)
-    jne .endif_token_is_end
-.then_token_is_end:
+    jne .endif_6
+.then_6:
+
     mov [rbp], word KeywordEnd
     jmp .token_type_set
-.endif_token_is_end:
+.endif_6:
 
-.if_token_is_eq:
+.if_7:
     CompareTokenWith(szOperatorEquals)
-    jne .endif_token_is_eq
-.then_token_is_eq:
+    jne .endif_7
+.then_7:
+
     mov [rbp], word OperatorEquals
     jmp .token_type_set
-.endif_token_is_eq:
+.endif_7:
 
-.if_token_is_neq:
+.if_8:
     CompareTokenWith(szOperatorNotEquals)
-    jne .endif_token_is_neq
-.then_token_is_neq:
+    jne .endif_8
+.then_8:
+
     mov [rbp], word OperatorNotEquals
     jmp .token_type_set
-.endif_token_is_neq:
+.endif_8:
 
-.if_token_is_lteq:
+.if_9:
     CompareTokenWith(szOperatorLessOrEqual)
-    jne .endif_token_is_lteq
-.then_token_is_lteq:
+    jne .endif_9
+.then_9:
+
     mov [rbp], word OperatorLessOrEqual
     jmp .token_type_set
-.endif_token_is_lteq:
+.endif_9:
 
-.if_token_is_lt:
+.if_10:
     CompareTokenWith(szOperatorLess)
-    jne .endif_token_is_lt
-.then_token_is_lt:
+    jne .endif_10
+.then_10:
+
     mov [rbp], word OperatorLess
     jmp .token_type_set
-.endif_token_is_lt:
+.endif_10:
 
-.if_token_is_gteq:
+.if_11:
     CompareTokenWith(szOperatorGreaterOrEqual)
-    jne .endif_token_is_gteq
-.then_token_is_gteq:
+    jne .endif_11
+.then_11:
+
     mov [rbp], word OperatorGreaterOrEqual
     jmp .token_type_set
-.endif_token_is_gteq:
+.endif_11:
 
-.if_token_is_gt:
+.if_12:
     CompareTokenWith(szOperatorGreater)
-    jne .endif_token_is_gt
-.then_token_is_gt:
+    jne .endif_12
+.then_12:
+
     mov [rbp], word OperatorGreater
     jmp .token_type_set
-.endif_token_is_gt:
+.endif_12:
 
-.if_token_is_assign:
+.if_13:
     CompareTokenWith(szOperatorAssignment)
-    jne .endif_token_is_assign
-.then_token_is_assign:
+    jne .endif_13
+.then_13:
+
     mov [rbp], word OperatorAssignment
     jmp .token_type_set
-.endif_token_is_assign:
+.endif_13:
 
-.if_token_is_not:
-    CompareTokenWith(szOperatorNot)
-    jne .endif_token_is_not
-.then_token_is_not:
-    mov [rbp], word OperatorNot
-    jmp .token_type_set
-.endif_token_is_not:
 
 .token_type_set:
     ; test if token type is 0
@@ -667,10 +662,10 @@ _start:
     PopCallerSavedRegs()
 %endif
 
-.if_4:
+.if_14:
     cmp currentToken.Type, defOperandAsmLiteral
-    jne .endif_4
-.then_4:
+    jne .endif_14
+.then_14:
 
         PushCallerSavedRegs()
   
@@ -686,12 +681,12 @@ _start:
 
         PopCallerSavedRegs()
         NextToken()
-.endif_4:
+.endif_14:
  ; keyword 'if'
-.if_5:
+.if_15:
     cmp currentToken.Type, defKeywordIf
-    jne .endif_5
-.then_5:
+    jne .endif_15
+.then_15:
 
         PushCallerSavedRegs()
         sprintf(ptrBuffer64, roStr_8, [wScopedBlockCurrentId])
@@ -702,7 +697,7 @@ _start:
         inc word [wScopedBlockCurrentId]
         PopCallerSavedRegs()
         NextToken()
-.endif_5:
+.endif_15:
 
 
     
@@ -718,14 +713,14 @@ _start:
         printf([hStdOut], roStr_9, rbx)
 %endif
         
-.if_6:
+.if_16:
     cmp bx, KeywordIf
-    je .endif_6
-.then_6:
+    je .endif_16
+.then_16:
 
             printf([hStdOut], roStr_10, szSourceFile)
             jmp .exit
-.endif_6:
+.endif_16:
 
         
         push rax ; rax stores pointer to block struct
@@ -736,26 +731,26 @@ _start:
         inc r11d ; skip 'if' token
         sub r10d, r11d ; r10d stores number of tokens in if condition
         
-.if_7:
+.if_17:
     cmp r10d, 3
-    je .endif_7
-.then_7:
+    je .endif_17
+.then_17:
 
-.if_8:
+.if_18:
     cmp r10d, 1
-    je .endif_8
-.then_8:
+    je .endif_18
+.then_18:
 
                 printf([hStdOut], roStr_11, r10)
                 jmp .exit
-.endif_8:
+.endif_18:
 
-.endif_7:
+.endif_17:
 
-.if_9:
+.if_19:
     cmp r10d, 3
-    jne .endif_9
-.then_9:
+    jne .endif_19
+.then_19:
 
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
@@ -763,12 +758,12 @@ _start:
             PushCallerSavedRegs()
             call compile_condition_3
             PopCallerSavedRegs()
-.endif_9:
+.endif_19:
 
-.if_10:
+.if_20:
     cmp r10d, 1
-    jne .endif_10
-.then_10:
+    jne .endif_20
+.then_20:
 
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
@@ -776,7 +771,7 @@ _start:
             PushCallerSavedRegs()
             call compile_condition_1
             PopCallerSavedRegs()
-.endif_10:
+.endif_20:
 
     
         pop rax ; rax stores pointer to block struct
@@ -802,14 +797,14 @@ _start:
 
         PeekBlockToken()
         mov rbx, [rax + Block.TokenType]
-.if_11:
+.if_21:
     cmp bx, KeywordThen
-    je .endif_11
-.then_11:
+    je .endif_21
+.then_21:
 
             printf([hStdOut], roStr_13, szSourceFile)
             jmp .exit
-.endif_11:
+.endif_21:
 
 
         mov bx, word [rax + Block.BlockId]
@@ -908,14 +903,14 @@ _start:
     mov rcx, NULL
     call CreateProcessA
     add rsp, 0x20 + 7 * 0x8
-.if_12:
+.if_22:
     cmp rax, 1
-    je .endif_12
-.then_12:
+    je .endif_22
+.then_22:
 
         printf([hStdOut], roStr_21)
         ExitProcess(1)
-.endif_12:
+.endif_22:
 
 
     sprintf(ptrBuffer256, roStr_22, szFilenameWithoutExtension, szFilenameWithoutExtension)
@@ -941,14 +936,14 @@ _start:
     mov rcx, NULL
     call CreateProcessA
     add rsp, 0x20 + 7 * 0x8
-.if_13:
+.if_23:
     cmp rax, 1
-    je .endif_13
-.then_13:
+    je .endif_23
+.then_23:
 
         printf([hStdOut], roStr_24)
         ExitProcess(1)
-.endif_13:
+.endif_23:
 
 
     ; todo - delete object file
@@ -969,14 +964,14 @@ push_string_literal:
 
     ; load next available string list pointer into rax
     mov rax, [dwStringCount]
-.if_14:
+.if_24:
     cmp rax, CONST_STRING_COUNT
-    jl .endif_14
-.then_14:
+    jl .endif_24
+.then_24:
 
         printf([hStdOut], roStr_26, CONST_STRING_COUNT)
         ExitProcess(1)
-.endif_14:
+.endif_24:
 
 
     mov rdx, qword 8 ; size of pointer
@@ -1129,59 +1124,59 @@ compile_condition_3:
     mov r13, [rbp - 0x8] ; r13 stores scope id
     sprintf(ptrBuffer64, roStr_31, r13)
     
-.if_15:
+.if_25:
     cmp r10, OperatorEquals
-    jne .endif_15
-.then_15:
+    jne .endif_25
+.then_25:
 
         sprintf(ptrBuffer256, roStr_32, ptrBuffer64)
         jmp .valid_operator_found
-.endif_15:
+.endif_25:
 
-.if_16:
+.if_26:
     cmp r10, OperatorNotEquals
-    jne .endif_16
-.then_16:
+    jne .endif_26
+.then_26:
 
         sprintf(ptrBuffer256, roStr_33, ptrBuffer64)
         jmp .valid_operator_found
-.endif_16:
+.endif_26:
 
-.if_17:
+.if_27:
     cmp r10, OperatorLess
-    jne .endif_17
-.then_17:
+    jne .endif_27
+.then_27:
 
         sprintf(ptrBuffer256, roStr_34, ptrBuffer64)
         jmp .valid_operator_found
-.endif_17:
+.endif_27:
 
-.if_18:
+.if_28:
     cmp r10, OperatorLessOrEqual
-    jne .endif_18
-.then_18:
+    jne .endif_28
+.then_28:
 
         sprintf(ptrBuffer256, roStr_35, ptrBuffer64)
         jmp .valid_operator_found
-.endif_18:
+.endif_28:
 
-.if_19:
+.if_29:
     cmp r10, OperatorGreater
-    jne .endif_19
-.then_19:
+    jne .endif_29
+.then_29:
 
         sprintf(ptrBuffer256, roStr_36, ptrBuffer64)
         jmp .valid_operator_found
-.endif_19:
+.endif_29:
 
-.if_20:
+.if_30:
     cmp r10, OperatorGreaterOrEqual
-    jne .endif_20
-.then_20:
+    jne .endif_30
+.then_30:
 
         sprintf(ptrBuffer256, roStr_37, ptrBuffer64)
         jmp .valid_operator_found
-.endif_20:
+.endif_30:
 
 
     printf([hStdOut], roStr_38, r10)
@@ -1232,8 +1227,6 @@ section .data
     szOperatorGreaterOrEqual.length equ $ - szOperatorGreaterOrEqual
     szOperatorAssignment db "="
     szOperatorAssignment.length equ $ - szOperatorAssignment
-    szOperatorNot db "not"
-    szOperatorNot.length equ $ - szOperatorNot
 
 section .rodata
     roStr_38 db "Error: Unsupported operator: %d", 0
