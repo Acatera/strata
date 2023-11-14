@@ -1,7 +1,6 @@
-if rax == 0 then 
+if CompareTokenWith(szOperatorGreaterOrEqual) then 
 `; `
 end
-asd
 
 if rbx != 0 then 
 `; `
@@ -58,9 +57,3 @@ if rax > 0 then end
 `; Compare rax with 0`
 if rax >= 0 then end
 
-gstr string = "Hello World!"
-gstr string = "Hello World!"
-gstr string = "Hello World!"
-gstr string = "Hello World!"
-
-if

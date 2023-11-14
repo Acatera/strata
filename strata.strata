@@ -697,18 +697,30 @@ end `
         inc r11d ; skip 'if' token
         sub r10d, r11d ; r10d stores number of tokens in if condition
         `
-        if r10d != 3 then `
-            printf([hStdOut], `"[ERROR] Unsupported 'if' condition. Expected 3 tokens, found %d\r\n"`, r10)
-            jmp .exit`
-        end `
+        if r10d != 3 then 
+            if r10d != 1 then `
+                printf([hStdOut], `"[ERROR] Unsupported 'if' condition. Found %d tokens\r\n"`, r10)
+                jmp .exit`
+            end
+        end 
 
-        ; todo - construct condition
-        mov rcx, r11 ; rcx stores token index of first token of if condition
-        mov dx, word [rax + Block.BlockId]
-        and rdx, 0xffff
-        PushCallerSavedRegs()
-        call compile_condition_3
-        PopCallerSavedRegs()
+        if r10d == 3 then `
+            mov rcx, r11 ; rcx stores token index of first token of if condition
+            mov dx, word [rax + Block.BlockId]
+            and rdx, 0xffff
+            PushCallerSavedRegs()
+            call compile_condition_3
+            PopCallerSavedRegs()`
+        end 
+
+        if r10d == 1 then `
+            mov rcx, r11 ; rcx stores token index of first token of if condition
+            mov dx, word [rax + Block.BlockId]
+            and rdx, 0xffff
+            PushCallerSavedRegs()
+            call compile_condition_1
+            PopCallerSavedRegs()`
+        end `
     
         pop rax ; rax stores pointer to block struct
         
@@ -952,6 +964,45 @@ write_string_list:
     PopCalleeSavedRegs()
     ret
 
+compile_condition_1:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 0x10 ; reserve space on the stack for the token index
+    mov [rbp], rcx ; store token index on the stack
+    mov [rbp - 0x8], rdx ; store scope id on the stack
+    PushCalleeSavedRegs()
+
+    ; get first operand
+    mov rax, rcx
+    mov rdx, Token.size
+    mul rdx
+    mov rcx, tokenList
+    add rcx, rax
+    mov rbx, rcx
+
+    mov r10, szSourceCode
+    mov r11, [rbx + Token.TokenStart]
+    mov r12, [rbx + Token.TokenLength]
+    add r10, r11
+    strcpy(ptrBuffer64, r10, r12)
+
+    sprintf(ptrBuffer256, `"    %s\r\n"`, ptrBuffer64)
+
+    ; write comparison
+    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+
+    mov r13, [rbp - 0x8] ; r13 stores scope id
+    sprintf(ptrBuffer256, `"    jne .endif_%d\r\n"`, r13)
+
+    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+
+.end:
+    PopCalleeSavedRegs()
+    add rsp, 0x10
+    pop rbp
+    mov rax, 0
+    ret    
+
 ; this routine will compile simple if conditions
 ; the *MUST* be in the form of:
 ;   <operand> <operator> <operand>
@@ -1042,7 +1093,7 @@ compile_condition_3:
     PopCalleeSavedRegs()
     add rsp, 0x10
     pop rbp
-    mov rax, 0
+    ; mov rax, 0
     ret
 
 section .data
