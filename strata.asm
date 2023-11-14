@@ -104,6 +104,7 @@ section .bss
     szSourceFile resb 256
     szDestFile resb 256
     szFilenameWithoutExtension resb 256
+    lpExitCode resq 1
 
 %define CONST_STRING_COUNT 1024
 %define CONST_STRING_CAPACITY 1024*256 
@@ -146,6 +147,8 @@ section .text
     extern GetLastError
     extern GetCommandLineA
     extern CreateProcessA
+    extern WaitForSingleObject
+    extern GetExitCodeProcess
 
 _start:
     sub rsp, 32
@@ -627,7 +630,11 @@ _start:
     ; todo - remove this temp code
     push rbx
     mov ebx, dword [dwTokenCount]
+
+%ifdef DEBUG    
     printf([hStdOut], roStr_6, rbx)
+%endif
+
     pop rbx
     ; end of temp code
 
@@ -886,6 +893,9 @@ _start:
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
 
+    mov rax, STARTUPINFOA.size
+    mov [lpStartupInfo], rax
+
     mov rax, lpProcessInformation
     mov rbx, lpStartupInfo
     mov [rbx], dword 104
@@ -895,17 +905,17 @@ _start:
     push     NULL                       ; lpCurrentDirectory
     push     NULL                       ; lpEnvironment
     push     0x00000000                 ; dwCreationFlags
-    push     0x00000000                 ; bInheritHandles
+    push     0x00000001                 ; bInheritHandles
     sub rsp, 0x20
     mov r9,  NULL                       ; lpThreadAttributes
     mov r8,  NULL                       ; lpProcessAttributes
     mov rdx, ptrBuffer256                       ; lpCommandLine
     mov rcx, NULL
     call CreateProcessA
-    add rsp, 0x20 + 7 * 0x8
+    add rsp, 0x20 + 7 * 0x8 
 .if_22:
-    cmp rax, 1
-    je .endif_22
+    cmp rax, 0
+    jne .endif_22
 .then_22:
 
         printf([hStdOut], roStr_21)
@@ -913,11 +923,35 @@ _start:
 .endif_22:
 
 
-    sprintf(ptrBuffer256, roStr_22, szFilenameWithoutExtension, szFilenameWithoutExtension)
-    printf([hStdOut], roStr_23, ptrBuffer256)
+    mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
+    mov rdx , 0xFFFFFFFF
+    call WaitForSingleObject
+
+    mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
+    mov rdx , lpExitCode
+    call GetExitCodeProcess 
+    
+    ; printf([hStdOut], roStr_22, [lpExitCode])
+    mov rax, [lpExitCode]
+    
+.if_23:
+    cmp rax, 0
+    je .endif_23
+.then_23:
+
+        printf([hStdOut], roStr_23)
+        ExitProcess(1)
+.endif_23:
+
+
+    sprintf(ptrBuffer256, roStr_24, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    printf([hStdOut], roStr_25, ptrBuffer256)
     
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
+
+    mov rax, STARTUPINFOA.size
+    mov [lpStartupInfo], rax
 
     mov rax, lpProcessInformation
     mov rbx, lpStartupInfo
@@ -928,7 +962,7 @@ _start:
     push     NULL                       ; lpCurrentDirectory
     push     NULL                       ; lpEnvironment
     push     0x00000000                 ; dwCreationFlags
-    push     0x00000000                 ; bInheritHandles
+    push     0x00000001                 ; bInheritHandles
     sub rsp, 0x20
     mov r9,  NULL                       ; lpThreadAttributes
     mov r8,  NULL                       ; lpProcessAttributes
@@ -936,19 +970,38 @@ _start:
     mov rcx, NULL
     call CreateProcessA
     add rsp, 0x20 + 7 * 0x8
-.if_23:
-    cmp rax, 1
-    je .endif_23
-.then_23:
+.if_24:
+    cmp rax, 0
+    jne .endif_24
+.then_24:
 
-        printf([hStdOut], roStr_24)
+        printf([hStdOut], roStr_26)
         ExitProcess(1)
-.endif_23:
+.endif_24:
 
 
     ; todo - delete object file
 
-    printf([hStdOut], roStr_25, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
+    mov rdx , 0xFFFFFFFF
+    call WaitForSingleObject
+
+    mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
+    mov rdx , lpExitCode
+    call GetExitCodeProcess 
+    mov rax, [lpExitCode]
+    
+.if_25:
+    cmp rax, 0
+    je .endif_25
+.then_25:
+
+        printf([hStdOut], roStr_27)
+        ExitProcess(1)
+.endif_25:
+
+
+    printf([hStdOut], roStr_28, szFilenameWithoutExtension, szFilenameWithoutExtension)
     jmp .exit
 
 ; this routine will save a string literal to the string list
@@ -964,14 +1017,14 @@ push_string_literal:
 
     ; load next available string list pointer into rax
     mov rax, [dwStringCount]
-.if_24:
+.if_26:
     cmp rax, CONST_STRING_COUNT
-    jl .endif_24
-.then_24:
+    jl .endif_26
+.then_26:
 
-        printf([hStdOut], roStr_26, CONST_STRING_COUNT)
+        printf([hStdOut], roStr_29, CONST_STRING_COUNT)
         ExitProcess(1)
-.endif_24:
+.endif_26:
 
 
     mov rdx, qword 8 ; size of pointer
@@ -1023,7 +1076,7 @@ write_string_list:
 .do_not_less_than_0:   
     mov r14, [r15]
 
-    sprintf(ptrBuffer256, roStr_27, r13, r14)
+    sprintf(ptrBuffer256, roStr_30, r13, r14)
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
     dec r13
@@ -1057,13 +1110,13 @@ compile_condition_1:
     add r10, r11
     strcpy(ptrBuffer64, r10, r12)
 
-    sprintf(ptrBuffer256, roStr_28, ptrBuffer64)
+    sprintf(ptrBuffer256, roStr_31, ptrBuffer64)
 
     ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
     mov r13, [rbp - 0x8] ; r13 stores scope id
-    sprintf(ptrBuffer256, roStr_29, r13)
+    sprintf(ptrBuffer256, roStr_32, r13)
 
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
@@ -1111,7 +1164,7 @@ compile_condition_3:
     add r10, r11
     strcpy(ptr2Buffer64, r10, r12)
 
-    sprintf(ptrBuffer256, roStr_30, ptrBuffer64, ptr2Buffer64)
+    sprintf(ptrBuffer256, roStr_33, ptrBuffer64, ptr2Buffer64)
 
     ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
@@ -1122,64 +1175,64 @@ compile_condition_3:
     and r10, 0xffff
 
     mov r13, [rbp - 0x8] ; r13 stores scope id
-    sprintf(ptrBuffer64, roStr_31, r13)
+    sprintf(ptrBuffer64, roStr_34, r13)
     
-.if_25:
-    cmp r10, OperatorEquals
-    jne .endif_25
-.then_25:
-
-        sprintf(ptrBuffer256, roStr_32, ptrBuffer64)
-        jmp .valid_operator_found
-.endif_25:
-
-.if_26:
-    cmp r10, OperatorNotEquals
-    jne .endif_26
-.then_26:
-
-        sprintf(ptrBuffer256, roStr_33, ptrBuffer64)
-        jmp .valid_operator_found
-.endif_26:
-
 .if_27:
-    cmp r10, OperatorLess
+    cmp r10, OperatorEquals
     jne .endif_27
 .then_27:
 
-        sprintf(ptrBuffer256, roStr_34, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_35, ptrBuffer64)
         jmp .valid_operator_found
 .endif_27:
 
 .if_28:
-    cmp r10, OperatorLessOrEqual
+    cmp r10, OperatorNotEquals
     jne .endif_28
 .then_28:
 
-        sprintf(ptrBuffer256, roStr_35, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_36, ptrBuffer64)
         jmp .valid_operator_found
 .endif_28:
 
 .if_29:
-    cmp r10, OperatorGreater
+    cmp r10, OperatorLess
     jne .endif_29
 .then_29:
 
-        sprintf(ptrBuffer256, roStr_36, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_37, ptrBuffer64)
         jmp .valid_operator_found
 .endif_29:
 
 .if_30:
-    cmp r10, OperatorGreaterOrEqual
+    cmp r10, OperatorLessOrEqual
     jne .endif_30
 .then_30:
 
-        sprintf(ptrBuffer256, roStr_37, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_38, ptrBuffer64)
         jmp .valid_operator_found
 .endif_30:
 
+.if_31:
+    cmp r10, OperatorGreater
+    jne .endif_31
+.then_31:
 
-    printf([hStdOut], roStr_38, r10)
+        sprintf(ptrBuffer256, roStr_39, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_31:
+
+.if_32:
+    cmp r10, OperatorGreaterOrEqual
+    jne .endif_32
+.then_32:
+
+        sprintf(ptrBuffer256, roStr_40, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_32:
+
+
+    printf([hStdOut], roStr_41, r10)
     ExitProcess(1)
 
 .valid_operator_found:
@@ -1229,23 +1282,26 @@ section .data
     szOperatorAssignment.length equ $ - szOperatorAssignment
 
 section .rodata
-    roStr_38 db "Error: Unsupported operator: %d", 0
-    roStr_37 db "    jl %s\r\n", 0
-    roStr_36 db "    jle %s\r\n", 0
-    roStr_35 db "    jg %s\r\n", 0
-    roStr_34 db "    jge %s\r\n", 0
-    roStr_33 db "    je %s\r\n", 0
-    roStr_32 db "    jne %s\r\n", 0
-    roStr_31 db ".endif_%d", 0
-    roStr_30 db "    cmp %s, %s\r\n", 0
-    roStr_29 db "    jne .endif_%d\r\n", 0
-    roStr_28 db "    %s\r\n", 0
-    roStr_27 db "    roStr_%d db %s, 0\r\n", 0
-    roStr_26 db "[ERROR]: String list full. Max strings allowed: %d\r\n", 0
-    roStr_25 db "[INFO] Generated %s.exe", 0
-    roStr_24 db "[ERROR] Linking failed.", 0
-    roStr_23 db "[INFO] Linking using 'ld':\r\n\t%s\r\n", 0
-    roStr_22 db "ld -e _start %s.o -o %s.exe -lkernel32 -lWs2_32 -Llib", 0
+    roStr_41 db "Error: Unsupported operator: %d", 0
+    roStr_40 db "    jl %s\r\n", 0
+    roStr_39 db "    jle %s\r\n", 0
+    roStr_38 db "    jg %s\r\n", 0
+    roStr_37 db "    jge %s\r\n", 0
+    roStr_36 db "    je %s\r\n", 0
+    roStr_35 db "    jne %s\r\n", 0
+    roStr_34 db ".endif_%d", 0
+    roStr_33 db "    cmp %s, %s\r\n", 0
+    roStr_32 db "    jne .endif_%d\r\n", 0
+    roStr_31 db "    %s\r\n", 0
+    roStr_30 db "    roStr_%d db %s, 0\r\n", 0
+    roStr_29 db "[ERROR]: String list full. Max strings allowed: %d\r\n", 0
+    roStr_28 db "[INFO] Generated %s.exe", 0
+    roStr_27 db "[ERROR] Linking failed.", 0
+    roStr_26 db "[ERROR] Linking failed.", 0
+    roStr_25 db "[INFO] Linking using 'ld':\r\n\t%s\r\n", 0
+    roStr_24 db "ld -e _start %s.o -o %s.exe -lkernel32 -lWs2_32 -Llib", 0
+    roStr_23 db "[ERROR] Assembling failed.", 0
+    roStr_22 db "[DEBUG] Exit code: %d.\r\n", 0
     roStr_21 db "[ERROR] Assembling failed.", 0
     roStr_20 db "[INFO] Assembling using 'nasm':\r\n\t%s\r\n", 0
     roStr_19 db "nasm.exe -f win64 -g %s.asm -o %s.o -w+all -w+error", 0

@@ -104,6 +104,7 @@ section .bss
     szSourceFile resb 256
     szDestFile resb 256
     szFilenameWithoutExtension resb 256
+    lpExitCode resq 1
 
 %define CONST_STRING_COUNT 1024
 %define CONST_STRING_CAPACITY 1024*256 
@@ -146,6 +147,8 @@ section .text
     extern GetLastError
     extern GetCommandLineA
     extern CreateProcessA
+    extern WaitForSingleObject
+    extern GetExitCodeProcess
 
 _start:
     sub rsp, 32
@@ -569,7 +572,11 @@ end `
     ; todo - remove this temp code
     push rbx
     mov ebx, dword [dwTokenCount]
+
+%ifdef DEBUG    
     printf([hStdOut], `"[DEBUG] Found %d tokens.\r\n"`, rbx)
+%endif
+
     pop rbx
     ; end of temp code
 
@@ -792,6 +799,9 @@ end `
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
 
+    mov rax, STARTUPINFOA.size
+    mov [lpStartupInfo], rax
+
     mov rax, lpProcessInformation
     mov rbx, lpStartupInfo
     mov [rbx], dword 104
@@ -801,15 +811,33 @@ end `
     push     NULL                       ; lpCurrentDirectory
     push     NULL                       ; lpEnvironment
     push     0x00000000                 ; dwCreationFlags
-    push     0x00000000                 ; bInheritHandles
+    push     0x00000001                 ; bInheritHandles
     sub rsp, 0x20
     mov r9,  NULL                       ; lpThreadAttributes
     mov r8,  NULL                       ; lpProcessAttributes
     mov rdx, ptrBuffer256                       ; lpCommandLine
     mov rcx, NULL
     call CreateProcessA
-    add rsp, 0x20 + 7 * 0x8`
-    if rax != 1 then `
+    add rsp, 0x20 + 7 * 0x8 `
+
+    if rax == 0 then `
+        printf([hStdOut], `"[ERROR] Assembling failed."`)
+        ExitProcess(1)`
+    end `
+
+    mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
+    mov rdx , 0xFFFFFFFF
+    call WaitForSingleObject
+
+    mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
+    mov rdx , lpExitCode
+    call GetExitCodeProcess 
+    
+    ; printf([hStdOut], `"[DEBUG] Exit code: %d.\r\n"`, [lpExitCode])
+    mov rax, [lpExitCode]
+    `
+
+    if rax != 0 then `
         printf([hStdOut], `"[ERROR] Assembling failed."`)
         ExitProcess(1)`
     end `
@@ -820,6 +848,9 @@ end `
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
 
+    mov rax, STARTUPINFOA.size
+    mov [lpStartupInfo], rax
+
     mov rax, lpProcessInformation
     mov rbx, lpStartupInfo
     mov [rbx], dword 104
@@ -829,7 +860,7 @@ end `
     push     NULL                       ; lpCurrentDirectory
     push     NULL                       ; lpEnvironment
     push     0x00000000                 ; dwCreationFlags
-    push     0x00000000                 ; bInheritHandles
+    push     0x00000001                 ; bInheritHandles
     sub rsp, 0x20
     mov r9,  NULL                       ; lpThreadAttributes
     mov r8,  NULL                       ; lpProcessAttributes
@@ -837,12 +868,28 @@ end `
     mov rcx, NULL
     call CreateProcessA
     add rsp, 0x20 + 7 * 0x8`
-        if rax != 1 then `
+
+    if rax == 0 then `
         printf([hStdOut], `"[ERROR] Linking failed."`)
         ExitProcess(1)`
     end `
 
     ; todo - delete object file
+
+    mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
+    mov rdx , 0xFFFFFFFF
+    call WaitForSingleObject
+
+    mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
+    mov rdx , lpExitCode
+    call GetExitCodeProcess 
+    mov rax, [lpExitCode]
+    `
+
+    if rax != 0 then `
+        printf([hStdOut], `"[ERROR] Linking failed."`)
+        ExitProcess(1)`
+    end `
 
     printf([hStdOut], `"[INFO] Generated %s.exe"`, szFilenameWithoutExtension, szFilenameWithoutExtension)
     jmp .exit

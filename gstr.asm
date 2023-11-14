@@ -17,7 +17,7 @@
     cmp rbx, 0
     jge .endif_2
 .then_2:
-; 
+asd 
 .endif_2:
 
 .if_3:

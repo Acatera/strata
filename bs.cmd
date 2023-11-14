@@ -1,6 +1,6 @@
 @echo off
 strata-sh strata
-call bss strata.asm
+@REM call bss strata.asm
 
 REM if an argument was passed, run strata.exe with it
 echo.

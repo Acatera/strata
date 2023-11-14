@@ -3,6 +3,37 @@
 
 %define DEFAULT_BUFFER_SIZE 1024
 
+struc STARTUPINFOA 
+    .cb               resd 1 ; x offset 0
+    .padding1         resd 1
+    .lpReserved       resq 1 ; xoffset 8
+    .lpDesktop        resq 1 ; xoffset 16
+    .lpTitle          resq 1 ; xoffset 24
+    .dwX              resd 1 ; xoffset 32
+    .dwY              resd 1 ; xoffset 36
+    .dwXSize          resd 1 ; xoffset 40
+    .dwYSize          resd 1 ; xoffset 44
+    .dwXCountChars    resd 1 ; xoffset 48
+    .dwYCountChars    resd 1 ; xoffset 52
+    .dwFillAttribute  resd 1 ; xoffset 56
+    .dwFlags          resd 1 ; xoffset 60
+    .wShowWindow      resw 1 ; xoffset 64
+    .cbReserved2      resw 1 ; xoffset 66
+    .padding2         resd 1 ; offset 68
+    .lpReserved2      resq 1 ; offset 72
+    .hStdInput        resq 1 ; offset 80
+    .hStdOutput       resq 1 ; offset 88
+    .hStdError        resq 1 ; offset 96
+    .size equ $ - STARTUPINFOA
+endstruc
+    
+struc PROCESS_INFORMATION
+    .hProcess    resq 1
+    .hThread     resq 1
+    .dwProcessId resd 1
+    .dwThreadId  resd 1
+endstruc
+
 section .bss
     _internal_printf_buffer resb DEFAULT_BUFFER_SIZE
     _internal_printf_output_buffer resb DEFAULT_BUFFER_SIZE

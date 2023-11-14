@@ -4,62 +4,53 @@ default rel
 %include "inc/std.inc"
 
 section .bss
+    ; lpStartupInfo resb STARTUPINFOA.size
     hStdOut resq 1
+    hStdError resq 1
+    lpExitCode resq 1
 
 section .data
-    string0           db "Starting process...", 0xd, 0xa, 0
-    string1           db "Application name: '%s'", 0xd, 0xa, 0
-    string2           db "Command line: '%s'", 0xd, 0xa, 0
-    lpApplicationName db "nasm.exe", 0
+    lpStartupInfo: istruc STARTUPINFOA
+                   iend
+    lpProcessInformation: istruc PROCESS_INFORMATION
+                          iend
+    lpApplicationName db "nasm.exe -f win64 -g gstr.asm -o gstr.o -w+all -w+error", 0
     lpCommandLine     db "-f win64 -g gstr.asm -o gstr.o -w+all -w+error", 0
-
-struc STARTUPINFOA 
-    .cb:              resd 1
-    .lpReserved:      resd 1
-    .lpDesktop:       resd 1
-    .lpTitle:         resd 1
-    .dwX:             resd 1
-    .dwY:             resd 1
-    .dwXSize:         resd 1
-    .dwYSize:         resd 1
-    .dwXCountChars:   resd 1
-    .dwYCountChars:   resd 1
-    .dwFillAttribute: resd 1
-    .dwFlags:         resd 1
-    .wShowWindow:     resw 1
-    .cbReserved2:     resw 1
-    .lpReserved2:     resd 1
-    .hStdInput:       resd 1
-    .hStdOutput:      resd 1
-    .hStdError:       resd 1
-    .size equ $ - STARTUPINFOA
-endstruc
-    
-section .bss
-    lpProcessInformation resb 24
-    lpStartupInfo resb STARTUPINFOA.size
 
 section .text
     global _start
     extern CreateProcessA
+    extern WaitForSingleObject
+    extern GetExitCodeProcess
 
 _start:
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
+    GetStdHandle(STD_ERROR_HANDLE, [hStdError])
 
-    printf([hStdOut], string0)
-    printf([hStdOut], string1, lpApplicationName)
-    printf([hStdOut], string2, lpCommandLine)
+    printf([hStdOut], `"STARTUPINFOA size: %d\n\r"`, STARTUPINFOA.size)
+    printf([hStdOut], `"Starting process...\n\r"`)
+    ; printf([hStdOut], `"Application name: %s\r\n"`, lpApplicationName)
+    printf([hStdOut], `"Command line: %s\r\n"`, lpApplicationName)
 
+    memset(lpStartupInfo, 0, STARTUPINFOA.size)
+
+    mov rax, STARTUPINFOA.size
+    mov [lpStartupInfo], rax
+
+    ; mov rax, [hStdOut]
+    ; mov [lpStartupInfo + STARTUPINFOA.hStdOutput], rax
+    ; mov rax, [hStdError]
+    ; mov [lpStartupInfo + STARTUPINFOA.hStdError], rax
+    
     ; CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes,
     ;     lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment,
     ;     lpCurrentDirectory, lpStartupInfo, lpProcessInformation
     ; )
-    mov rax, STARTUPINFOA.size
-    mov [lpStartupInfo], rax
-    
-
-    push lpProcessInformation   ; TDB
-    push lpStartupInfo  ; TDB
+    and rsp, 0xfffffffffffffff0
+    mov rax, lpProcessInformation
+    push rax  ; lpProcessInformation
+    mov rax, lpStartupInfo
+    push rax  ; lpStartupInfo
     push NULL  ; lpCurrentDirectory
     push NULL  ; lpEnvironment
     push 0x00000000  ; dwCreationFlags
@@ -67,14 +58,22 @@ _start:
     sub rsp, 0x20
     mov r9, 0 ; lpThreadAttributes
     mov r8, 0 ; lpProcessAttributes
-    mov rdx, lpCommandLine
-    mov rcx, lpApplicationName
+    mov rdx, lpApplicationName
+    mov rcx, NULL
     call CreateProcessA
     add rsp, 0x20 + 6 * 0x8
 
-    
+    mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
+    printf([hStdOut], `"hProcess: %d\n\r"`, rcx)
 
-    ; printf([hStdOut], cStrDecimalFormatNL, rax)
+    mov rdx , 0xFFFFFFFF
+    call WaitForSingleObject
+
+    mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
+    mov rdx , lpExitCode
+    call GetExitCodeProcess
+
+    printf([hStdOut], `"Exit code: %d\n\r"`, [lpExitCode])
 
     ExitProcess(0)
 

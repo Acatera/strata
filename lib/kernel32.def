@@ -16,3 +16,5 @@ EXPORTS
     CloseHandle
     GetLastError
     CreateProcessA 
+    WaitForSingleObject
+    GetExitCodeProcess
