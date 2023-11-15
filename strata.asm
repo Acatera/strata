@@ -1,9 +1,6 @@
 bits 64
 default rel
 
-bits 64
-default rel
-
 %include "inc/std.inc"
 ; %define DEBUG 0
 
@@ -147,10 +144,6 @@ section .data
     cStrReadOnlySectionHeader db 0xd, 0xa, "section .rodata", 0xd, 0xa, 0
     cStrReadOnlySectionHeader.length equ $ - cStrReadOnlySectionHeader - 1
 
-    ; error messages
-    ; cStrErrorThenNotAfterIf db "Error: '", VT_91, "then", VT_END, "' not after '", VT_91, "if", VT_END, "'.", 0xd, 0xa, 0
-    ; cStrErrorEndNotAfterThen db "Error: '", VT_91, "end", VT_END, "' not after '", VT_91, "then", VT_END, "'.", 0xd, 0xa, 0
-
 section .text
     global _start
     extern CreateFileA
@@ -190,7 +183,7 @@ _start:
 .if_0:
     cmp r8, 0
     jne .end_0
-.then_0:
+;then_0:
 
     inc rdi
     jmp .arg_loop
@@ -261,7 +254,7 @@ _start:
 .if_1:
     cmp rax, 0
     jge .end_1
-.then_1:
+;then_1:
 
         call GetLastError
         printf([hStdOut], roStr_2, szSourceFile, rax)
@@ -285,7 +278,7 @@ _start:
 .if_2:
     cmp rax, 0
     jne .end_2
-.then_2:
+;then_2:
 
         call GetLastError
         printf([hStdOut], roStr_3, rax)
@@ -309,7 +302,7 @@ _start:
 .if_3:
     cmp rax, 0
     jge .end_3
-.then_3:
+;then_3:
 
         call GetLastError
         printf([hStdOut], roStr_4, szDestFile, rax)
@@ -368,7 +361,7 @@ _start:
 .if_4:
     cmp r9, 0
     jne .end_4
-.then_4:
+;then_4:
 
         inc rdi
         inc r8
@@ -388,7 +381,7 @@ _start:
 .if_5:
     CompareTokenWith(szKeywordIf)
     jne .end_5
-.then_5:
+;then_5:
 
     mov [rbp], word KeywordIf
     jmp .token_type_set
@@ -397,7 +390,7 @@ _start:
 .if_6:
     CompareTokenWith(szKeywordThen)
     jne .end_6
-.then_6:
+;then_6:
 
     mov [rbp], word KeywordThen
     jmp .token_type_set
@@ -406,7 +399,7 @@ _start:
 .if_7:
     CompareTokenWith(szKeywordEnd)
     jne .end_7
-.then_7:
+;then_7:
 
     mov [rbp], word KeywordEnd
     jmp .token_type_set
@@ -415,7 +408,7 @@ _start:
 .if_8:
     CompareTokenWith(szKeywordWhile)
     jne .end_8
-.then_8:
+;then_8:
 
     mov [rbp], word KeywordWhile
     jmp .token_type_set
@@ -424,7 +417,7 @@ _start:
 .if_9:
     CompareTokenWith(szKeywordDo)
     jne .end_9
-.then_9:
+;then_9:
 
     mov [rbp], word KeywordDo
     jmp .token_type_set
@@ -433,7 +426,7 @@ _start:
 .if_10:
     CompareTokenWith(szKeywordContinue)
     jne .end_10
-.then_10:
+;then_10:
 
     mov [rbp], word KeywordContinue
     jmp .token_type_set
@@ -442,7 +435,7 @@ _start:
 .if_11:
     CompareTokenWith(szKeywordBreak)
     jne .end_11
-.then_11:
+;then_11:
 
     mov [rbp], word KeywordBreak
     jmp .token_type_set
@@ -451,7 +444,7 @@ _start:
 .if_12:
     CompareTokenWith(szOperatorEquals)
     jne .end_12
-.then_12:
+;then_12:
 
     mov [rbp], word OperatorEquals
     jmp .token_type_set
@@ -460,7 +453,7 @@ _start:
 .if_13:
     CompareTokenWith(szOperatorNotEquals)
     jne .end_13
-.then_13:
+;then_13:
 
     mov [rbp], word OperatorNotEquals
     jmp .token_type_set
@@ -469,7 +462,7 @@ _start:
 .if_14:
     CompareTokenWith(szOperatorLessOrEqual)
     jne .end_14
-.then_14:
+;then_14:
 
     mov [rbp], word OperatorLessOrEqual
     jmp .token_type_set
@@ -478,7 +471,7 @@ _start:
 .if_15:
     CompareTokenWith(szOperatorLess)
     jne .end_15
-.then_15:
+;then_15:
 
     mov [rbp], word OperatorLess
     jmp .token_type_set
@@ -487,7 +480,7 @@ _start:
 .if_16:
     CompareTokenWith(szOperatorGreaterOrEqual)
     jne .end_16
-.then_16:
+;then_16:
 
     mov [rbp], word OperatorGreaterOrEqual
     jmp .token_type_set
@@ -496,7 +489,7 @@ _start:
 .if_17:
     CompareTokenWith(szOperatorGreater)
     jne .end_17
-.then_17:
+;then_17:
 
     mov [rbp], word OperatorGreater
     jmp .token_type_set
@@ -505,7 +498,7 @@ _start:
 .if_18:
     CompareTokenWith(szOperatorAssignment)
     jne .end_18
-.then_18:
+;then_18:
 
     mov [rbp], word OperatorAssignment
     jmp .token_type_set
@@ -728,7 +721,7 @@ _start:
 .if_19:
     cmp currentToken.Type, defOperandAsmLiteral
     jne .end_19
-.then_19:
+;then_19:
 
         PushCallerSavedRegs()
   
@@ -749,7 +742,7 @@ _start:
 .if_20:
     cmp currentToken.Type, defKeywordIf
     jne .end_20
-.then_20:
+;then_20:
 
         PushCallerSavedRegs()
         sprintf(ptrBuffer64, roStr_8, [wScopedBlockCurrentId])
@@ -765,7 +758,7 @@ _start:
 .if_21:
     cmp currentToken.Type, defKeywordThen
     jne .end_21
-.then_21:
+;then_21:
 
         PushCallerSavedRegs()
         PeekBlockToken()
@@ -777,7 +770,7 @@ _start:
 .if_22:
     cmp bx, KeywordIf
     je .end_22
-.then_22:
+;then_22:
 
             printf([hStdOut], roStr_10, szSourceFile)
             jmp .exit
@@ -795,12 +788,12 @@ _start:
 .if_23:
     cmp r10d, 3
     je .end_23
-.then_23:
+;then_23:
 
 .if_24:
     cmp r10d, 1
     je .end_24
-.then_24:
+;then_24:
 
                 printf([hStdOut], roStr_11, r10)
                 jmp .exit
@@ -811,7 +804,7 @@ _start:
 .if_25:
     cmp r10d, 3
     jne .end_25
-.then_25:
+;then_25:
 
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
@@ -824,7 +817,7 @@ _start:
 .if_26:
     cmp r10d, 1
     jne .end_26
-.then_26:
+;then_26:
 
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
@@ -852,7 +845,7 @@ _start:
 .if_27:
     cmp currentToken.Type, defKeywordEnd
     jne .end_27
-.then_27:
+;then_27:
 
         PushCallerSavedRegs()
 
@@ -862,12 +855,12 @@ _start:
 .if_28:
     cmp bx, KeywordThen
     je .end_28
-.then_28:
+;then_28:
 
 .if_29:
     cmp bx, KeywordDo
     je .end_29
-.then_29:
+;then_29:
 
                 printf([hStdOut], roStr_13, szSourceFile)
                 jmp .exit
@@ -878,7 +871,7 @@ _start:
 .if_30:
     cmp bx, KeywordDo
     jne .end_30
-.then_30:
+;then_30:
 
             mov bx, word [rax + Block.BlockId]
             and rbx, 0xffff 
@@ -903,7 +896,7 @@ _start:
 .if_31:
     cmp currentToken.Type, defKeywordWhile
     jne .end_31
-.then_31:
+;then_31:
 
         PushCallerSavedRegs()
         sprintf(ptrBuffer64, roStr_16, [wScopedBlockCurrentId])
@@ -919,7 +912,7 @@ _start:
 .if_32:
     cmp currentToken.Type, defKeywordDo
     jne .end_32
-.then_32:
+;then_32:
 
         PushCallerSavedRegs()
         PeekBlockToken()
@@ -931,7 +924,7 @@ _start:
 .if_33:
     cmp bx, KeywordWhile
     je .end_33
-.then_33:
+;then_33:
 
             printf([hStdOut], roStr_18, szSourceFile)
             jmp .exit
@@ -949,12 +942,12 @@ _start:
 .if_34:
     cmp r10d, 3
     je .end_34
-.then_34:
+;then_34:
 
 .if_35:
     cmp r10d, 1
     je .end_35
-.then_35:
+;then_35:
 
                 printf([hStdOut], roStr_19, r10)
                 jmp .exit
@@ -965,7 +958,7 @@ _start:
 .if_36:
     cmp r10d, 3
     jne .end_36
-.then_36:
+;then_36:
 
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
@@ -978,7 +971,7 @@ _start:
 .if_37:
     cmp r10d, 1
     jne .end_37
-.then_37:
+;then_37:
 
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
@@ -1006,7 +999,7 @@ _start:
 .if_38:
     cmp currentToken.Type, defKeywordContinue
     jne .end_38
-.then_38:
+;then_38:
 
         PushCallerSavedRegs()
 
@@ -1022,7 +1015,7 @@ _start:
 .while_39:
     cmp rbx, 0
     jle .end_39
-.do_39:
+;do_39:
 
             dec rbx
             sub r15, Block.size
@@ -1030,7 +1023,7 @@ _start:
 .if_40:
     cmp r10, KeywordWhile
     jne .end_40
-.then_40:
+;then_40:
 
                 mov r10w, [r15 + Block.BlockId]
                 and r10, 0xffff
@@ -1039,7 +1032,7 @@ _start:
 .end_40:
 
     jmp .while_39
-
+    ; end while_39
 .end_39:
 
 
@@ -1052,7 +1045,7 @@ _start:
 .if_41:
     cmp currentToken.Type, defKeywordBreak
     jne .end_41
-.then_41:
+;then_41:
 
         PushCallerSavedRegs()
 
@@ -1068,7 +1061,7 @@ _start:
 .while_42:
     cmp rbx, 0
     jle .end_42
-.do_42:
+;do_42:
 
             dec rbx
             sub r15, Block.size
@@ -1076,7 +1069,7 @@ _start:
 .if_43:
     cmp r10, KeywordWhile
     jne .end_43
-.then_43:
+;then_43:
 
                 mov r10w, [r15 + Block.BlockId]
                 and r10, 0xffff
@@ -1085,7 +1078,7 @@ _start:
 .end_43:
 
     jmp .while_42
-
+    ; end while_42
 .end_42:
 
 
@@ -1098,7 +1091,7 @@ _start:
 .if_44:
     cmp currentToken.Type, defOperandStringLiteral
     jne .end_44
-.then_44:
+;then_44:
 
         ; todo - optimize strings by removing duplicate strings
         PushCallerSavedRegs()
@@ -1185,7 +1178,7 @@ _start:
 .if_45:
     cmp rax, 0
     jne .end_45
-.then_45:
+;then_45:
 
         printf([hStdOut], roStr_29)
         ExitProcess(1)
@@ -1206,7 +1199,7 @@ _start:
 .if_46:
     cmp rax, 0
     je .end_46
-.then_46:
+;then_46:
 
         printf([hStdOut], roStr_31)
         ExitProcess(1)
@@ -1242,7 +1235,7 @@ _start:
 .if_47:
     cmp rax, 0
     jne .end_47
-.then_47:
+;then_47:
 
         printf([hStdOut], roStr_34)
         ExitProcess(1)
@@ -1261,7 +1254,7 @@ _start:
 .if_48:
     cmp rax, 0
     je .end_48
-.then_48:
+;then_48:
 
         printf([hStdOut], roStr_35)
         ExitProcess(1)
@@ -1279,7 +1272,7 @@ _start:
 .if_49:
     cmp rax, 0
     jne .end_49
-.then_49:
+;then_49:
 
         printf([hStdOut], roStr_38)
 .end_49:
@@ -1304,7 +1297,7 @@ push_string_literal:
 .if_50:
     cmp rax, CONST_STRING_COUNT
     jl .end_50
-.then_50:
+;then_50:
 
         printf([hStdOut], roStr_40, CONST_STRING_COUNT)
         ExitProcess(1)
@@ -1464,7 +1457,7 @@ compile_condition_3:
 .if_51:
     cmp r10, OperatorEquals
     jne .end_51
-.then_51:
+;then_51:
 
         sprintf(ptrBuffer256, roStr_46, ptrBuffer64)
         jmp .valid_operator_found
@@ -1473,7 +1466,7 @@ compile_condition_3:
 .if_52:
     cmp r10, OperatorNotEquals
     jne .end_52
-.then_52:
+;then_52:
 
         sprintf(ptrBuffer256, roStr_47, ptrBuffer64)
         jmp .valid_operator_found
@@ -1482,7 +1475,7 @@ compile_condition_3:
 .if_53:
     cmp r10, OperatorLess
     jne .end_53
-.then_53:
+;then_53:
 
         sprintf(ptrBuffer256, roStr_48, ptrBuffer64)
         jmp .valid_operator_found
@@ -1491,7 +1484,7 @@ compile_condition_3:
 .if_54:
     cmp r10, OperatorLessOrEqual
     jne .end_54
-.then_54:
+;then_54:
 
         sprintf(ptrBuffer256, roStr_49, ptrBuffer64)
         jmp .valid_operator_found
@@ -1500,7 +1493,7 @@ compile_condition_3:
 .if_55:
     cmp r10, OperatorGreater
     jne .end_55
-.then_55:
+;then_55:
 
         sprintf(ptrBuffer256, roStr_50, ptrBuffer64)
         jmp .valid_operator_found
@@ -1509,7 +1502,7 @@ compile_condition_3:
 .if_56:
     cmp r10, OperatorGreaterOrEqual
     jne .end_56
-.then_56:
+;then_56:
 
         sprintf(ptrBuffer256, roStr_51, ptrBuffer64)
         jmp .valid_operator_found
@@ -1587,44 +1580,44 @@ section .rodata
     roStr_43 db "    jne .end_%d\r\n", 0
     roStr_42 db "    %s\r\n", 0
     roStr_41 db "    roStr_%d db %s, 0\r\n", 0
-    roStr_40 db "[ERROR]: String list full. Max strings allowed: %d\r\n", 0
-    roStr_39 db "[INFO] Generated %s.exe\r\n", 0
+    roStr_40 db "[\#27[91mERROR\#27[0m]: String list full. Max strings allowed: %d\r\n", 0
+    roStr_39 db "[\#27[92mINFO\#27[0m] Generated %s.exe\r\n", 0
     roStr_38 db "[WARN] Deleting object file failed.\r\n", 0
     roStr_37 db "%s.o", 0
     roStr_36 db "[DEBUG] Deleting object file.\r\n", 0
-    roStr_35 db "[ERROR] Linking failed.", 0
-    roStr_34 db "[ERROR] Linking failed.", 0
-    roStr_33 db "[INFO] Linking using 'ld':\r\n\t%s\r\n", 0
+    roStr_35 db "[\#27[91mERROR\#27[0m] Linking failed.", 0
+    roStr_34 db "[\#27[91mERROR\#27[0m] Linking failed.", 0
+    roStr_33 db "[\#27[92mINFO\#27[0m] Linking using 'ld':\r\n\t%s\r\n", 0
     roStr_32 db "ld -e _start %s.o -o %s.exe -lkernel32 -lWs2_32 -Llib", 0
-    roStr_31 db "[ERROR] Assembling failed.", 0
+    roStr_31 db "[\#27[91mERROR\#27[0m] Assembling failed.", 0
     roStr_30 db "[DEBUG] Exit code: %d.\r\n", 0
-    roStr_29 db "[ERROR] Assembling failed.", 0
-    roStr_28 db "[INFO] Assembling using 'nasm':\r\n\t%s\r\n", 0
+    roStr_29 db "[\#27[91mERROR\#27[0m] Assembling failed.", 0
+    roStr_28 db "[\#27[92mINFO\#27[0m] Assembling using 'nasm':\r\n\t%s\r\n", 0
     roStr_27 db "nasm.exe -f win64 -g %s.asm -o %s.o -w+all -w+error", 0
-    roStr_26 db "[INFO] Done compiling.\r\n", 0
+    roStr_26 db "[\#27[92mINFO\#27[0m] Done compiling.\r\n", 0
     roStr_25 db "[WARN] Unknown token '%s'\r\n", 0
     roStr_24 db "[DEBUG] Token type %x; start: %d; length: %d\r\n", 0
     roStr_23 db "roStr_%d", 0
     roStr_22 db "\r\n    jmp .end_%d\r\n", 0
     roStr_21 db "\r\n    jmp .while_%d\r\n", 0
     roStr_20 db ";do_%d:\r\n", 0
-    roStr_19 db "[ERROR] Unsupported 'while' condition. Found %d tokens\r\n", 0
-    roStr_18 db "[ERROR] Keyword 'do' is not after 'while'\r\n", 0
+    roStr_19 db "[\#27[91mERROR\#27[0m] Unsupported 'while' condition. Found %d tokens\r\n", 0
+    roStr_18 db "[\#27[91mERROR\#27[0m] Keyword 'do' is not after 'while'\r\n", 0
     roStr_17 db "[DEBUG] .if_token_is_then_0 - rbx %x\r\n", 0
     roStr_16 db "\r\n.while_%d:\r\n", 0
     roStr_15 db "\r\n.end_%d:\r\n", 0
     roStr_14 db "\r\n    jmp .while_%d\r\n    ; end while_%d", 0
-    roStr_13 db "[ERROR] Keyword 'end' is not after 'then' or 'do'\r\n", 0
+    roStr_13 db "[\#27[91mERROR\#27[0m] Keyword 'end' is not after 'then' or 'do'\r\n", 0
     roStr_12 db ";then_%d:\r\n", 0
-    roStr_11 db "[ERROR] Unsupported 'if' condition. Found %d tokens\r\n", 0
-    roStr_10 db "[ERROR] Keyword 'then' is not after 'if'\r\n", 0
+    roStr_11 db "[\#27[91mERROR\#27[0m] Unsupported 'if' condition. Found %d tokens\r\n", 0
+    roStr_10 db "[\#27[91mERROR\#27[0m] Keyword 'then' is not after 'if'\r\n", 0
     roStr_9 db "[DEBUG] .if_token_is_then_0 - rbx %x\r\n", 0
     roStr_8 db "\r\n.if_%d:\r\n", 0
     roStr_7 db "[DEBUG] Current token index: %d\r\n", 0
     roStr_6 db "[DEBUG] Found %d tokens.\r\n", 0
-    roStr_5 db "[INFO] Compiling file '%s'...\r\n", 0
-    roStr_4 db "[ERROR] Error opening file '%s'. Error code: %d\r\n", 0
-    roStr_3 db "[ERROR] Error reading file '%s'. Error code: %d\r\n", 0
-    roStr_2 db "[ERROR] Error opening file '%s'. Error code: %d\r\n", 0
-    roStr_1 db "[INFO] Output file '%s'\r\n", 0
-    roStr_0 db "[INFO] Input file '%s'\r\n", 0
+    roStr_5 db "[\#27[92mINFO\#27[0m] Compiling file '%s'...\r\n", 0
+    roStr_4 db "[\#27[91mERROR\#27[0m] Error opening file '%s'. Error code: %d\r\n", 0
+    roStr_3 db "[\#27[91mERROR\#27[0m] Error reading file '%s'. Error code: %d\r\n", 0
+    roStr_2 db "[\#27[91mERROR\#27[0m] Error opening file '%s'. Error code: %d\r\n", 0
+    roStr_1 db "[\#27[92mINFO\#27[0m] Output file '%s'\r\n", 0
+    roStr_0 db "[\#27[92mINFO\#27[0m] Input file '%s'\r\n", 0

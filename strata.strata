@@ -1,7 +1,4 @@
-`bits 64
-default rel
-
-%include "inc/std.inc"
+`%include "inc/std.inc"
 ; %define DEBUG 0
 
 %define SOURCE_CODE_SIZE 1024*1024
@@ -144,10 +141,6 @@ section .data
     cStrReadOnlySectionHeader db 0xd, 0xa, "section .rodata", 0xd, 0xa, 0
     cStrReadOnlySectionHeader.length equ $ - cStrReadOnlySectionHeader - 1
 
-    ; error messages
-    ; cStrErrorThenNotAfterIf db "Error: '", VT_91, "then", VT_END, "' not after '", VT_91, "if", VT_END, "'.", 0xd, 0xa, 0
-    ; cStrErrorEndNotAfterThen db "Error: '", VT_91, "end", VT_END, "' not after '", VT_91, "then", VT_END, "'.", 0xd, 0xa, 0
-
 section .text
     global _start
     extern CreateFileA
@@ -234,8 +227,8 @@ end `
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
 
     ; print input and output file names
-    printf([hStdOut], `"[INFO] Input file '%s'\r\n"`, szSourceFile)
-    printf([hStdOut], `"[INFO] Output file '%s'\r\n"`, szDestFile)
+    printf([hStdOut], `"[\#27[92mINFO\#27[0m] Input file '%s'\r\n"`, szSourceFile)
+    printf([hStdOut], `"[\#27[92mINFO\#27[0m] Output file '%s'\r\n"`, szDestFile)
 
     ; Preparing the parameters for CreateFileA to open a file for reading
     mov rcx, szSourceFile                       ; First parameter: Pointer to the filename (LPCSTR)
@@ -252,7 +245,7 @@ end `
     ; check if the file handle is valid`
     if rax < 0 then `
         call GetLastError
-        printf([hStdOut], `"[ERROR] Error opening file '%s'. Error code: %d\r\n"`, szSourceFile, rax)
+        printf([hStdOut], `"[\#27[91mERROR\#27[0m] Error opening file '%s'. Error code: %d\r\n"`, szSourceFile, rax)
         ExitProcess(1)`
     end `
 
@@ -271,7 +264,7 @@ end `
     ; check if the function succeeded`
     if rax == 0 then `
         call GetLastError
-        printf([hStdOut], `"[ERROR] Error reading file '%s'. Error code: %d\r\n"`, rax)
+        printf([hStdOut], `"[\#27[91mERROR\#27[0m] Error reading file '%s'. Error code: %d\r\n"`, rax)
         ExitProcess(1)`
     end `
 
@@ -290,14 +283,14 @@ end `
     ; check if the function succeeded`
     if rax < 0 then `
         call GetLastError
-        printf([hStdOut], `"[ERROR] Error opening file '%s'. Error code: %d\r\n"`, szDestFile, rax)
+        printf([hStdOut], `"[\#27[91mERROR\#27[0m] Error opening file '%s'. Error code: %d\r\n"`, szDestFile, rax)
         ExitProcess(1)`
     end `
 
     mov [hndDestFile], rax
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
 
-    printf([hStdOut], `"[INFO] Compiling file '%s'...\r\n"`, szSourceFile)
+    printf([hStdOut], `"[\#27[92mINFO\#27[0m] Compiling file '%s'...\r\n"`, szSourceFile)
 
     ; initialize string count
     mov rax, 0
@@ -681,7 +674,7 @@ end `
         %endif `
 
         if bx != KeywordIf then `
-            printf([hStdOut], `"[ERROR] Keyword 'then' is not after 'if'\r\n"`, szSourceFile)
+            printf([hStdOut], `"[\#27[91mERROR\#27[0m] Keyword 'then' is not after 'if'\r\n"`, szSourceFile)
             jmp .exit`
         end `
         
@@ -695,7 +688,7 @@ end `
         `
         if r10d != 3 then 
             if r10d != 1 then `
-                printf([hStdOut], `"[ERROR] Unsupported 'if' condition. Found %d tokens\r\n"`, r10)
+                printf([hStdOut], `"[\#27[91mERROR\#27[0m] Unsupported 'if' condition. Found %d tokens\r\n"`, r10)
                 jmp .exit`
             end
         end 
@@ -741,7 +734,7 @@ end `
         mov rbx, [rax + Block.TokenType]`
         if bx != KeywordThen then 
             if bx != KeywordDo then `
-                printf([hStdOut], `"[ERROR] Keyword 'end' is not after 'then' or 'do'\r\n"`, szSourceFile)
+                printf([hStdOut], `"[\#27[91mERROR\#27[0m] Keyword 'end' is not after 'then' or 'do'\r\n"`, szSourceFile)
                 jmp .exit`
             end
         end 
@@ -790,7 +783,7 @@ end `
         %endif `
 
         if bx != KeywordWhile then `
-            printf([hStdOut], `"[ERROR] Keyword 'do' is not after 'while'\r\n"`, szSourceFile)
+            printf([hStdOut], `"[\#27[91mERROR\#27[0m] Keyword 'do' is not after 'while'\r\n"`, szSourceFile)
             jmp .exit`
         end `
         
@@ -804,7 +797,7 @@ end `
         `
         if r10d != 3 then 
             if r10d != 1 then `
-                printf([hStdOut], `"[ERROR] Unsupported 'while' condition. Found %d tokens\r\n"`, r10)
+                printf([hStdOut], `"[\#27[91mERROR\#27[0m] Unsupported 'while' condition. Found %d tokens\r\n"`, r10)
                 jmp .exit`
             end
         end 
@@ -955,7 +948,7 @@ end `
     mov rcx, [hndDestFile]
     call CloseHandle
 
-    printf([hStdOut], `"[INFO] Done compiling.\r\n"`, szSourceFile)
+    printf([hStdOut], `"[\#27[92mINFO\#27[0m] Done compiling.\r\n"`, szSourceFile)
 
     jmp .assemble_object_file
 
@@ -964,7 +957,7 @@ end `
     
 .assemble_object_file:
     sprintf(ptrBuffer256, `"nasm.exe -f win64 -g %s.asm -o %s.o -w+all -w+error"`, szFilenameWithoutExtension, szFilenameWithoutExtension)
-    printf([hStdOut], `"[INFO] Assembling using 'nasm':\r\n\t%s\r\n"`, ptrBuffer256)
+    printf([hStdOut], `"[\#27[92mINFO\#27[0m] Assembling using 'nasm':\r\n\t%s\r\n"`, ptrBuffer256)
 
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
@@ -991,7 +984,7 @@ end `
     add rsp, 0x20 + 7 * 0x8 `
 
     if rax == 0 then `
-        printf([hStdOut], `"[ERROR] Assembling failed."`)
+        printf([hStdOut], `"[\#27[91mERROR\#27[0m] Assembling failed."`)
         ExitProcess(1)`
     end `
 
@@ -1008,12 +1001,12 @@ end `
     `
 
     if rax != 0 then `
-        printf([hStdOut], `"[ERROR] Assembling failed."`)
+        printf([hStdOut], `"[\#27[91mERROR\#27[0m] Assembling failed."`)
         ExitProcess(1)`
     end `
 
     sprintf(ptrBuffer256, `"ld -e _start %s.o -o %s.exe -lkernel32 -lWs2_32 -Llib"`, szFilenameWithoutExtension, szFilenameWithoutExtension)
-    printf([hStdOut], `"[INFO] Linking using 'ld':\r\n\t%s\r\n"`, ptrBuffer256)
+    printf([hStdOut], `"[\#27[92mINFO\#27[0m] Linking using 'ld':\r\n\t%s\r\n"`, ptrBuffer256)
     
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
@@ -1040,7 +1033,7 @@ end `
     add rsp, 0x20 + 7 * 0x8`
 
     if rax == 0 then `
-        printf([hStdOut], `"[ERROR] Linking failed."`)
+        printf([hStdOut], `"[\#27[91mERROR\#27[0m] Linking failed."`)
         ExitProcess(1)`
     end `
 
@@ -1055,7 +1048,7 @@ end `
     `
 
     if rax != 0 then `
-        printf([hStdOut], `"[ERROR] Linking failed."`)
+        printf([hStdOut], `"[\#27[91mERROR\#27[0m] Linking failed."`)
         ExitProcess(1)`
     end `
 
@@ -1072,7 +1065,7 @@ end `
         printf([hStdOut], `"[WARN] Deleting object file failed.\r\n"`)`
     end `
 
-    printf([hStdOut], `"[INFO] Generated %s.exe\r\n"`, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    printf([hStdOut], `"[\#27[92mINFO\#27[0m] Generated %s.exe\r\n"`, szFilenameWithoutExtension, szFilenameWithoutExtension)
     jmp .exit
 
 ; this routine will save a string literal to the string list
@@ -1090,7 +1083,7 @@ push_string_literal:
     mov rax, [dwStringCount]`
 
     if rax >= CONST_STRING_COUNT then `
-        printf([hStdOut], `"[ERROR]: String list full. Max strings allowed: %d\r\n"`, CONST_STRING_COUNT)
+        printf([hStdOut], `"[\#27[91mERROR\#27[0m]: String list full. Max strings allowed: %d\r\n"`, CONST_STRING_COUNT)
         ExitProcess(1)`
     end `
 

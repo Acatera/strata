@@ -80,9 +80,6 @@ section .text
 %define TRUE 1
 %define FALSE 0
 
-%define VT_91 0x1b, "[91m"
-%define VT_END 0x1b, "[0m"
-
 ; to be used with index as static int
 %define array_nth(type, array, index, result) mov result, array + index * type %+.size
 
@@ -989,12 +986,32 @@ escape:
 .else_double_quotes:
     ; \": Double quotation mark (")
     cmp byte [rsi + 1], '"'
-    jne .else_undefined_escape_sequence
+    jne .else_dec_number
     mov byte [rdi], '"'
     add rsi, 2
     add rdi, 1
     inc rax
     jmp .while
+
+.else_dec_number:
+    ; \#xx - Decimal number
+    cmp byte [rsi + 1], '#'
+    jne .else_undefined_escape_sequence
+    push rax
+    movzx rax, byte [rsi + 2]
+    sub rax, '0'
+    mov rdx, 10
+    mul rdx
+    movzx rdx, byte [rsi + 3]
+    sub rdx, '0'
+    add rax, rdx
+    mov [rdi], al
+    pop rax
+    add rsi, 4
+    add rdi, 1
+    inc rax
+    jmp .while
+
 .else_undefined_escape_sequence:
 
 .end_backslash:    
