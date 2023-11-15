@@ -172,14 +172,11 @@ _start:
     inc r8
     jmp .arg_loop
 
-.arg_loop_found_space:
-.if_current_arg_empty:
-    cmp r8, 0
-    jne .endif_current_arg_empty
-.then_current_arg_empty:
+.arg_loop_found_space:`
+if r8 == 0 then `
     inc rdi
-    jmp .arg_loop
-.endif_current_arg_empty:
+    jmp .arg_loop`
+end `
 
 .if_first_arg:
     cmp byte [argCount], 0
@@ -229,7 +226,6 @@ _start:
     printf([hStdOut], `"[INFO] Input file '%s'\r\n"`, szSourceFile)
     printf([hStdOut], `"[INFO] Output file '%s'\r\n"`, szDestFile)
 
-
     ; Preparing the parameters for CreateFileA to open a file for reading
     mov rcx, szSourceFile                       ; First parameter: Pointer to the filename (LPCSTR)
     mov rdx, GENERIC_READ                       ; Second parameter: Access to the file (DWORD), for reading use GENERIC_READ
@@ -242,14 +238,14 @@ _start:
     call CreateFileA
     add rsp, 4*8 + 3*8
 
-    ; Check if the file handle is valid`
-if rax < 0 then
-`   call GetLastError
-    printf([hStdOut], `"[ERROR] Error opening file '%s'. Error code: %d\r\n"`, szSourceFile, rax)
-    ExitProcess(1)`
-end `
+    ; check if the file handle is valid`
+    if rax < 0 then `
+        call GetLastError
+        printf([hStdOut], `"[ERROR] Error opening file '%s'. Error code: %d\r\n"`, szSourceFile, rax)
+        ExitProcess(1)`
+    end `
 
-.file_opened:    
+    ; file opened
     mov [hndSourceFile], rax
 
     ; Preparing the parameters for ReadFile
@@ -261,12 +257,12 @@ end `
     push 0
     call ReadFile
 
-    ; Check if the function succeeded`
-if rax == 0 then
-`   call GetLastError
-    printf([hStdOut], `"[ERROR] Error reading file '%s'. Error code: %d\r\n"`, rax)
-    ExitProcess(1)`
-end `
+    ; check if the function succeeded`
+    if rax == 0 then `
+        call GetLastError
+        printf([hStdOut], `"[ERROR] Error reading file '%s'. Error code: %d\r\n"`, rax)
+        ExitProcess(1)`
+    end `
 
     ; Preparing the parameters for CreateFileA to open a file for writing
     mov rcx, szDestFile                         ; Pointer to the filename (LPCSTR)
@@ -280,19 +276,18 @@ end `
     call CreateFileA
     add rsp, 4*8 + 3*8
 
-    ; Check if the function succeeded`
-if rax < 0 then
-`   call GetLastError
-    printf([hStdOut], `"[ERROR] Error opening file '%s'. Error code: %d\r\n"`, szDestFile, rax)
-    ExitProcess(1)`
-end `
+    ; check if the function succeeded`
+    if rax < 0 then `
+        call GetLastError
+        printf([hStdOut], `"[ERROR] Error opening file '%s'. Error code: %d\r\n"`, szDestFile, rax)
+        ExitProcess(1)`
+    end `
 
     mov [hndDestFile], rax
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
 
     printf([hStdOut], `"[INFO] Compiling file '%s'...\r\n"`, szSourceFile)
 
-.init_string_literal_buffer:
     ; initialize string count
     mov rax, 0
     mov [dwStringCount], rax
@@ -350,7 +345,6 @@ end `
     mov rbp, rsp
     sub rsp, 8 ; reserve space on the stack for the token type
     mov [rbp], word 0 ; initialize token type to 0
-    
 `
 if CompareTokenWith(szKeywordIf) then `
     mov [rbp], word KeywordIf
@@ -569,16 +563,12 @@ end `
 ; this will only decrement the block count
 %define QuickPopBlockToken() dec qword [blockCount]
 
-    ; todo - remove this temp code
+%ifdef DEBUG    
     push rbx
     mov ebx, dword [dwTokenCount]
-
-%ifdef DEBUG    
     printf([hStdOut], `"[DEBUG] Found %d tokens.\r\n"`, rbx)
-%endif
-
     pop rbx
-    ; end of temp code
+%endif
 
     ; iterate over tokens
     push rbp
@@ -600,10 +590,6 @@ end `
     mov rbx, [tokenIndex]
     cmp ebx, [dwTokenCount]
     jge .end_counter_less_than_token_count
-
-    ; mov r10w, currentToken.Type
-    ; mov r11d, currentToken.Start
-    ; mov r12d, currentToken.Length
 
 %ifdef DEBUG    
     PushCallerSavedRegs()
@@ -639,21 +625,18 @@ end `
         inc word [wScopedBlockCurrentId]
         PopCallerSavedRegs()
         NextToken()`
-    end `
+    end 
 
-    ` ; keyword 'then'`
-    .if_token_is_then_0:
-        cmp currentToken.Type, word KeywordThen
-        jne .endif_token_is_then_0
-    .then_token_is_then_0:
+    `; keyword 'then'`
+    if currentToken.Type == defKeywordThen then `
         PushCallerSavedRegs()
         PeekBlockToken()
         mov rbx, [rax + Block.TokenType]
 
-%ifdef DEBUG
-        printf([hStdOut], `"[DEBUG] .if_token_is_then_0 - rbx %x\r\n"`, rbx)
-%endif
-        `
+        %ifdef DEBUG
+            printf([hStdOut], `"[DEBUG] .if_token_is_then_0 - rbx %x\r\n"`, rbx)
+        %endif `
+        
         if bx != KeywordIf then `
             printf([hStdOut], `"[ERROR] Keyword 'then' is not after 'if'\r\n"`, szSourceFile)
             jmp .exit`
@@ -703,14 +686,11 @@ end `
         PushBlockToken(KeywordThen, rcx)
 
         PopCallerSavedRegs()
-        NextToken()
-    .endif_token_is_then_0:
+        NextToken()`
+    end
 
-    ` ; keyword 'end'`
-    .if_token_is_end_0:
-        cmp currentToken.Type, word KeywordEnd
-        jne .endif_token_is_end_0
-    .then_token_is_end_0:
+    `; keyword 'end'`
+    if currentToken.Type == defKeywordEnd then `
         PushCallerSavedRegs()
 
         PeekBlockToken()
@@ -728,13 +708,10 @@ end `
         QuickPopBlockToken() ; pop 'if'
 
         PopCallerSavedRegs()
-        NextToken()
-    .endif_token_is_end_0:
+        NextToken()`
+    end 
 
-    .if_token_is_string_literal_0:
-        cmp currentToken.Type, word OperandStringLiteral
-        jne .endif_token_is_string_literal_0
-    .then_token_is_string_literal_0:
+    if currentToken.Type == defOperandStringLiteral then `
         ; todo - optimize strings by removing duplicate strings
         PushCallerSavedRegs()
 
@@ -749,8 +726,8 @@ end `
 
         PopCallerSavedRegs()
 
-        NextToken()
-    .endif_token_is_string_literal_0:
+        NextToken()`
+    end `
 
 %ifdef DEBUG
     mov r10w, currentToken.Type

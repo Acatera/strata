@@ -173,13 +173,15 @@ _start:
     jmp .arg_loop
 
 .arg_loop_found_space:
-.if_current_arg_empty:
+.if_0:
     cmp r8, 0
-    jne .endif_current_arg_empty
-.then_current_arg_empty:
+    jne .endif_0
+.then_0:
+
     inc rdi
     jmp .arg_loop
-.endif_current_arg_empty:
+.endif_0:
+
 
 .if_first_arg:
     cmp byte [argCount], 0
@@ -229,7 +231,6 @@ _start:
     printf([hStdOut], roStr_0, szSourceFile)
     printf([hStdOut], roStr_1, szDestFile)
 
-
     ; Preparing the parameters for CreateFileA to open a file for reading
     mov rcx, szSourceFile                       ; First parameter: Pointer to the filename (LPCSTR)
     mov rdx, GENERIC_READ                       ; Second parameter: Access to the file (DWORD), for reading use GENERIC_READ
@@ -242,18 +243,19 @@ _start:
     call CreateFileA
     add rsp, 4*8 + 3*8
 
-    ; Check if the file handle is valid
-.if_0:
+    ; check if the file handle is valid
+.if_1:
     cmp rax, 0
-    jge .endif_0
-.then_0:
-   call GetLastError
-    printf([hStdOut], roStr_2, szSourceFile, rax)
-    ExitProcess(1)
-.endif_0:
+    jge .endif_1
+.then_1:
+
+        call GetLastError
+        printf([hStdOut], roStr_2, szSourceFile, rax)
+        ExitProcess(1)
+.endif_1:
 
 
-.file_opened:    
+    ; file opened
     mov [hndSourceFile], rax
 
     ; Preparing the parameters for ReadFile
@@ -265,15 +267,16 @@ _start:
     push 0
     call ReadFile
 
-    ; Check if the function succeeded
-.if_1:
+    ; check if the function succeeded
+.if_2:
     cmp rax, 0
-    jne .endif_1
-.then_1:
-   call GetLastError
-    printf([hStdOut], roStr_3, rax)
-    ExitProcess(1)
-.endif_1:
+    jne .endif_2
+.then_2:
+
+        call GetLastError
+        printf([hStdOut], roStr_3, rax)
+        ExitProcess(1)
+.endif_2:
 
 
     ; Preparing the parameters for CreateFileA to open a file for writing
@@ -288,15 +291,16 @@ _start:
     call CreateFileA
     add rsp, 4*8 + 3*8
 
-    ; Check if the function succeeded
-.if_2:
+    ; check if the function succeeded
+.if_3:
     cmp rax, 0
-    jge .endif_2
-.then_2:
-   call GetLastError
-    printf([hStdOut], roStr_4, szDestFile, rax)
-    ExitProcess(1)
-.endif_2:
+    jge .endif_3
+.then_3:
+
+        call GetLastError
+        printf([hStdOut], roStr_4, szDestFile, rax)
+        ExitProcess(1)
+.endif_3:
 
 
     mov [hndDestFile], rax
@@ -304,7 +308,6 @@ _start:
 
     printf([hStdOut], roStr_5, szSourceFile)
 
-.init_string_literal_buffer:
     ; initialize string count
     mov rax, 0
     mov [dwStringCount], rax
@@ -348,15 +351,15 @@ _start:
 
 .token_found:
     ; is token length 0?
-.if_3:
+.if_4:
     cmp r9, 0
-    jne .endif_3
-.then_3:
+    jne .endif_4
+.then_4:
 
         inc rdi
         inc r8
         jmp .read_token_loop
-.endif_3:
+.endif_4:
 
 
 .print_token:
@@ -367,97 +370,96 @@ _start:
     mov rbp, rsp
     sub rsp, 8 ; reserve space on the stack for the token type
     mov [rbp], word 0 ; initialize token type to 0
-    
-
-.if_4:
-    CompareTokenWith(szKeywordIf)
-    jne .endif_4
-.then_4:
-
-    mov [rbp], word KeywordIf
-    jmp .token_type_set
-.endif_4:
 
 .if_5:
-    CompareTokenWith(szKeywordThen)
+    CompareTokenWith(szKeywordIf)
     jne .endif_5
 .then_5:
 
-    mov [rbp], word KeywordThen
+    mov [rbp], word KeywordIf
     jmp .token_type_set
 .endif_5:
 
 .if_6:
-    CompareTokenWith(szKeywordEnd)
+    CompareTokenWith(szKeywordThen)
     jne .endif_6
 .then_6:
 
-    mov [rbp], word KeywordEnd
+    mov [rbp], word KeywordThen
     jmp .token_type_set
 .endif_6:
 
 .if_7:
-    CompareTokenWith(szOperatorEquals)
+    CompareTokenWith(szKeywordEnd)
     jne .endif_7
 .then_7:
 
-    mov [rbp], word OperatorEquals
+    mov [rbp], word KeywordEnd
     jmp .token_type_set
 .endif_7:
 
 .if_8:
-    CompareTokenWith(szOperatorNotEquals)
+    CompareTokenWith(szOperatorEquals)
     jne .endif_8
 .then_8:
 
-    mov [rbp], word OperatorNotEquals
+    mov [rbp], word OperatorEquals
     jmp .token_type_set
 .endif_8:
 
 .if_9:
-    CompareTokenWith(szOperatorLessOrEqual)
+    CompareTokenWith(szOperatorNotEquals)
     jne .endif_9
 .then_9:
 
-    mov [rbp], word OperatorLessOrEqual
+    mov [rbp], word OperatorNotEquals
     jmp .token_type_set
 .endif_9:
 
 .if_10:
-    CompareTokenWith(szOperatorLess)
+    CompareTokenWith(szOperatorLessOrEqual)
     jne .endif_10
 .then_10:
 
-    mov [rbp], word OperatorLess
+    mov [rbp], word OperatorLessOrEqual
     jmp .token_type_set
 .endif_10:
 
 .if_11:
-    CompareTokenWith(szOperatorGreaterOrEqual)
+    CompareTokenWith(szOperatorLess)
     jne .endif_11
 .then_11:
 
-    mov [rbp], word OperatorGreaterOrEqual
+    mov [rbp], word OperatorLess
     jmp .token_type_set
 .endif_11:
 
 .if_12:
-    CompareTokenWith(szOperatorGreater)
+    CompareTokenWith(szOperatorGreaterOrEqual)
     jne .endif_12
 .then_12:
 
-    mov [rbp], word OperatorGreater
+    mov [rbp], word OperatorGreaterOrEqual
     jmp .token_type_set
 .endif_12:
 
 .if_13:
-    CompareTokenWith(szOperatorAssignment)
+    CompareTokenWith(szOperatorGreater)
     jne .endif_13
 .then_13:
 
-    mov [rbp], word OperatorAssignment
+    mov [rbp], word OperatorGreater
     jmp .token_type_set
 .endif_13:
+
+.if_14:
+    CompareTokenWith(szOperatorAssignment)
+    jne .endif_14
+.then_14:
+
+    mov [rbp], word OperatorAssignment
+    jmp .token_type_set
+.endif_14:
 
 
 .token_type_set:
@@ -627,16 +629,12 @@ _start:
 ; this will only decrement the block count
 %define QuickPopBlockToken() dec qword [blockCount]
 
-    ; todo - remove this temp code
+%ifdef DEBUG    
     push rbx
     mov ebx, dword [dwTokenCount]
-
-%ifdef DEBUG    
     printf([hStdOut], roStr_6, rbx)
-%endif
-
     pop rbx
-    ; end of temp code
+%endif
 
     ; iterate over tokens
     push rbp
@@ -659,20 +657,16 @@ _start:
     cmp ebx, [dwTokenCount]
     jge .end_counter_less_than_token_count
 
-    ; mov r10w, currentToken.Type
-    ; mov r11d, currentToken.Start
-    ; mov r12d, currentToken.Length
-
 %ifdef DEBUG    
     PushCallerSavedRegs()
     printf([hStdOut], roStr_7, rbx)
     PopCallerSavedRegs()
 %endif
 
-.if_14:
+.if_15:
     cmp currentToken.Type, defOperandAsmLiteral
-    jne .endif_14
-.then_14:
+    jne .endif_15
+.then_15:
 
         PushCallerSavedRegs()
   
@@ -688,12 +682,12 @@ _start:
 
         PopCallerSavedRegs()
         NextToken()
-.endif_14:
+.endif_15:
  ; keyword 'if'
-.if_15:
+.if_16:
     cmp currentToken.Type, defKeywordIf
-    jne .endif_15
-.then_15:
+    jne .endif_16
+.then_16:
 
         PushCallerSavedRegs()
         sprintf(ptrBuffer64, roStr_8, [wScopedBlockCurrentId])
@@ -704,30 +698,28 @@ _start:
         inc word [wScopedBlockCurrentId]
         PopCallerSavedRegs()
         NextToken()
-.endif_15:
+.endif_16:
+; keyword 'then'
+.if_17:
+    cmp currentToken.Type, defKeywordThen
+    jne .endif_17
+.then_17:
 
-
-    
-    .if_token_is_then_0:
-        cmp currentToken.Type, word KeywordThen
-        jne .endif_token_is_then_0
-    .then_token_is_then_0:
         PushCallerSavedRegs()
         PeekBlockToken()
         mov rbx, [rax + Block.TokenType]
 
-%ifdef DEBUG
-        printf([hStdOut], roStr_9, rbx)
-%endif
-        
-.if_16:
+        %ifdef DEBUG
+            printf([hStdOut], roStr_9, rbx)
+        %endif 
+.if_18:
     cmp bx, KeywordIf
-    je .endif_16
-.then_16:
+    je .endif_18
+.then_18:
 
             printf([hStdOut], roStr_10, szSourceFile)
             jmp .exit
-.endif_16:
+.endif_18:
 
         
         push rax ; rax stores pointer to block struct
@@ -738,26 +730,26 @@ _start:
         inc r11d ; skip 'if' token
         sub r10d, r11d ; r10d stores number of tokens in if condition
         
-.if_17:
+.if_19:
     cmp r10d, 3
-    je .endif_17
-.then_17:
+    je .endif_19
+.then_19:
 
-.if_18:
+.if_20:
     cmp r10d, 1
-    je .endif_18
-.then_18:
+    je .endif_20
+.then_20:
 
                 printf([hStdOut], roStr_11, r10)
                 jmp .exit
-.endif_18:
+.endif_20:
 
-.endif_17:
+.endif_19:
 
-.if_19:
+.if_21:
     cmp r10d, 3
-    jne .endif_19
-.then_19:
+    jne .endif_21
+.then_21:
 
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
@@ -765,12 +757,12 @@ _start:
             PushCallerSavedRegs()
             call compile_condition_3
             PopCallerSavedRegs()
-.endif_19:
+.endif_21:
 
-.if_20:
+.if_22:
     cmp r10d, 1
-    jne .endif_20
-.then_20:
+    jne .endif_22
+.then_22:
 
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
@@ -778,7 +770,7 @@ _start:
             PushCallerSavedRegs()
             call compile_condition_1
             PopCallerSavedRegs()
-.endif_20:
+.endif_22:
 
     
         pop rax ; rax stores pointer to block struct
@@ -793,25 +785,25 @@ _start:
 
         PopCallerSavedRegs()
         NextToken()
-    .endif_token_is_then_0:
+.endif_17:
+; keyword 'end'
+.if_23:
+    cmp currentToken.Type, defKeywordEnd
+    jne .endif_23
+.then_23:
 
-    
-    .if_token_is_end_0:
-        cmp currentToken.Type, word KeywordEnd
-        jne .endif_token_is_end_0
-    .then_token_is_end_0:
         PushCallerSavedRegs()
 
         PeekBlockToken()
         mov rbx, [rax + Block.TokenType]
-.if_21:
+.if_24:
     cmp bx, KeywordThen
-    je .endif_21
-.then_21:
+    je .endif_24
+.then_24:
 
             printf([hStdOut], roStr_13, szSourceFile)
             jmp .exit
-.endif_21:
+.endif_24:
 
 
         mov bx, word [rax + Block.BlockId]
@@ -823,12 +815,13 @@ _start:
 
         PopCallerSavedRegs()
         NextToken()
-    .endif_token_is_end_0:
+.endif_23:
 
-    .if_token_is_string_literal_0:
-        cmp currentToken.Type, word OperandStringLiteral
-        jne .endif_token_is_string_literal_0
-    .then_token_is_string_literal_0:
+.if_25:
+    cmp currentToken.Type, defOperandStringLiteral
+    jne .endif_25
+.then_25:
+
         ; todo - optimize strings by removing duplicate strings
         PushCallerSavedRegs()
 
@@ -844,7 +837,8 @@ _start:
         PopCallerSavedRegs()
 
         NextToken()
-    .endif_token_is_string_literal_0:
+.endif_25:
+
 
 %ifdef DEBUG
     mov r10w, currentToken.Type
@@ -913,14 +907,14 @@ _start:
     mov rcx, NULL
     call CreateProcessA
     add rsp, 0x20 + 7 * 0x8 
-.if_22:
+.if_26:
     cmp rax, 0
-    jne .endif_22
-.then_22:
+    jne .endif_26
+.then_26:
 
         printf([hStdOut], roStr_21)
         ExitProcess(1)
-.endif_22:
+.endif_26:
 
 
     mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
@@ -934,14 +928,14 @@ _start:
     ; printf([hStdOut], roStr_22, [lpExitCode])
     mov rax, [lpExitCode]
     
-.if_23:
+.if_27:
     cmp rax, 0
-    je .endif_23
-.then_23:
+    je .endif_27
+.then_27:
 
         printf([hStdOut], roStr_23)
         ExitProcess(1)
-.endif_23:
+.endif_27:
 
 
     sprintf(ptrBuffer256, roStr_24, szFilenameWithoutExtension, szFilenameWithoutExtension)
@@ -970,14 +964,14 @@ _start:
     mov rcx, NULL
     call CreateProcessA
     add rsp, 0x20 + 7 * 0x8
-.if_24:
+.if_28:
     cmp rax, 0
-    jne .endif_24
-.then_24:
+    jne .endif_28
+.then_28:
 
         printf([hStdOut], roStr_26)
         ExitProcess(1)
-.endif_24:
+.endif_28:
 
 
     ; todo - delete object file
@@ -991,14 +985,14 @@ _start:
     call GetExitCodeProcess 
     mov rax, [lpExitCode]
     
-.if_25:
+.if_29:
     cmp rax, 0
-    je .endif_25
-.then_25:
+    je .endif_29
+.then_29:
 
         printf([hStdOut], roStr_27)
         ExitProcess(1)
-.endif_25:
+.endif_29:
 
 
     printf([hStdOut], roStr_28, szFilenameWithoutExtension, szFilenameWithoutExtension)
@@ -1017,14 +1011,14 @@ push_string_literal:
 
     ; load next available string list pointer into rax
     mov rax, [dwStringCount]
-.if_26:
+.if_30:
     cmp rax, CONST_STRING_COUNT
-    jl .endif_26
-.then_26:
+    jl .endif_30
+.then_30:
 
         printf([hStdOut], roStr_29, CONST_STRING_COUNT)
         ExitProcess(1)
-.endif_26:
+.endif_30:
 
 
     mov rdx, qword 8 ; size of pointer
@@ -1177,59 +1171,59 @@ compile_condition_3:
     mov r13, [rbp - 0x8] ; r13 stores scope id
     sprintf(ptrBuffer64, roStr_34, r13)
     
-.if_27:
-    cmp r10, OperatorEquals
-    jne .endif_27
-.then_27:
-
-        sprintf(ptrBuffer256, roStr_35, ptrBuffer64)
-        jmp .valid_operator_found
-.endif_27:
-
-.if_28:
-    cmp r10, OperatorNotEquals
-    jne .endif_28
-.then_28:
-
-        sprintf(ptrBuffer256, roStr_36, ptrBuffer64)
-        jmp .valid_operator_found
-.endif_28:
-
-.if_29:
-    cmp r10, OperatorLess
-    jne .endif_29
-.then_29:
-
-        sprintf(ptrBuffer256, roStr_37, ptrBuffer64)
-        jmp .valid_operator_found
-.endif_29:
-
-.if_30:
-    cmp r10, OperatorLessOrEqual
-    jne .endif_30
-.then_30:
-
-        sprintf(ptrBuffer256, roStr_38, ptrBuffer64)
-        jmp .valid_operator_found
-.endif_30:
-
 .if_31:
-    cmp r10, OperatorGreater
+    cmp r10, OperatorEquals
     jne .endif_31
 .then_31:
 
-        sprintf(ptrBuffer256, roStr_39, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_35, ptrBuffer64)
         jmp .valid_operator_found
 .endif_31:
 
 .if_32:
-    cmp r10, OperatorGreaterOrEqual
+    cmp r10, OperatorNotEquals
     jne .endif_32
 .then_32:
 
-        sprintf(ptrBuffer256, roStr_40, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_36, ptrBuffer64)
         jmp .valid_operator_found
 .endif_32:
+
+.if_33:
+    cmp r10, OperatorLess
+    jne .endif_33
+.then_33:
+
+        sprintf(ptrBuffer256, roStr_37, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_33:
+
+.if_34:
+    cmp r10, OperatorLessOrEqual
+    jne .endif_34
+.then_34:
+
+        sprintf(ptrBuffer256, roStr_38, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_34:
+
+.if_35:
+    cmp r10, OperatorGreater
+    jne .endif_35
+.then_35:
+
+        sprintf(ptrBuffer256, roStr_39, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_35:
+
+.if_36:
+    cmp r10, OperatorGreaterOrEqual
+    jne .endif_36
+.then_36:
+
+        sprintf(ptrBuffer256, roStr_40, ptrBuffer64)
+        jmp .valid_operator_found
+.endif_36:
 
 
     printf([hStdOut], roStr_41, r10)
