@@ -722,7 +722,7 @@ end `
         
         mov bx, word [rax + Block.BlockId]
         and rbx, 0xffff
-        sprintf(ptrBuffer64, `".then_%d:\r\n"`, rbx)
+        sprintf(ptrBuffer64, `";then_%d:\r\n"`, rbx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
         ; bx stores block id
         mov cx, bx
@@ -749,7 +749,7 @@ end `
         if bx == KeywordDo then `
             mov bx, word [rax + Block.BlockId]
             and rbx, 0xffff 
-            sprintf(ptrBuffer64, `"\r\n    jmp .while_%d\r\n"`, rbx)
+            sprintf(ptrBuffer64, `"\r\n    jmp .while_%d\r\n    ; end while_%d"`, rbx, rbx)
             WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)`
         end `
         
@@ -831,7 +831,7 @@ end `
         
         mov bx, word [rax + Block.BlockId]
         and rbx, 0xffff
-        sprintf(ptrBuffer64, `".do_%d:\r\n"`, rbx)
+        sprintf(ptrBuffer64, `";do_%d:\r\n"`, rbx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
         ; bx stores block id
         mov cx, bx

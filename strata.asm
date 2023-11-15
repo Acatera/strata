@@ -882,7 +882,7 @@ _start:
 
             mov bx, word [rax + Block.BlockId]
             and rbx, 0xffff 
-            sprintf(ptrBuffer64, roStr_14, rbx)
+            sprintf(ptrBuffer64, roStr_14, rbx, rbx)
             WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
 .end_30:
 
@@ -1607,15 +1607,15 @@ section .rodata
     roStr_23 db "roStr_%d", 0
     roStr_22 db "\r\n    jmp .end_%d\r\n", 0
     roStr_21 db "\r\n    jmp .while_%d\r\n", 0
-    roStr_20 db ".do_%d:\r\n", 0
+    roStr_20 db ";do_%d:\r\n", 0
     roStr_19 db "[ERROR] Unsupported 'while' condition. Found %d tokens\r\n", 0
     roStr_18 db "[ERROR] Keyword 'do' is not after 'while'\r\n", 0
     roStr_17 db "[DEBUG] .if_token_is_then_0 - rbx %x\r\n", 0
     roStr_16 db "\r\n.while_%d:\r\n", 0
     roStr_15 db "\r\n.end_%d:\r\n", 0
-    roStr_14 db "\r\n    jmp .while_%d\r\n", 0
+    roStr_14 db "\r\n    jmp .while_%d\r\n    ; end while_%d", 0
     roStr_13 db "[ERROR] Keyword 'end' is not after 'then' or 'do'\r\n", 0
-    roStr_12 db ".then_%d:\r\n", 0
+    roStr_12 db ";then_%d:\r\n", 0
     roStr_11 db "[ERROR] Unsupported 'if' condition. Found %d tokens\r\n", 0
     roStr_10 db "[ERROR] Keyword 'then' is not after 'if'\r\n", 0
     roStr_9 db "[DEBUG] .if_token_is_then_0 - rbx %x\r\n", 0
