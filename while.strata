@@ -1,0 +1,27 @@
+`bits 64
+default rel
+
+%include "inc/std.inc"
+
+%define COUNT 100
+
+section .data
+    hStdOut dq 0
+
+section .text
+    global _start
+
+_start:
+    GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
+
+    printf([hStdOut], `"Hello, World!\n"`)
+    
+    xor r15, r15`
+
+    while r15 < COUNT do `
+        printf([hStdOut], `"Register r15 = %d\n"`, r15)
+        inc r15`
+    end `
+
+    ExitProcess(0)
+`

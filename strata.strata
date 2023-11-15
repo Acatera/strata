@@ -45,9 +45,11 @@ default rel
 %define OperandLiteral       2 + (1 << 4)
 
 ; Reserve 4 bits for operand type
-%define KeywordIf   0 + (1 << (4 + 4))
-%define KeywordThen 1 + (1 << (4 + 4))
-%define KeywordEnd  2 + (1 << (4 + 4))
+%define KeywordIf    0 + (1 << (4 + 4))
+%define KeywordThen  1 + (1 << (4 + 4))
+%define KeywordEnd   2 + (1 << (4 + 4))
+%define KeywordWhile 3 + (1 << (4 + 4))
+%define KeywordDo    4 + (1 << (4 + 4))
 
 ; todo - revisit this
 %define defOperatorEquals word OperatorEquals
@@ -65,6 +67,8 @@ default rel
 %define defKeywordIf word KeywordIf
 %define defKeywordThen word KeywordThen
 %define defKeywordEnd word KeywordEnd
+%define defKeywordWhile word KeywordWhile
+%define defKeywordDo word KeywordDo
 
 %define TOKEN_TYPE_SIZE 2
 
@@ -361,6 +365,16 @@ if CompareTokenWith(szKeywordEnd) then `
     jmp .token_type_set`
 end
 
+if CompareTokenWith(szKeywordWhile) then `
+    mov [rbp], word KeywordWhile
+    jmp .token_type_set`
+end
+
+if CompareTokenWith(szKeywordDo) then `
+    mov [rbp], word KeywordDo
+    jmp .token_type_set`
+end
+
 if CompareTokenWith(szOperatorEquals) then `
     mov [rbp], word OperatorEquals
     jmp .token_type_set`
@@ -518,6 +532,14 @@ end `
     jmp .while_counter_less_than_token_count
 %endmacro
 
+%define SkipTokens(n) skipTokens n
+%macro skip_tokens 1
+    add rdx, Token.size ; jump to next token
+    mov rbx, [tokenIndex]
+    add rbx, %1
+    mov [tokenIndex], rbx
+%endmacro
+
 %define PushBlockToken(tokenType, scopeId) pushBlockToken tokenType, scopeId
 %macro pushBlockToken 2
     multipush rax, rbx, rdx
@@ -636,7 +658,7 @@ end `
         %ifdef DEBUG
             printf([hStdOut], `"[DEBUG] .if_token_is_then_0 - rbx %x\r\n"`, rbx)
         %endif `
-        
+
         if bx != KeywordIf then `
             printf([hStdOut], `"[ERROR] Keyword 'then' is not after 'if'\r\n"`, szSourceFile)
             jmp .exit`
@@ -694,22 +716,109 @@ end `
         PushCallerSavedRegs()
 
         PeekBlockToken()
+        push rax
         mov rbx, [rax + Block.TokenType]`
-        if bx != KeywordThen then `
-            printf([hStdOut], `"[ERROR] Keyword 'end' is not after 'then'\r\n"`, szSourceFile)
-            jmp .exit`
+        if bx != KeywordThen then 
+            if bx != KeywordDo then `
+                printf([hStdOut], `"[ERROR] Keyword 'end' is not after 'then' or 'do'\r\n"`, szSourceFile)
+                jmp .exit`
+            end
+        end 
+        
+        if bx == KeywordDo then `
+            mov bx, word [rax + Block.BlockId]
+            and rbx, 0xffff 
+            sprintf(ptrBuffer64, `"\r\n    jmp .while_%d\r\n"`, rbx)
+            WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)`
         end `
-
+        
+        pop rax
         mov bx, word [rax + Block.BlockId]
-        and rbx, 0xffff
-        sprintf(ptrBuffer64, `"\r\n.endif_%d:\r\n"`, rbx)
+        and rbx, 0xffff 
+        sprintf(ptrBuffer64, `"\r\n.end_%d:\r\n"`, rbx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
-        QuickPopBlockToken() ; pop 'then'
-        QuickPopBlockToken() ; pop 'if'
+
+        QuickPopBlockToken() ; pop 'then' or 'do'
+        QuickPopBlockToken() ; pop 'if' or 'while'
 
         PopCallerSavedRegs()
         NextToken()`
     end 
+
+    `; keyword 'while'`
+    if currentToken.Type == defKeywordWhile then `
+        PushCallerSavedRegs()
+        sprintf(ptrBuffer64, `"\r\n.while_%d:\r\n"`, [wScopedBlockCurrentId])
+        WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
+
+        PushBlockToken(defKeywordWhile, [wScopedBlockCurrentId])
+        
+        inc word [wScopedBlockCurrentId]
+        PopCallerSavedRegs()
+        NextToken()`
+    end
+
+    `; keyword 'do'`
+    if currentToken.Type == defKeywordDo then `
+        PushCallerSavedRegs()
+        PeekBlockToken()
+        mov rbx, [rax + Block.TokenType]
+
+        %ifdef DEBUG
+            printf([hStdOut], `"[DEBUG] .if_token_is_then_0 - rbx %x\r\n"`, rbx)
+        %endif `
+
+        if bx != KeywordWhile then `
+            printf([hStdOut], `"[ERROR] Keyword 'do' is not after 'while'\r\n"`, szSourceFile)
+            jmp .exit`
+        end `
+        
+        push rax ; rax stores pointer to block struct
+
+        ; get number of tokens in if condition
+        mov r10d, [tokenIndex] ; current token index
+        mov r11d, dword [rax + Block.TokenIndex] ; if token index
+        inc r11d ; skip 'if' token
+        sub r10d, r11d ; r10d stores number of tokens in if condition
+        `
+        if r10d != 3 then 
+            if r10d != 1 then `
+                printf([hStdOut], `"[ERROR] Unsupported 'while' condition. Found %d tokens\r\n"`, r10)
+                jmp .exit`
+            end
+        end 
+
+        if r10d == 3 then `
+            mov rcx, r11 ; rcx stores token index of first token of if condition
+            mov dx, word [rax + Block.BlockId]
+            and rdx, 0xffff
+            PushCallerSavedRegs()
+            call compile_condition_3
+            PopCallerSavedRegs()`
+        end 
+
+        if r10d == 1 then `
+            mov rcx, r11 ; rcx stores token index of first token of if condition
+            mov dx, word [rax + Block.BlockId]
+            and rdx, 0xffff
+            PushCallerSavedRegs()
+            call compile_condition_1
+            PopCallerSavedRegs()`
+        end `
+    
+        pop rax ; rax stores pointer to block struct
+        
+        mov bx, word [rax + Block.BlockId]
+        and rbx, 0xffff
+        sprintf(ptrBuffer64, `".do_%d:\r\n"`, rbx)
+        WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
+        ; bx stores block id
+        mov cx, bx
+        PushBlockToken(KeywordDo, rcx)
+
+        PopCallerSavedRegs()
+        NextToken()`
+    end
 
     if currentToken.Type == defOperandStringLiteral then `
         ; todo - optimize strings by removing duplicate strings
@@ -729,24 +838,21 @@ end `
         NextToken()`
     end `
 
-%ifdef DEBUG
     mov r10w, currentToken.Type
     mov r11d, currentToken.Start
     mov r12d, currentToken.Length
 
+%ifdef DEBUG
     printf([hStdOut], `"[DEBUG] Token type %x; start: %d; length: %d\r\n"`, r10, r11, r12)
+%endif
 
     push rax
     mov rax, szSourceCode
     add r11, rax
-    memcpy(ptrBuffer64, r11, r12)
-    mov rax, ptrBuffer64
-    add rax, r12
-    mov byte [rax], 0
+    strcpy(ptrBuffer64, r11, r12)
 
-    printf([hStdOut], `"[ERROR] Unknown token '%s'\r\n"`, ptrBuffer64)
+    printf([hStdOut], `"[WARN] Unknown token '%s'\r\n"`, ptrBuffer64)
     pop rax
-%endif
 
     NextToken()
 .end_counter_less_than_token_count:
@@ -979,7 +1085,7 @@ compile_condition_1:
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
     mov r13, [rbp - 0x8] ; r13 stores scope id
-    sprintf(ptrBuffer256, `"    jne .endif_%d\r\n"`, r13)
+    sprintf(ptrBuffer256, `"    jne .end_%d\r\n"`, r13)
 
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
@@ -1038,7 +1144,7 @@ compile_condition_3:
     and r10, 0xffff
 
     mov r13, [rbp - 0x8] ; r13 stores scope id
-    sprintf(ptrBuffer64, `".endif_%d"`, r13)
+    sprintf(ptrBuffer64, `".end_%d"`, r13)
     `
     if r10 == OperatorEquals then `
         sprintf(ptrBuffer256, `"    jne %s\r\n"`, ptrBuffer64)
@@ -1102,6 +1208,10 @@ section .data
     szKeywordThen.length equ $ - szKeywordThen
     szKeywordEnd db "end"
     szKeywordEnd.length equ $ - szKeywordEnd
+    szKeywordWhile db "while"
+    szKeywordWhile.length equ $ - szKeywordWhile
+    szKeywordDo db "do"
+    szKeywordDo.length equ $ - szKeywordDo
     szKeywordGStr db "gstr"
     szKeywordGStr.length equ $ - szKeywordGStr
     szOperatorEquals db "=="
