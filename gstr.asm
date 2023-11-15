@@ -1,6 +1,9 @@
 bits 64
 default rel
 
+bits 64
+default rel
+
 %define CompareTokenWith(foo)
 
 section .text
@@ -9,127 +12,128 @@ section .text
 _start:
 .if_0:
     CompareTokenWith(szOperatorGreaterOrEqual)
-    jne .endif_0
+    jne .end_0
 .then_0:
 ; 
-.endif_0:
+.end_0:
 
 .if_1:
     cmp rbx, 0
-    je .endif_1
+    je .end_1
 .then_1:
 ; 
-.endif_1:
+.end_1:
 
 .if_2:
     cmp rbx, 0
-    jge .endif_2
+    jge .end_2
 .then_2:
 ; 
-.endif_2:
+.end_2:
 
 .if_3:
     cmp rbx, 0
-    jg .endif_3
+    jg .end_3
 .then_3:
 ; 
-.endif_3:
+.end_3:
 
 .if_4:
     cmp rbx, 0
-    jle .endif_4
+    jle .end_4
 .then_4:
 ; 
-.endif_4:
+.end_4:
 
 .if_5:
     cmp rbx, 0
-    jg .endif_5
+    jg .end_5
 .then_5:
 ; 
-.endif_5:
+.end_5:
 
 .if_6:
     cmp rax, 0
-    jne .endif_6
+    jne .end_6
 .then_6:
 
 .if_7:
     cmp rbx, 0
-    je .endif_7
+    je .end_7
 .then_7:
 
 .if_8:
     cmp rbx, 0
-    jge .endif_8
+    jge .end_8
 .then_8:
 
 .if_9:
     cmp rbx, 0
-    jg .endif_9
+    jg .end_9
 .then_9:
 
 .if_10:
     cmp rbx, 0
-    jle .endif_10
+    jle .end_10
 .then_10:
 
 .if_11:
     cmp rbx, 0
-    jg .endif_11
+    jg .end_11
 .then_11:
 mov rax, 1
-.endif_11:
+.end_11:
 
-.endif_10:
+.end_10:
 
-.endif_9:
+.end_9:
 
-.endif_8:
+.end_8:
 
-.endif_7:
+.end_7:
 
-.endif_6:
+.end_6:
 ; rax == 0
 .if_12:
     cmp rax, 0
-    jne .endif_12
+    jne .end_12
 .then_12:
 
-.endif_12:
+.end_12:
 ; rax ~= 0
 .if_13:
     cmp rax, 0
-    je .endif_13
+    je .end_13
 .then_13:
 
-.endif_13:
+.end_13:
 ; rax < 0
 .if_14:
     cmp rax, 0
-    jge .endif_14
+    jge .end_14
 .then_14:
 
-.endif_14:
+.end_14:
 ; rax <= 0
 .if_15:
     cmp rax, 0
-    jg .endif_15
+    jg .end_15
 .then_15:
 
-.endif_15:
+.end_15:
 ; rax > 0
 .if_16:
     cmp rax, 0
-    jle .endif_16
+    jle .end_16
 .then_16:
 
-.endif_16:
+.end_16:
 ; rax >= 0
 .if_17:
     cmp rax, 0
-    jl .endif_17
+    jl .end_17
 .then_17:
 
-.endif_17:
+.end_17:
+
 section .rodata

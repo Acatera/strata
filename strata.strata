@@ -154,7 +154,7 @@ section .text
     extern ReadFile
     extern WriteFile
     extern CloseHandle
-    extern DeleteFile
+    extern DeleteFileA
     extern GetLastError
     extern GetCommandLineA
     extern CreateProcessA
@@ -1044,8 +1044,6 @@ end `
         ExitProcess(1)`
     end `
 
-    ; todo - delete object file
-
     mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
     mov rdx , 0xFFFFFFFF
     call WaitForSingleObject
@@ -1059,6 +1057,19 @@ end `
     if rax != 0 then `
         printf([hStdOut], `"[ERROR] Linking failed."`)
         ExitProcess(1)`
+    end `
+
+    ; delete object file
+%ifdef DEBUG
+    printf([hStdOut], `"[DEBUG] Deleting object file.\r\n"`)
+%endif
+
+    sprintf(ptrBuffer256, `"%s.o"`, szFilenameWithoutExtension)
+    mov rcx, ptrBuffer256
+    call DeleteFileA`
+
+    if rax == 0 then `
+        printf([hStdOut], `"[WARN] Deleting object file failed.\r\n"`)`
     end `
 
     printf([hStdOut], `"[INFO] Generated %s.exe"`, szFilenameWithoutExtension, szFilenameWithoutExtension)

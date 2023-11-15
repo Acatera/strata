@@ -1,6 +1,9 @@
 bits 64
 default rel
 
+bits 64
+default rel
+
 %include "inc/std.inc"
 ; %define DEBUG 0
 
@@ -154,7 +157,7 @@ section .text
     extern ReadFile
     extern WriteFile
     extern CloseHandle
-    extern DeleteFile
+    extern DeleteFileA
     extern GetLastError
     extern GetCommandLineA
     extern CreateProcessA
@@ -1246,8 +1249,6 @@ _start:
 .end_47:
 
 
-    ; todo - delete object file
-
     mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
     mov rdx , 0xFFFFFFFF
     call WaitForSingleObject
@@ -1267,7 +1268,24 @@ _start:
 .end_48:
 
 
-    printf([hStdOut], roStr_36, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    ; delete object file
+%ifdef DEBUG
+    printf([hStdOut], roStr_36)
+%endif
+
+    sprintf(ptrBuffer256, roStr_37, szFilenameWithoutExtension)
+    mov rcx, ptrBuffer256
+    call DeleteFileA
+.if_49:
+    cmp rax, 0
+    jne .end_49
+.then_49:
+
+        printf([hStdOut], roStr_38)
+.end_49:
+
+
+    printf([hStdOut], roStr_39, szFilenameWithoutExtension, szFilenameWithoutExtension)
     jmp .exit
 
 ; this routine will save a string literal to the string list
@@ -1283,14 +1301,14 @@ push_string_literal:
 
     ; load next available string list pointer into rax
     mov rax, [dwStringCount]
-.if_49:
+.if_50:
     cmp rax, CONST_STRING_COUNT
-    jl .end_49
-.then_49:
+    jl .end_50
+.then_50:
 
-        printf([hStdOut], roStr_37, CONST_STRING_COUNT)
+        printf([hStdOut], roStr_40, CONST_STRING_COUNT)
         ExitProcess(1)
-.end_49:
+.end_50:
 
 
     mov rdx, qword 8 ; size of pointer
@@ -1342,7 +1360,7 @@ write_string_list:
 .do_not_less_than_0:   
     mov r14, [r15]
 
-    sprintf(ptrBuffer256, roStr_38, r13, r14)
+    sprintf(ptrBuffer256, roStr_41, r13, r14)
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
     dec r13
@@ -1376,13 +1394,13 @@ compile_condition_1:
     add r10, r11
     strcpy(ptrBuffer64, r10, r12)
 
-    sprintf(ptrBuffer256, roStr_39, ptrBuffer64)
+    sprintf(ptrBuffer256, roStr_42, ptrBuffer64)
 
     ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
     mov r13, [rbp - 0x8] ; r13 stores scope id
-    sprintf(ptrBuffer256, roStr_40, r13)
+    sprintf(ptrBuffer256, roStr_43, r13)
 
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
@@ -1430,7 +1448,7 @@ compile_condition_3:
     add r10, r11
     strcpy(ptr2Buffer64, r10, r12)
 
-    sprintf(ptrBuffer256, roStr_41, ptrBuffer64, ptr2Buffer64)
+    sprintf(ptrBuffer256, roStr_44, ptrBuffer64, ptr2Buffer64)
 
     ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
@@ -1441,64 +1459,64 @@ compile_condition_3:
     and r10, 0xffff
 
     mov r13, [rbp - 0x8] ; r13 stores scope id
-    sprintf(ptrBuffer64, roStr_42, r13)
+    sprintf(ptrBuffer64, roStr_45, r13)
     
-.if_50:
-    cmp r10, OperatorEquals
-    jne .end_50
-.then_50:
-
-        sprintf(ptrBuffer256, roStr_43, ptrBuffer64)
-        jmp .valid_operator_found
-.end_50:
-
 .if_51:
-    cmp r10, OperatorNotEquals
+    cmp r10, OperatorEquals
     jne .end_51
 .then_51:
 
-        sprintf(ptrBuffer256, roStr_44, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_46, ptrBuffer64)
         jmp .valid_operator_found
 .end_51:
 
 .if_52:
-    cmp r10, OperatorLess
+    cmp r10, OperatorNotEquals
     jne .end_52
 .then_52:
 
-        sprintf(ptrBuffer256, roStr_45, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_47, ptrBuffer64)
         jmp .valid_operator_found
 .end_52:
 
 .if_53:
-    cmp r10, OperatorLessOrEqual
+    cmp r10, OperatorLess
     jne .end_53
 .then_53:
 
-        sprintf(ptrBuffer256, roStr_46, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_48, ptrBuffer64)
         jmp .valid_operator_found
 .end_53:
 
 .if_54:
-    cmp r10, OperatorGreater
+    cmp r10, OperatorLessOrEqual
     jne .end_54
 .then_54:
 
-        sprintf(ptrBuffer256, roStr_47, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_49, ptrBuffer64)
         jmp .valid_operator_found
 .end_54:
 
 .if_55:
-    cmp r10, OperatorGreaterOrEqual
+    cmp r10, OperatorGreater
     jne .end_55
 .then_55:
 
-        sprintf(ptrBuffer256, roStr_48, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_50, ptrBuffer64)
         jmp .valid_operator_found
 .end_55:
 
+.if_56:
+    cmp r10, OperatorGreaterOrEqual
+    jne .end_56
+.then_56:
 
-    printf([hStdOut], roStr_49, r10)
+        sprintf(ptrBuffer256, roStr_51, ptrBuffer64)
+        jmp .valid_operator_found
+.end_56:
+
+
+    printf([hStdOut], roStr_52, r10)
     ExitProcess(1)
 
 .valid_operator_found:
@@ -1555,21 +1573,25 @@ section .data
     szOperatorAssignment db "="
     szOperatorAssignment.length equ $ - szOperatorAssignment
 
+
 section .rodata
-    roStr_49 db "Error: Unsupported operator: %d", 0
-    roStr_48 db "    jl %s\r\n", 0
-    roStr_47 db "    jle %s\r\n", 0
-    roStr_46 db "    jg %s\r\n", 0
-    roStr_45 db "    jge %s\r\n", 0
-    roStr_44 db "    je %s\r\n", 0
-    roStr_43 db "    jne %s\r\n", 0
-    roStr_42 db ".end_%d", 0
-    roStr_41 db "    cmp %s, %s\r\n", 0
-    roStr_40 db "    jne .end_%d\r\n", 0
-    roStr_39 db "    %s\r\n", 0
-    roStr_38 db "    roStr_%d db %s, 0\r\n", 0
-    roStr_37 db "[ERROR]: String list full. Max strings allowed: %d\r\n", 0
-    roStr_36 db "[INFO] Generated %s.exe", 0
+    roStr_52 db "Error: Unsupported operator: %d", 0
+    roStr_51 db "    jl %s\r\n", 0
+    roStr_50 db "    jle %s\r\n", 0
+    roStr_49 db "    jg %s\r\n", 0
+    roStr_48 db "    jge %s\r\n", 0
+    roStr_47 db "    je %s\r\n", 0
+    roStr_46 db "    jne %s\r\n", 0
+    roStr_45 db ".end_%d", 0
+    roStr_44 db "    cmp %s, %s\r\n", 0
+    roStr_43 db "    jne .end_%d\r\n", 0
+    roStr_42 db "    %s\r\n", 0
+    roStr_41 db "    roStr_%d db %s, 0\r\n", 0
+    roStr_40 db "[ERROR]: String list full. Max strings allowed: %d\r\n", 0
+    roStr_39 db "[INFO] Generated %s.exe", 0
+    roStr_38 db "[WARN] Deleting object file failed.\r\n", 0
+    roStr_37 db "%s.o", 0
+    roStr_36 db "[DEBUG] Deleting object file.\r\n", 0
     roStr_35 db "[ERROR] Linking failed.", 0
     roStr_34 db "[ERROR] Linking failed.", 0
     roStr_33 db "[INFO] Linking using 'ld':\r\n\t%s\r\n", 0
