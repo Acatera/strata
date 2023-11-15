@@ -9,6 +9,7 @@ EXPORTS
     GetLocalTime
     GetProcessHeap
     HeapAlloc
+    HeapFree
     CreateFileA
     ReadFile 
     WriteFile

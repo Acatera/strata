@@ -1,0 +1,119 @@
+`%include "inc/std.inc"
+
+%define MAX_CMD_LEN 0x1024
+
+section .bss
+    hProcessHeap resq 1
+    hAllocatedMemory resq 1
+    hStdOut: resq 1
+    pSysCommandLine: resq 1
+    pCommandLine: resb MAX_CMD_LEN
+
+section .text   
+    global _start
+    extern GetCommandLineA
+    extern GetProcessHeap
+    extern HeapAlloc
+    extern HeapFree
+
+_start:
+    sub rsp, 0x20
+    call GetCommandLineA
+    add rsp, 0x20
+    mov [pSysCommandLine], rax
+    mov rbx, [pSysCommandLine]
+    
+    GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])`
+
+    while byte[rbx] != 0 do `
+        inc rbx`
+    end `
+
+    sub rbx, [pSysCommandLine]
+
+    mov rsi, [pSysCommandLine]
+    xor r13, r13
+    `
+    while byte[rsi] != 0 do
+        if byte[rsi] == 0x20 then `
+            inc r13
+            inc rsi`
+            while byte[rsi] == 0x20 do `
+                inc rsi `
+            end 
+            continue
+        end `
+        inc rsi`
+    end `
+    inc r13
+
+    printf([hStdOut], `"Argument count: %d\n"`, r13)
+    inc r13 ; used to store argc
+    mov rax, r13
+    mov rdx, 8 
+    mul rdx
+    add rbx, rax
+
+    printf([hStdOut], `"Memory required: %d\n"`, rbx)
+    push rbx
+
+    sub rsp, 0x20
+    call GetProcessHeap
+    mov [hProcessHeap], rax
+    add rsp, 0x20
+
+    printf([hStdOut], `"Process heap: %x\n"`, [hProcessHeap])
+
+    pop rbx
+    sub rsp, 0x20
+    mov rcx, [hProcessHeap]
+    mov rdx, 0x8
+    mov r8, rbx
+    call HeapAlloc
+    add rsp, 0x20
+    mov [hAllocatedMemory], rax
+
+    printf([hStdOut], `"Allocated memory: %x\n"`, [hAllocatedMemory])
+    
+    mov rsi, [pSysCommandLine]
+    mov rdi, [hAllocatedMemory]
+    mov r14, rdi
+    xor r13, r13
+    `
+    while byte[rsi] != 0 do
+        if byte[rsi] == 0x20 then `
+            mov byte [rdi], NULL
+            printf([hStdOut], `"Arg #%d: %s\n"`, r13, r14)
+            inc rdi
+            mov r14, rdi
+            inc r13
+            inc rsi`
+            
+            while byte[rsi] == 0x20 do `
+                inc rsi `
+            end 
+            continue
+        end `
+        movsb`
+    end `
+
+    mov byte [rdi], NULL
+    printf([hStdOut], `"Arg #%d: %s\n"`, r13, r14)
+    inc r13 
+
+    printf([hStdOut], `"Argument count: %d\n"`, r13)
+    mov rax, [hAllocatedMemory]
+
+    printf([hStdOut], `"Freeing memory...\n"`)
+
+    sub rsp, 0x20
+    mov rcx, [hProcessHeap]
+    mov rdx, 0x0
+    mov r8, [hAllocatedMemory]
+    call HeapFree`
+
+    if rax == 0 then `
+        printf([hStdOut], `"Failed to free memory\n"`)`
+    end `
+    ExitProcess(0)
+`

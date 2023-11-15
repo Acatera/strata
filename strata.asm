@@ -1588,7 +1588,7 @@ section .rodata
     roStr_42 db "    %s\r\n", 0
     roStr_41 db "    roStr_%d db %s, 0\r\n", 0
     roStr_40 db "[ERROR]: String list full. Max strings allowed: %d\r\n", 0
-    roStr_39 db "[INFO] Generated %s.exe", 0
+    roStr_39 db "[INFO] Generated %s.exe\r\n", 0
     roStr_38 db "[WARN] Deleting object file failed.\r\n", 0
     roStr_37 db "%s.o", 0
     roStr_36 db "[DEBUG] Deleting object file.\r\n", 0

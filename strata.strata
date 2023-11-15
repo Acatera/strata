@@ -1072,7 +1072,7 @@ end `
         printf([hStdOut], `"[WARN] Deleting object file failed.\r\n"`)`
     end `
 
-    printf([hStdOut], `"[INFO] Generated %s.exe"`, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    printf([hStdOut], `"[INFO] Generated %s.exe\r\n"`, szFilenameWithoutExtension, szFilenameWithoutExtension)
     jmp .exit
 
 ; this routine will save a string literal to the string list
