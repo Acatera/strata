@@ -45,30 +45,34 @@ default rel
 %define OperandLiteral       2 + (1 << 4)
 
 ; Reserve 4 bits for operand type
-%define KeywordIf    0 + (1 << (4 + 4))
-%define KeywordThen  1 + (1 << (4 + 4))
-%define KeywordEnd   2 + (1 << (4 + 4))
-%define KeywordWhile 3 + (1 << (4 + 4))
-%define KeywordDo    4 + (1 << (4 + 4))
+%define KeywordIf       0 + (1 << (4 + 4))
+%define KeywordThen     1 + (1 << (4 + 4))
+%define KeywordEnd      2 + (1 << (4 + 4))
+%define KeywordWhile    3 + (1 << (4 + 4))
+%define KeywordDo       4 + (1 << (4 + 4))
+%define KeywordContinue 5 + (1 << (4 + 4))
+%define KeywordBreak    6 + (1 << (4 + 4))
 
 ; todo - revisit this
-%define defOperatorEquals word OperatorEquals
-%define defOperatorNotEquals word OperatorNotEquals
-%define defOperatorLess word OperatorLess
-%define defOperatorLessOrEqual word OperatorLessOrEqual
-%define defOperatorGreater word OperatorGreater
+%define defOperatorEquals         word OperatorEquals
+%define defOperatorNotEquals      word OperatorNotEquals
+%define defOperatorLess           word OperatorLess
+%define defOperatorLessOrEqual    word OperatorLessOrEqual
+%define defOperatorGreater        word OperatorGreater
 %define defOperatorGreaterOrEqual word OperatorGreaterOrEqual
-%define defOperatorAssignment word OperatorAssignment
+%define defOperatorAssignment     word OperatorAssignment
 
-%define defOperandStringLiteral word OperandStringLiteral
-%define defOperandAsmLiteral word OperandAsmLiteral
-%define defOperandLiteral word OperandLiteral
+%define defOperandStringLiteral   word OperandStringLiteral
+%define defOperandAsmLiteral      word OperandAsmLiteral
+%define defOperandLiteral         word OperandLiteral
 
-%define defKeywordIf word KeywordIf
-%define defKeywordThen word KeywordThen
-%define defKeywordEnd word KeywordEnd
-%define defKeywordWhile word KeywordWhile
-%define defKeywordDo word KeywordDo
+%define defKeywordIf              word KeywordIf
+%define defKeywordThen            word KeywordThen
+%define defKeywordEnd             word KeywordEnd
+%define defKeywordWhile           word KeywordWhile
+%define defKeywordDo              word KeywordDo
+%define defKeywordContinue        word KeywordContinue
+%define defKeywordBreak           word KeywordBreak
 
 %define TOKEN_TYPE_SIZE 2
 
@@ -372,6 +376,16 @@ end
 
 if CompareTokenWith(szKeywordDo) then `
     mov [rbp], word KeywordDo
+    jmp .token_type_set`
+end
+
+if CompareTokenWith(szKeywordContinue) then `
+    mov [rbp], word KeywordContinue
+    jmp .token_type_set`
+end
+
+if CompareTokenWith(szKeywordBreak) then `
+    mov [rbp], word KeywordBreak
     jmp .token_type_set`
 end
 
@@ -820,6 +834,72 @@ end `
         NextToken()`
     end
 
+    `; keyword 'continue'`
+    if currentToken.Type == defKeywordContinue then `
+        PushCallerSavedRegs()
+
+        ; find the nearest 'while' block
+        multipush r15, rax, rdx
+        mov rbx, [blockCount]
+        mov rax, rbx
+        mov rdx, Block.size
+        mul rdx
+        mov r15, blockStack
+        add r15, rax
+        multipop rax, rdx`
+
+        while rbx > 0 do `
+            dec rbx
+            sub r15, Block.size
+            mov r10w, word [r15 + Block.TokenType]`
+
+            if r10 == KeywordWhile then `
+                mov r10w, [r15 + Block.BlockId]
+                and r10, 0xffff
+                sprintf(ptrBuffer64, `"\r\n    jmp .while_%d\r\n"`, r10)
+                WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)`
+            end 
+        end `
+
+        pop r15
+
+        PopCallerSavedRegs()
+        NextToken()`
+    end 
+
+    `; keyword 'break'`
+    if currentToken.Type == defKeywordBreak then `
+        PushCallerSavedRegs()
+
+        ; find the nearest 'while' block
+        multipush r15, rax, rdx
+        mov rbx, [blockCount]
+        mov rax, rbx
+        mov rdx, Block.size
+        mul rdx
+        mov r15, blockStack
+        add r15, rax
+        multipop rax, rdx`
+
+        while rbx > 0 do `
+            dec rbx
+            sub r15, Block.size
+            mov r10w, word [r15 + Block.TokenType]`
+
+            if r10 == KeywordWhile then `
+                mov r10w, [r15 + Block.BlockId]
+                and r10, 0xffff
+                sprintf(ptrBuffer64, `"\r\n    jmp .end_%d\r\n"`, r10)
+                WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)`
+            end 
+        end `
+
+        pop r15
+
+        PopCallerSavedRegs()
+        NextToken()`
+    end 
+
     if currentToken.Type == defOperandStringLiteral then `
         ; todo - optimize strings by removing duplicate strings
         PushCallerSavedRegs()
@@ -851,7 +931,7 @@ end `
     add r11, rax
     strcpy(ptrBuffer64, r11, r12)
 
-    printf([hStdOut], `"[WARN] Unknown token '%s'\r\n"`, ptrBuffer64)
+    ; printf([hStdOut], `"[WARN] Unknown token '%s'\r\n"`, ptrBuffer64)
     pop rax
 
     NextToken()
@@ -1212,6 +1292,10 @@ section .data
     szKeywordWhile.length equ $ - szKeywordWhile
     szKeywordDo db "do"
     szKeywordDo.length equ $ - szKeywordDo
+    szKeywordContinue db "continue"
+    szKeywordContinue.length equ $ - szKeywordContinue
+    szKeywordBreak db "break"
+    szKeywordBreak.length equ $ - szKeywordBreak
     szKeywordGStr db "gstr"
     szKeywordGStr.length equ $ - szKeywordGStr
     szOperatorEquals db "=="

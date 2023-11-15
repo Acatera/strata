@@ -18,7 +18,15 @@ _start:
     
     xor r15, r15`
 
-    while r15 < COUNT do `
+    while r15 < COUNT do 
+        if r15 == 5 then
+            `inc r15`
+            continue
+        end 
+        
+        if r15 == 10 then
+            break
+        end `
         printf([hStdOut], `"Register r15 = %d\n"`, r15)
         inc r15`
     end `
