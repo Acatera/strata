@@ -1,8 +1,4 @@
-
-`bits 64
-default rel
-
-%include "inc/std.inc"
+`%include "inc/std.inc"
 
 struc Person
     .name: resb 32

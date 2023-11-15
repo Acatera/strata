@@ -1,7 +1,4 @@
-`section .text
-global _start
-
-%include "inc/std.inc"
+`%include "inc/std.inc"
 
 _start:`
 if rax != 69 then

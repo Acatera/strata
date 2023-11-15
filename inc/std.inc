@@ -610,6 +610,18 @@ strlen:
 ;-------------------------------------------------------------------------------------------------------------
 ; sprintf - writes formatted data to a buffer
 ;-------------------------------------------------------------------------------------------------------------
+%define sprintf(buf, fmt) _sprintf2_ buf, fmt
+%macro _sprintf2_ 2
+    mov rdx, %2
+    mov rcx, escapeBuffer
+    call escape
+    sub rsp, 0x20
+    mov rdx, escapeBuffer
+    mov rcx, %1
+    call sprintf
+    add rsp, 0x20
+%endmacro
+
 %define sprintf(buf, fmt, a) _sprintf3_ buf, fmt, a
 %macro _sprintf3_ 3
     mov rdx, %2

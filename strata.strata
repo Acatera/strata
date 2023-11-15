@@ -138,8 +138,11 @@ section .data
     argCount dq 0
 
     ; asm output 
-    cStrReadOnlySectionHeader db "section .rodata", 0xd, 0xa, 0
-    cStrReadOnlySectionHeaderLength equ $ - cStrReadOnlySectionHeader - 1
+    cStrAsmHeader db "bits 64", 0xd, 0xa
+                  db "default rel", 0xd, 0xa, 0xd, 0xa, 0
+    cStrAsmHeader.length equ $ - cStrAsmHeader - 1
+    cStrReadOnlySectionHeader db 0xd, 0xa, "section .rodata", 0xd, 0xa, 0
+    cStrReadOnlySectionHeader.length equ $ - cStrReadOnlySectionHeader - 1
 
     ; error messages
     ; cStrErrorThenNotAfterIf db "Error: '", VT_91, "then", VT_END, "' not after '", VT_91, "if", VT_END, "'.", 0xd, 0xa, 0
@@ -605,6 +608,10 @@ end `
     printf([hStdOut], `"[DEBUG] Found %d tokens.\r\n"`, rbx)
     pop rbx
 %endif
+
+; ---------------------- START OF ASM OUTPUT ----------------------
+    ; write asm header
+    WriteFile([hndDestFile], cStrAsmHeader, cStrAsmHeader.length, dwBytesWritten)
 
     ; iterate over tokens
     push rbp
@@ -1117,7 +1124,7 @@ write_string_list:
     add rax, rdx 
     mov r15, rax ; r15 holds pointer to last string literal
 
-    WriteFile([hndDestFile], cStrReadOnlySectionHeader, cStrReadOnlySectionHeaderLength, dwBytesWritten)
+    WriteFile([hndDestFile], cStrReadOnlySectionHeader, cStrReadOnlySectionHeader.length, dwBytesWritten)
 
 .while_not_less_than_0:
     cmp r13, 0
