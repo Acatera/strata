@@ -1,4 +1,12 @@
+bits 64
+default rel
 
+%define CompareTokenWith(foo)
+
+section .text
+    global _start
+
+_start:
 .if_0:
     CompareTokenWith(szOperatorGreaterOrEqual)
     jne .endif_0
@@ -17,7 +25,7 @@
     cmp rbx, 0
     jge .endif_2
 .then_2:
-asd 
+; 
 .endif_2:
 
 .if_3:
@@ -82,42 +90,42 @@ mov rax, 1
 .endif_7:
 
 .endif_6:
-; Compare rax with 0; if CompareOperatorWith(szOperatorEqual) then end; Compare rax with 0
+; rax == 0
 .if_12:
     cmp rax, 0
     jne .endif_12
 .then_12:
 
 .endif_12:
-; Compare rax with 0
+; rax ~= 0
 .if_13:
     cmp rax, 0
     je .endif_13
 .then_13:
 
 .endif_13:
-; Compare rax with 0
+; rax < 0
 .if_14:
     cmp rax, 0
     jge .endif_14
 .then_14:
 
 .endif_14:
-; Compare rax with 0
+; rax <= 0
 .if_15:
     cmp rax, 0
     jg .endif_15
 .then_15:
 
 .endif_15:
-; Compare rax with 0
+; rax > 0
 .if_16:
     cmp rax, 0
     jle .endif_16
 .then_16:
 
 .endif_16:
-; Compare rax with 0
+; rax >= 0
 .if_17:
     cmp rax, 0
     jl .endif_17

@@ -1,31 +1,21 @@
+`bits 64
+default rel
+
+%define CompareTokenWith(foo)
+
+section .text
+    global _start
+
+_start:`
 if CompareTokenWith(szOperatorGreaterOrEqual) then 
 `; `
 end
 
-if rbx != 0 then 
-`; `
-end 
-
-
-if rbx < 0 then 
-`asd `
-end 
-
-
-if rbx <= 0 then 
-`; `
-end 
-
-
-if rbx > 0 then 
-`; `
-end 
-
-
-if rbx <= 0 then 
-`; `
-end 
-
+if rbx != 0 then `; ` end 
+if rbx < 0 then `; ` end 
+if rbx <= 0 then `; ` end 
+if rbx > 0 then `; ` end 
+if rbx <= 0 then `; ` end 
 
 if rax == 0 then 
     if rbx != 0 then 
@@ -41,19 +31,15 @@ if rax == 0 then
     end 
 end
 
-`; Compare rax with 0`
-`; if CompareOperatorWith(szOperatorEqual) then end`
-
-`; Compare rax with 0`
+`; rax == 0`
 if rax == 0 then end
-`; Compare rax with 0`
+`; rax ~= 0`
 if rax != 0 then end
-`; Compare rax with 0`
+`; rax < 0`
 if rax < 0 then end
-`; Compare rax with 0`
+`; rax <= 0`
 if rax <= 0 then end
-`; Compare rax with 0`
+`; rax > 0`
 if rax > 0 then end
-`; Compare rax with 0`
+`; rax >= 0`
 if rax >= 0 then end
-
