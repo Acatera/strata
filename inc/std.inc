@@ -83,6 +83,22 @@ section .text
 %define VT_91 0x1b, "[91m"
 %define VT_END 0x1b, "[0m"
 
+; to be used with index as static int
+%define array_nth(type, array, index, result) mov result, array + index * type %+.size
+
+; to be used with index as register. 
+%define array_ith(type, array, index, result) array_ith type, array, index, result
+%macro array_ith 4
+    mov rax, %3
+    mov rdx, %1.size
+    mul rdx
+    mov %4, %2
+    add %4, rax
+%endmacro
+
+; advance pointer by one element
+%define array_next(type, result) add result, type%+.size
+
 %define WriteFile(hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten,lpOverlapped) _WriteFile_ hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten,lpOverlapped
 %define WriteFile(hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten) _WriteFile_ hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten, 0
 %macro _WriteFile_ 5
