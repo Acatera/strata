@@ -24,10 +24,10 @@ _start:
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
     GetStdHandle(STD_ERROR_HANDLE, [hStdError])
 
-    printf([hStdOut], `"STARTUPINFOA size: %d\n\r"`, STARTUPINFOA.size)
-    printf([hStdOut], `"Starting process...\n\r"`)
-    ; printf([hStdOut], `"Application name: %s\r\n"`, lpApplicationName)
-    printf([hStdOut], `"Command line: %s\r\n"`, lpApplicationName)
+    printfh([hStdOut], `"STARTUPINFOA size: %d\n\r"`, STARTUPINFOA.size)
+    printfh([hStdOut], `"Starting process...\n\r"`)
+    ; printfh([hStdOut], `"Application name: %s\r\n"`, lpApplicationName)
+    printfh([hStdOut], `"Command line: %s\r\n"`, lpApplicationName)
 
     memset(lpStartupInfo, 0, STARTUPINFOA.size)
 
@@ -61,7 +61,7 @@ _start:
     add rsp, 0x20 + 6 * 0x8
 
     mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
-    printf([hStdOut], `"hProcess: %d\n\r"`, rcx)
+    printfh([hStdOut], `"hProcess: %d\n\r"`, rcx)
 
     mov rdx , 0xFFFFFFFF
     call WaitForSingleObject
@@ -70,7 +70,7 @@ _start:
     mov rdx , lpExitCode
     call GetExitCodeProcess
 
-    printf([hStdOut], `"Exit code: %d\n\r"`, [lpExitCode])
+    printfh([hStdOut], `"Exit code: %d\n\r"`, [lpExitCode])
 
     ExitProcess(0)
 

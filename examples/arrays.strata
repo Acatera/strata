@@ -19,7 +19,7 @@ section .text
 _start:
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
     
-    printf([hStdOut], `"Hello World!\n"`)
+    printfh([hStdOut], `"Hello World!\n"`)
 
     ; fill first record
     array_nth(Person, pPeople, 0, rbx)
@@ -37,7 +37,7 @@ _start:
     cmp r15, MAX_PEOPLE
     jge .end_while_0
 .do_while_0:
-    printf([hStdOut], `"Record #%d, Name: %s, age: %d\n"`, r15, rbx, qword [rbx + Person.age])
+    printfh([hStdOut], `"Record #%d, Name: %s, age: %d\n"`, r15, rbx, qword [rbx + Person.age])
     array_next(Person, rbx)
 
     inc r15

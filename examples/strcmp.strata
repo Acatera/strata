@@ -19,7 +19,7 @@ _start:
 
     strcmp(str1, str2)
 
-    printf([hStdOut], cStrDecimalFormatNL, rax)
+    printfh([hStdOut], cStrDecimalFormatNL, rax)
 
     ExitProcess(0)
 

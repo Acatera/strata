@@ -35,6 +35,7 @@ struc PROCESS_INFORMATION
 endstruc
 
 section .bss
+    _internal_printf_std_out resq 1
     _internal_printf_buffer resb DEFAULT_BUFFER_SIZE
     _internal_printf_output_buffer resb DEFAULT_BUFFER_SIZE
     itoh_buffer resb 32
@@ -134,6 +135,8 @@ section .text
 
     %endmacro
 %endif
+
+%define InitStandardOutput() GetStdHandle(STD_OUTPUT_HANDLE, [_internal_printf_std_out])
 
 %define CallerSavedRegs rcx, rdx, r8, r9, r10, r11
 %define CalleeSavedRegs rbx, rbp, rdi, rsi, rsp, r12, r13, r14, r15
@@ -646,7 +649,8 @@ strlen:
     add rsp, 0x20
 %endmacro
 
-%define printf(hnd, fmt) printf2 hnd, fmt
+%define printf(fmt) printf2 [_internal_printf_std_out], fmt
+%define printfh(hnd, fmt) printf2 hnd, fmt
 %macro printf2 2
     multipush rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
     sub rsp, 0x20
@@ -661,7 +665,8 @@ strlen:
     multipop rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
 %endmacro
 
-%define printf(hnd, fmt, a) printf3 hnd, fmt, a
+%define printf(fmt, a) printf3 [_internal_printf_std_out], fmt, a
+%define printfh(hnd, fmt, a) printf3 hnd, fmt, a
 %macro printf3 3
     multipush rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
     sub rsp, 0x20
@@ -677,7 +682,8 @@ strlen:
     multipop rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
 %endmacro
 
-%define printf(hnd, fmt, a, b) printf4 hnd, fmt, a, b
+%define printf(fmt, a, b) printf4 [_internal_printf_std_out], fmt, a, b
+%define printfh(hnd, fmt, a, b) printf4 hnd, fmt, a, b
 %macro printf4 4
     PushCallerSavedRegs()
     sub rsp, 0x20
@@ -694,7 +700,8 @@ strlen:
     PopCallerSavedRegs()
 %endmacro
 
-%define printf(hnd, fmt, a, b, c) printf5 hnd, fmt, a, b, c
+%define printf(fmt, a, b, c) printf5 [_internal_printf_std_out], fmt, a, b, c
+%define printfh(hnd, fmt, a, b, c) printf5 hnd, fmt, a, b, c
 %macro printf5 5
     multipush rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
     mov rdx, %2

@@ -11,7 +11,7 @@ section .text
 _start:
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
 
-    printf([hStdOut], `"Hello, World!\n"`)
+    printfh([hStdOut], `"Hello, World!\n"`)
     
     xor r15, r15`
 
@@ -24,7 +24,7 @@ _start:
         if r15 == 10 then
             break
         end `
-        printf([hStdOut], `"Register r15 = %d\n"`, r15)
+        printfh([hStdOut], `"Register r15 = %d\n"`, r15)
         inc r15`
     end `
 

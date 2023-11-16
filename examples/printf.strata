@@ -15,7 +15,7 @@ _start:
 
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
 
-    printf([hStdOut], `"\#27[92mThe pointer is %p\#27[0m"`, buffer64)
+    printfh([hStdOut], `"\#27[92mThe pointer is %p\#27[0m"`, buffer64)
 
     ExitProcess(0)
 `

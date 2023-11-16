@@ -17,7 +17,7 @@ _start:
 
     escape(ptrBuffer64, message)
 
-    printf([hStdOut], ptrBuffer64)
+    printfh([hStdOut], ptrBuffer64)
 
     ExitProcess(0)
 `

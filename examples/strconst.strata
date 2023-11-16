@@ -12,16 +12,16 @@ section .text
 _start:
     GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
 
-    printf([hStdOut], `"section .text\r\n"`)
-    printf([hStdOut], `"    global _start\r\n"`)
-    printf([hStdOut], `"\r\n"`)
-    printf([hStdOut], `"_start:\r\n"`)
-    printf([hStdOut], `"    GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])\r\n"`)
-    printf([hStdOut], `"\r\n"`)
-    printf([hStdOut], `"    printf([hStdOut], roStr_0)\r\n"`)
-    printf([hStdOut], `"    printf([hStdOut], roStr_1)\r\n"`)
-    printf([hStdOut], `"\r\n"`)
-    printf([hStdOut], `"    ExitProcess(0)\r\n"`)
+    printfh([hStdOut], `"section .text\r\n"`)
+    printfh([hStdOut], `"    global _start\r\n"`)
+    printfh([hStdOut], `"\r\n"`)
+    printfh([hStdOut], `"_start:\r\n"`)
+    printfh([hStdOut], `"    GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])\r\n"`)
+    printfh([hStdOut], `"\r\n"`)
+    printfh([hStdOut], `"    printfh([hStdOut], roStr_0)\r\n"`)
+    printfh([hStdOut], `"    printfh([hStdOut], roStr_1)\r\n"`)
+    printfh([hStdOut], `"\r\n"`)
+    printfh([hStdOut], `"    ExitProcess(0)\r\n"`)
 
     ExitProcess(0)
 `

@@ -130,7 +130,6 @@ section .bss
 
 section .data
     tokenIndex dq 0
-    hStdOut dq 0
     dwIfKeywordCount dq 0
     chAsmStart equ 0x60
     chDoubleQuote equ 0x22
@@ -232,11 +231,12 @@ _start:
     memcpy(r14, szAsmFileExtension, szAsmFileExtension.length)
 
     multipop rax, rcx, rdi, rsi
-    GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
+    
+    InitStandardOutput()
 
     ; print input and output file names
-    printf([hStdOut], roStr_0, szSourceFile)
-    printf([hStdOut], roStr_1, szDestFile)
+    printf(roStr_0, szSourceFile)
+    printf(roStr_1, szDestFile)
 
     ; Preparing the parameters for CreateFileA to open a file for reading
     mov rcx, szSourceFile                       ; First parameter: Pointer to the filename (LPCSTR)
@@ -257,7 +257,7 @@ _start:
 ;then_1:
 
         call GetLastError
-        printf([hStdOut], roStr_2, szSourceFile, rax)
+        printf(roStr_2, szSourceFile, rax)
         ExitProcess(1)
 .end_1:
 
@@ -281,7 +281,7 @@ _start:
 ;then_2:
 
         call GetLastError
-        printf([hStdOut], roStr_3, rax)
+        printf(roStr_3, rax)
         ExitProcess(1)
 .end_2:
 
@@ -305,15 +305,14 @@ _start:
 ;then_3:
 
         call GetLastError
-        printf([hStdOut], roStr_4, szDestFile, rax)
+        printf(roStr_4, szDestFile, rax)
         ExitProcess(1)
 .end_3:
 
 
     mov [hndDestFile], rax
-    GetStdHandle(STD_OUTPUT_HANDLE, [hStdOut])
 
-    printf([hStdOut], roStr_5, szSourceFile)
+    printf(roStr_5, szSourceFile)
 
     ; initialize string count
     mov rax, 0
@@ -683,7 +682,7 @@ _start:
 %ifdef DEBUG    
     push rbx
     mov ebx, dword [dwTokenCount]
-    printf([hStdOut], roStr_6, rbx)
+    printf(roStr_6, rbx)
     pop rbx
 %endif
 
@@ -714,7 +713,7 @@ _start:
 
 %ifdef DEBUG    
     PushCallerSavedRegs()
-    printf([hStdOut], roStr_7, rbx)
+    printf(roStr_7, rbx)
     PopCallerSavedRegs()
 %endif
 
@@ -765,14 +764,14 @@ _start:
         mov rbx, [rax + Block.TokenType]
 
         %ifdef DEBUG
-            printf([hStdOut], roStr_9, rbx)
+            printf(roStr_9, rbx)
         %endif 
 .if_22:
     cmp bx, KeywordIf
     je .end_22
 ;then_22:
 
-            printf([hStdOut], roStr_10, szSourceFile)
+            printf(roStr_10, szSourceFile)
             jmp .exit
 .end_22:
 
@@ -795,7 +794,7 @@ _start:
     je .end_24
 ;then_24:
 
-                printf([hStdOut], roStr_11, r10)
+                printf(roStr_11, r10)
                 jmp .exit
 .end_24:
 
@@ -862,7 +861,7 @@ _start:
     je .end_29
 ;then_29:
 
-                printf([hStdOut], roStr_13, szSourceFile)
+                printf(roStr_13, szSourceFile)
                 jmp .exit
 .end_29:
 
@@ -919,14 +918,14 @@ _start:
         mov rbx, [rax + Block.TokenType]
 
         %ifdef DEBUG
-            printf([hStdOut], roStr_17, rbx)
+            printf(roStr_17, rbx)
         %endif 
 .if_33:
     cmp bx, KeywordWhile
     je .end_33
 ;then_33:
 
-            printf([hStdOut], roStr_18, szSourceFile)
+            printf(roStr_18, szSourceFile)
             jmp .exit
 .end_33:
 
@@ -949,7 +948,7 @@ _start:
     je .end_35
 ;then_35:
 
-                printf([hStdOut], roStr_19, r10)
+                printf(roStr_19, r10)
                 jmp .exit
 .end_35:
 
@@ -1116,7 +1115,7 @@ _start:
     mov r12d, currentToken.Length
 
 %ifdef DEBUG
-    printf([hStdOut], roStr_24, r10, r11, r12)
+    printf(roStr_24, r10, r11, r12)
 %endif
 
     push rax
@@ -1124,7 +1123,7 @@ _start:
     add r11, rax
     strcpy(ptrBuffer64, r11, r12)
 
-    ; printf([hStdOut], roStr_25, ptrBuffer64)
+    ; printf(roStr_25, ptrBuffer64)
     pop rax
 
     NextToken()
@@ -1141,7 +1140,7 @@ _start:
     mov rcx, [hndDestFile]
     call CloseHandle
 
-    printf([hStdOut], roStr_26, szSourceFile)
+    printf(roStr_26, szSourceFile)
 
     jmp .assemble_object_file
 
@@ -1150,7 +1149,7 @@ _start:
     
 .assemble_object_file:
     sprintf(ptrBuffer256, roStr_27, szFilenameWithoutExtension, szFilenameWithoutExtension)
-    printf([hStdOut], roStr_28, ptrBuffer256)
+    printf(roStr_28, ptrBuffer256)
 
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
@@ -1180,7 +1179,7 @@ _start:
     jne .end_45
 ;then_45:
 
-        printf([hStdOut], roStr_29)
+        printf(roStr_29)
         ExitProcess(1)
 .end_45:
 
@@ -1193,7 +1192,7 @@ _start:
     mov rdx , lpExitCode
     call GetExitCodeProcess 
     
-    ; printf([hStdOut], roStr_30, [lpExitCode])
+    ; printf(roStr_30, [lpExitCode])
     mov rax, [lpExitCode]
     
 .if_46:
@@ -1201,13 +1200,13 @@ _start:
     je .end_46
 ;then_46:
 
-        printf([hStdOut], roStr_31)
+        printf(roStr_31)
         ExitProcess(1)
 .end_46:
 
 
     sprintf(ptrBuffer256, roStr_32, szFilenameWithoutExtension, szFilenameWithoutExtension)
-    printf([hStdOut], roStr_33, ptrBuffer256)
+    printf(roStr_33, ptrBuffer256)
     
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
@@ -1237,7 +1236,7 @@ _start:
     jne .end_47
 ;then_47:
 
-        printf([hStdOut], roStr_34)
+        printf(roStr_34)
         ExitProcess(1)
 .end_47:
 
@@ -1256,14 +1255,14 @@ _start:
     je .end_48
 ;then_48:
 
-        printf([hStdOut], roStr_35)
+        printf(roStr_35)
         ExitProcess(1)
 .end_48:
 
 
     ; delete object file
 %ifdef DEBUG
-    printf([hStdOut], roStr_36)
+    printf(roStr_36)
 %endif
 
     sprintf(ptrBuffer256, roStr_37, szFilenameWithoutExtension)
@@ -1274,11 +1273,11 @@ _start:
     jne .end_49
 ;then_49:
 
-        printf([hStdOut], roStr_38)
+        printf(roStr_38)
 .end_49:
 
 
-    printf([hStdOut], roStr_39, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    printf(roStr_39, szFilenameWithoutExtension, szFilenameWithoutExtension)
     jmp .exit
 
 ; this routine will save a string literal to the string list
@@ -1299,7 +1298,7 @@ push_string_literal:
     jl .end_50
 ;then_50:
 
-        printf([hStdOut], roStr_40, CONST_STRING_COUNT)
+        printf(roStr_40, CONST_STRING_COUNT)
         ExitProcess(1)
 .end_50:
 
@@ -1509,7 +1508,7 @@ compile_condition_3:
 .end_56:
 
 
-    printf([hStdOut], roStr_52, r10)
+    printf(roStr_52, r10)
     ExitProcess(1)
 
 .valid_operator_found:

@@ -47,14 +47,14 @@ _start:
     end `
     inc r13
 
-    printf([hStdOut], `"Argument count: %d\n"`, r13)
+    printfh([hStdOut], `"Argument count: %d\n"`, r13)
     inc r13 ; used to store argc
     mov rax, r13
     mov rdx, 8 
     mul rdx
     add rbx, rax
 
-    printf([hStdOut], `"Memory required: %d\n"`, rbx)
+    printfh([hStdOut], `"Memory required: %d\n"`, rbx)
     push rbx
 
     sub rsp, 0x20
@@ -62,7 +62,7 @@ _start:
     mov [hProcessHeap], rax
     add rsp, 0x20
 
-    printf([hStdOut], `"Process heap: %x\n"`, [hProcessHeap])
+    printfh([hStdOut], `"Process heap: %x\n"`, [hProcessHeap])
 
     pop rbx
     sub rsp, 0x20
@@ -73,7 +73,7 @@ _start:
     add rsp, 0x20
     mov [hAllocatedMemory], rax
 
-    printf([hStdOut], `"Allocated memory: %x\n"`, [hAllocatedMemory])
+    printfh([hStdOut], `"Allocated memory: %x\n"`, [hAllocatedMemory])
     
     mov rsi, [pSysCommandLine]
     mov rdi, [hAllocatedMemory]
@@ -83,7 +83,7 @@ _start:
     while byte[rsi] != 0 do
         if byte[rsi] == 0x20 then `
             mov byte [rdi], NULL
-            printf([hStdOut], `"Arg #%d: %s\n"`, r13, r14)
+            printfh([hStdOut], `"Arg #%d: %s\n"`, r13, r14)
             inc rdi
             mov r14, rdi
             inc r13
@@ -98,13 +98,13 @@ _start:
     end `
 
     mov byte [rdi], NULL
-    printf([hStdOut], `"Arg #%d: %s\n"`, r13, r14)
+    printfh([hStdOut], `"Arg #%d: %s\n"`, r13, r14)
     inc r13 
 
-    printf([hStdOut], `"Argument count: %d\n"`, r13)
+    printfh([hStdOut], `"Argument count: %d\n"`, r13)
     mov rax, [hAllocatedMemory]
 
-    printf([hStdOut], `"Freeing memory...\n"`)
+    printfh([hStdOut], `"Freeing memory...\n"`)
 
     sub rsp, 0x20
     mov rcx, [hProcessHeap]
@@ -113,7 +113,7 @@ _start:
     call HeapFree`
 
     if rax == 0 then `
-        printf([hStdOut], `"Failed to free memory\n"`)`
+        printfh([hStdOut], `"Failed to free memory\n"`)`
     end `
     ExitProcess(0)
 `
