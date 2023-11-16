@@ -322,6 +322,7 @@ _start:
     mov rax, pStringList
     mov [pStringListEnd], rax
 
+;-----------------------------------source code parsing----------------------------------
 .start_parsing_source_code:
     ; reset offset
     xor r8, r8          ; token start
@@ -615,6 +616,7 @@ _start:
     multipop rax, rbx, rcx, rdx, r10, r14
 
     jmp .read_token_loop
+;-----------------------------------source code parsing----------------------------------
 
 .source_code_parsed:
 %define NextToken() nextToken
