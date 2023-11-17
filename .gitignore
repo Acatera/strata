@@ -1,5 +1,7 @@
+# Ignore .exe, .asm, and .o files
 *.exe
 *.asm
 *.o
 
-!binaries/
+# But don't ignore .asm files in the bootstrap directory
+!bootstrap/*.asm
