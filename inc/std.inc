@@ -176,12 +176,14 @@ section .text
     PopCallerSavedRegs()
 %endmacro
 strcpy:
+    multipush rcx, rdx, rdi, rsi, r8
     mov rdi, rcx ; dest
     mov rsi, rdx ; src
     mov rcx, r8 ; num bytes
     rep movsb   ; rep
     mov byte [rdi], 0
 .end:
+    multipop rcx, rdx, rdi, rsi, r8
     ret
 
 ;------------------------------------------------------------------------------------------------------------
@@ -706,9 +708,10 @@ strlen:
     multipush rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
     mov rdx, %2
     mov rcx, escapeBuffer
-    push %5
-    sub rsp, 0x20
     call escape
+    sub rsp, 0x20
+    mov rcx, %5
+    push rcx
     mov r9,  %4
     mov r8,  %3
     mov rdx, escapeBuffer
@@ -1033,5 +1036,62 @@ escape:
     mov byte [rdi], NULL ; Null-terminate the string
 
 .end:
+    PopCalleeSavedRegs()
+    ret    
+
+;------------------------------------------------------------------------------------------------------------
+; atoi - converts a string to an integer in base 10
+;------------------------------------------------------------------------------------------------------------
+; arguments:
+;   rcx - pointer to a NULL terminated string
+;------------------------------------------------------------------------------------------------------------
+; returns: 
+;   rax - integer value of string
+;   rdx - success flag (1 if successful, 0 if not)
+;------------------------------------------------------------------------------------------------------------
+atoi:
+    PushCalleeSavedRegs()
+    ; check if pointer to string is NULL
+    cmp rcx, NULL
+    jz .error
+
+.initialize:
+    xor rax, rax            ; clear rax. rax will be used to store number
+    mov rbx, rcx            ; store string address in rbx
+    mov r9, 1               ; default `success` flag to 1
+    mov r10, 10             ; multiplier
+
+.check_sign:
+    xor r12, r12            ; clear r12. r12 will be used to store sign
+    cmp byte [rbx], '-'     ; check if first character is '-'
+    jnz .convert            ; if not, start conversion
+    mov r12, 1              ; if it is, set r12 to 1
+    inc rbx                 ; increment string pointer past '-'
+
+.convert:
+    cmp byte [rbx], 0       ; check if we've reached the end of the string
+    jz .set_sign            ; if we have, we're done
+    movzx r11, byte [rbx]         ; move current character to r11
+    sub r11, '0'            ; convert character to integer
+    js .error               ; if character is not a digit, return 0
+    cmp r11, 9              ; check if character is greater than 9
+    ja .error               ; if it is, return 0
+    mul r10                 ; multiply number by 10
+    add rax, r11            ; add current digit to number
+    inc rbx                 ; increment string pointer
+    jmp .convert            ; repeat
+
+.set_sign:
+    cmp r12, 0              ; check if number is positive
+    jz .end                 ; if it is, we're done
+    neg rax                 ; if it isn't, negate number
+    jmp .end                ; and we're done
+
+.error:    
+    xor rax, rax            ; return number 0
+    xor r9, r9              ; set `success` flag 0
+
+.end:
+    mov rdx, r9             ; move `success` flag to rdx
     PopCalleeSavedRegs()
     ret    

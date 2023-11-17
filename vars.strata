@@ -1,0 +1,20 @@
+`%include "inc/std.inc"
+
+section .text
+    global _start
+    
+_start:
+    InitStandardOutput()
+    
+    printf(`"Hello, World!\n"`)`
+    num l1 = 34
+    num l2 = 35
+    l2 = l1 + 1
+    l2 = 252345 + l2
+    l1 = 9223372036854775806 + 1
+`
+    printf(`"l1 = %d\n"`, [l1])
+   
+
+    ExitProcess(0)
+`
