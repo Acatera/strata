@@ -1119,10 +1119,10 @@ end
         strcpy(ptr2Buffer64, r13, r15) ; literal name`
         
         if r12w == defOperandInteger then `
-            sprintf(ptr3Buffer64, `"\r\n\tmov r14, %s\r\n"`, ptr2Buffer64)
+            sprintf(ptr3Buffer64, `"\r\n\tmov rax, %s\r\n"`, ptr2Buffer64)
             WriteFile([hndDestFile], ptr3Buffer64, rax, dwBytesWritten)`
         else if r12w == defOperandLiteral then `
-            sprintf(ptr3Buffer64, `"\r\n\tmov r14, [%s]\r\n"`, ptr2Buffer64)
+            sprintf(ptr3Buffer64, `"\r\n\tmov rax, [%s]\r\n"`, ptr2Buffer64)
             WriteFile([hndDestFile], ptr3Buffer64, rax, dwBytesWritten)`
         end end `
         
@@ -1158,10 +1158,10 @@ end
         ; for some reason, i can't push three params`
         
         if r12w == defOperandInteger then `
-            sprintf(ptrBuffer256, `"\tmov r15, %s\r\n\tadd r14, r15\r\n\tmov [%s], r14\r\n"`, ptr2Buffer64, ptrBuffer64)
+            sprintf(ptrBuffer256, `"\tmov rdx, %s\r\n\tadd rax, rdx\r\n\tmov [%s], rax\r\n"`, ptr2Buffer64, ptrBuffer64)
             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
         else if r12w == defOperandLiteral then `
-            sprintf(ptrBuffer256, `"\tmov r15, [%s]\r\n\tadd r14, r15\r\n\tmov [%s], r14\r\n"`, ptr2Buffer64, ptrBuffer64)
+            sprintf(ptrBuffer256, `"\tmov rdx, [%s]\r\n\tadd rax, rdx\r\n\tmov [%s], rax\r\n"`, ptr2Buffer64, ptrBuffer64)
             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
         end end `        
 
