@@ -6,13 +6,19 @@ section .text
 _start:
     InitStandardOutput()
     
-    printf(`"Hello, World!\n"`)`
+    printf(`"Hello, World!\n"`)
+    ;xor rax, rax`
+    if rax == 0 then `
+        printf(`"Message from 'if' branch\n"`)`
+    else `
+        printf(`"Message from 'else' branch\n"`)`
+    end
     num l1 = 34
     num l2 = 35
     l2 = l1 + 1
     l2 = 252345 + l2
     l1 = 9223372036854775806 + 1
-    l2 = 35 + 34`
+    l2 = 35 + 34 `
     printf(`"l1 = %d\n"`, [l1])
     printf(`"l2 = %d\n"`, [l2])
 

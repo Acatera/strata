@@ -47,12 +47,13 @@
 ; Reserve 4 bits for operand type
 %define KeywordIf                0 + (1 << (4 + 4))
 %define KeywordThen              1 + (1 << (4 + 4))
-%define KeywordEnd               2 + (1 << (4 + 4))
-%define KeywordWhile             3 + (1 << (4 + 4))
-%define KeywordDo                4 + (1 << (4 + 4))
-%define KeywordContinue          5 + (1 << (4 + 4))
-%define KeywordBreak             6 + (1 << (4 + 4))
-%define KeywordDefineNumberVar   7 + (1 << (4 + 4))
+%define KeywordElse              2 + (1 << (4 + 4))
+%define KeywordEnd               3 + (1 << (4 + 4))
+%define KeywordWhile             4 + (1 << (4 + 4))
+%define KeywordDo                5 + (1 << (4 + 4))
+%define KeywordContinue          6 + (1 << (4 + 4))
+%define KeywordBreak             7 + (1 << (4 + 4))
+%define KeywordDefineNumberVar   8 + (1 << (4 + 4))
 
 ; todo - revisit this
 %define defOperatorEquals         word OperatorEquals
@@ -71,6 +72,7 @@
 
 %define defKeywordIf              word KeywordIf
 %define defKeywordThen            word KeywordThen
+%define defKeywordElse            word KeywordElse
 %define defKeywordEnd             word KeywordEnd
 %define defKeywordWhile           word KeywordWhile
 %define defKeywordDo              word KeywordDo
@@ -109,6 +111,7 @@ section .bss
     lpStartupInfo resb 104
     tokenList resq MAX_TOKEN_COUNT * Token.size
     dwTokenCount resd 1
+    bProcessingIfCondition resq 1
 
     hndSourceFile resq 1
     hndDestFile resq 1
@@ -135,7 +138,6 @@ section .bss
 
 section .data
     tokenIndex dq 0
-    dwIfKeywordCount dq 0
     chAsmStart equ 0x60
     chDoubleQuote equ 0x22
     wScopedBlockCurrentId dw 0
@@ -356,8 +358,8 @@ end `
     push rbp
     mov rbp, rsp
     sub rsp, 8 ; reserve space on the stack for the token type
-    mov [rbp], word 0 ; initialize token type to 0
-`
+    mov [rbp], word 0 ; initialize token type to 0 `
+    
 if CompareTokenWith(szKeywordIf) then `
     mov [rbp], word KeywordIf
     jmp .token_type_set`
@@ -365,6 +367,11 @@ end
 
 if CompareTokenWith(szKeywordThen) then `
     mov [rbp], word KeywordThen
+    jmp .token_type_set`
+end 
+
+if CompareTokenWith(szKeywordElse) then `
+    mov [rbp], word KeywordElse
     jmp .token_type_set`
 end 
 
@@ -675,12 +682,33 @@ end
     mov rbx, [tokenIndex]
     cmp ebx, [dwTokenCount]
     jge .end_counter_less_than_token_count
-
+    mov r14w, currentToken.Type
+    ; printf(`"[DEBUG] Current token type: %x\r\n"`, r14)
 %ifdef DEBUG    
     PushCallerSavedRegs()
     printf(`"[DEBUG] Current token index: %d\r\n"`, rbx)
     PopCallerSavedRegs()
-%endif
+%endif`
+    if currentToken.Type == defKeywordThen then `   
+        push r15    
+        xor r15, r15
+        mov [bProcessingIfCondition], r15
+        pop r15`
+    end
+    
+    if currentToken.Type == defKeywordDo then `   
+        push r15    
+        xor r15, r15
+        mov [bProcessingIfCondition], r15
+        pop r15`
+    end
+     `
+
+    cmp qword [bProcessingIfCondition], 0
+    je .continue_processing
+    NextToken()
+
+.continue_processing:
 `
     if currentToken.Type == defOperandAsmLiteral then `
         PushCallerSavedRegs()
@@ -708,6 +736,10 @@ end
         PushBlockToken(defKeywordIf, [wScopedBlockCurrentId])
         
         inc word [wScopedBlockCurrentId]
+        push r15
+        mov r15, 1
+        mov [bProcessingIfCondition], r15
+        pop r15
         PopCallerSavedRegs()
         NextToken()`
     end 
@@ -770,9 +802,36 @@ end
         mov cx, bx
         PushBlockToken(KeywordThen, rcx)
 
+        push r15    
+        xor r15, r15
+        mov [bProcessingIfCondition], r15
+        pop r15
+
         PopCallerSavedRegs()
         NextToken()`
     end
+
+    `; keyword 'else'`
+    if currentToken.Type == defKeywordElse then `
+        PushCallerSavedRegs()
+
+        PeekBlockToken()
+        push rax
+        mov rbx, [rax + Block.TokenType]`
+        if bx != KeywordThen then `
+            printf(`"[\#27[91mERROR\#27[0m] Keyword 'else' is not after 'then'\r\n"`, szSourceFile)
+            jmp .exit`
+        end `
+        
+        pop rax
+        mov bx, word [rax + Block.BlockId]
+        and rbx, 0xffff 
+        sprintf(ptrBuffer64, `"\r\n\tjmp .end_%d\r\n.else_%d:\r\n"`, rbx, rbx)
+        WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
+
+        PopCallerSavedRegs()
+        NextToken()`
+    end 
 
     `; keyword 'end'`
     if currentToken.Type == defKeywordEnd then `
@@ -781,10 +840,14 @@ end
         PeekBlockToken()
         push rax
         mov rbx, [rax + Block.TokenType]`
+        
         if bx != KeywordThen then 
-            if bx != KeywordDo then `
-                printf(`"[\#27[91mERROR\#27[0m] Keyword 'end' is not after 'then' or 'do'\r\n"`, szSourceFile)
-                jmp .exit`
+            if bx != KeywordElse then 
+                if bx != KeywordDo then `
+                    printf(`"[\#27[91mERROR\#27[0m] Keyw ord 'end' is not after 'then', 'else' or 'do'\r\n"`, szSourceFile)
+                    jmp .exit
+                    `
+                end
             end
         end 
         
@@ -816,6 +879,11 @@ end
 
         PushBlockToken(defKeywordWhile, [wScopedBlockCurrentId])
         
+        push r15    
+        mov r15, 1
+        mov [bProcessingIfCondition], r15
+        pop r15
+
         inc word [wScopedBlockCurrentId]
         PopCallerSavedRegs()
         NextToken()`
@@ -878,6 +946,11 @@ end
         ; bx stores block id
         mov cx, bx
         PushBlockToken(KeywordDo, rcx)
+
+        push r15    
+        xor r15, r15
+        mov [bProcessingIfCondition], r15
+        pop r15
 
         PopCallerSavedRegs()
         NextToken()`
@@ -1440,8 +1513,39 @@ compile_condition_3:
     mov r10, [rbx - Token.TokenType]
     and r10, 0xffff
 
-    mov r13, [rbp - 0x8] ; r13 stores scope id
-    sprintf(ptrBuffer64, `".end_%d"`, r13)
+    multipush r10, r13, r14
+    mov r13d, dword [dwTokenCount]
+    mov r14, [tokenIndex] ; token index points to a 'then' token`
+    
+    while r14 < r13 do `
+        mov r10w, word [rbx + Token.TokenType]`
+        if r10w == defKeywordElse then `
+            jmp .found_matching_keyword`
+        end
+
+        if r10w == defKeywordEnd then `
+            jmp .found_matching_keyword`
+        end `
+        
+        inc r14
+        add rbx, Token.size`
+    end `
+    printf(`"[\#27[91mERROR\#27[0m] Expected 'then' or 'else' after if condition\r\n"`)
+    ExitProcess(1)
+
+.found_matching_keyword:    
+
+    mov r13, [rbp - 0x8] ; r13 stores scope id`
+    
+    if r10w == defKeywordElse then `
+        sprintf(ptrBuffer64, `".else_%d"`, r13)`
+    end
+
+    if r10w == defKeywordEnd then `
+        sprintf(ptrBuffer64, `".end_%d"`, r13)`
+    end `
+
+    multipop r10, r13, r14
     `
     if r10 == OperatorEquals then `
         sprintf(ptrBuffer256, `"    jne %s\r\n"`, ptrBuffer64)
@@ -1473,7 +1577,7 @@ compile_condition_3:
         jmp .valid_operator_found`
     end `
 
-    printf(`"Error: Unsupported operator: %d"`, r10)
+    printf(`"[\#27[91mERROR\#27[0m] Unsupported operator %x\r\n"`, r10)
     ExitProcess(1)
 
 .valid_operator_found:
@@ -1503,6 +1607,8 @@ section .data
     szKeywordIf.length equ $ - szKeywordIf
     szKeywordThen db "then"
     szKeywordThen.length equ $ - szKeywordThen
+    szKeywordElse db "else"
+    szKeywordElse.length equ $ - szKeywordElse
     szKeywordEnd db "end"
     szKeywordEnd.length equ $ - szKeywordEnd
     szKeywordWhile db "while"
