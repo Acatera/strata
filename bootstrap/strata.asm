@@ -386,180 +386,213 @@ _start:
     push rbp
     mov rbp, rsp
     sub rsp, 8 ; reserve space on the stack for the token type
-    mov [rbp], word 0 ; initialize token type to 0 
+    mov [rbp], word 0 ; initialize token type to 0
 .if_5:
     CompareTokenWith(szKeywordIf)
-    jne .end_5
+    jne .else_5
 ;then_5:
 
     mov [rbp], word KeywordIf
-    jmp .token_type_set
-.end_5:
+	jmp .end_5
+.else_5:
 
 .if_6:
     CompareTokenWith(szKeywordThen)
-    jne .end_6
+    jne .else_6
 ;then_6:
 
     mov [rbp], word KeywordThen
-    jmp .token_type_set
-.end_6:
+	jmp .end_6
+.else_6:
 
 .if_7:
     CompareTokenWith(szKeywordElse)
-    jne .end_7
+    jne .else_7
 ;then_7:
 
     mov [rbp], word KeywordElse
-    jmp .token_type_set
-.end_7:
+	jmp .end_7
+.else_7:
 
 .if_8:
     CompareTokenWith(szKeywordEnd)
-    jne .end_8
+    jne .else_8
 ;then_8:
 
     mov [rbp], word KeywordEnd
-    jmp .token_type_set
-.end_8:
+	jmp .end_8
+.else_8:
 
 .if_9:
     CompareTokenWith(szKeywordWhile)
-    jne .end_9
+    jne .else_9
 ;then_9:
 
     mov [rbp], word KeywordWhile
-    jmp .token_type_set
-.end_9:
+	jmp .end_9
+.else_9:
 
 .if_10:
     CompareTokenWith(szKeywordDo)
-    jne .end_10
+    jne .else_10
 ;then_10:
 
     mov [rbp], word KeywordDo
-    jmp .token_type_set
-.end_10:
+	jmp .end_10
+.else_10:
 
 .if_11:
     CompareTokenWith(szKeywordContinue)
-    jne .end_11
+    jne .else_11
 ;then_11:
 
     mov [rbp], word KeywordContinue
-    jmp .token_type_set
-.end_11:
+	jmp .end_11
+.else_11:
 
 .if_12:
     CompareTokenWith(szKeywordBreak)
-    jne .end_12
+    jne .else_12
 ;then_12:
 
     mov [rbp], word KeywordBreak
-    jmp .token_type_set
-.end_12:
+	jmp .end_12
+.else_12:
 
 .if_13:
     CompareTokenWith(szKeywordNumber)
-    jne .end_13
+    jne .else_13
 ;then_13:
 
     mov [rbp], word KeywordDefineNumberVar
-    jmp .token_type_set
-.end_13:
+	jmp .end_13
+.else_13:
 
 .if_14:
     CompareTokenWith(szOperatorEquals)
-    jne .end_14
+    jne .else_14
 ;then_14:
 
     mov [rbp], word OperatorEquals
-    jmp .token_type_set
-.end_14:
+	jmp .end_14
+.else_14:
 
 .if_15:
     CompareTokenWith(szOperatorNotEquals)
-    jne .end_15
+    jne .else_15
 ;then_15:
 
     mov [rbp], word OperatorNotEquals
-    jmp .token_type_set
-.end_15:
+	jmp .end_15
+.else_15:
 
 .if_16:
     CompareTokenWith(szOperatorLessOrEqual)
-    jne .end_16
+    jne .else_16
 ;then_16:
 
     mov [rbp], word OperatorLessOrEqual
-    jmp .token_type_set
-.end_16:
+	jmp .end_16
+.else_16:
 
 .if_17:
     CompareTokenWith(szOperatorLess)
-    jne .end_17
+    jne .else_17
 ;then_17:
 
     mov [rbp], word OperatorLess
-    jmp .token_type_set
-.end_17:
+	jmp .end_17
+.else_17:
 
 .if_18:
     CompareTokenWith(szOperatorGreaterOrEqual)
-    jne .end_18
+    jne .else_18
 ;then_18:
 
     mov [rbp], word OperatorGreaterOrEqual
-    jmp .token_type_set
-.end_18:
+	jmp .end_18
+.else_18:
 
 .if_19:
     CompareTokenWith(szOperatorGreater)
-    jne .end_19
+    jne .else_19
 ;then_19:
 
     mov [rbp], word OperatorGreater
-    jmp .token_type_set
-.end_19:
+	jmp .end_19
+.else_19:
 
 .if_20:
     CompareTokenWith(szOperatorAssignment)
-    jne .end_20
+    jne .else_20
 ;then_20:
 
     mov [rbp], word OperatorAssignment
-    jmp .token_type_set
-.end_20:
+	jmp .end_20
+.else_20:
 
 .if_21:
     CompareTokenWith(szOperatorPlus)
-    jne .end_21
+    jne .else_21
 ;then_21:
 
     mov [rbp], word OperatorPlus
-    jmp .token_type_set
-.end_21:
+	jmp .end_21
+.else_21:
 
     ; check if token is a number
     PushCallerSavedRegs()
     strcpy(ptrBuffer64, r10, r9)
     mov rcx, ptrBuffer64
     call atoi
-    mov r8, rax
 .if_22:
-    cmp r8, 0
-	je .end_22
+    cmp rdx, 0
+	je .else_22
 ;then_22:
 
         mov [rbp], word OperandInteger
-        PopCallerSavedRegs()
-        jmp .token_type_set
+	jmp .end_22
+.else_22:
+
+        ; otherwise, it's a literal
+        mov [rbp], word OperandLiteral
 .end_22:
 
     PopCallerSavedRegs()
+.end_21:
 
-    ; otherwise, it's a literal
-    mov [rbp], word OperandLiteral
+.end_20:
+
+.end_19:
+
+.end_18:
+
+.end_17:
+
+.end_16:
+
+.end_15:
+
+.end_14:
+
+.end_13:
+
+.end_12:
+
+.end_11:
+
+.end_10:
+
+.end_9:
+
+.end_8:
+
+.end_7:
+
+.end_6:
+
+.end_5:
+
 
 .token_type_set:
     ; test if token type is 0
@@ -1774,9 +1807,63 @@ compile_condition_1:
 
     ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+    
+    multipush r10, r13, r14
+    mov r13d, dword [dwTokenCount]
+    mov r14, [rbp] ; token index points to the first operand
+    add r14, 1
+.while_74:
+    cmp r14, r13
+	jg .end_74
+;do_74:
+
+        ; lacking an 'or', I have to do this for now
+        mov r10w, word [rbx + Token.TokenType]
+.if_75:
+    cmp r10w, defKeywordElse
+	jne .end_75
+;then_75:
+
+            jmp .found_matching_keyword
+.end_75:
+
+.if_76:
+    cmp r10w, defKeywordEnd
+	jne .end_76
+;then_76:
+
+            jmp .found_matching_keyword
+.end_76:
+
+        
+        inc r14
+        add rbx, Token.size
+    jmp .while_74
+    ; end while_74
+.end_74:
+
+    printf(roStr_58)
+    ExitProcess(1)
+
+.found_matching_keyword:    
+    mov r13, [rbp - 0x8] ; r13 stores scope id
+.if_77:
+    cmp r10w, defKeywordElse
+	jne .else_77
+;then_77:
+
+        sprintf(ptrBuffer64, roStr_59, r13)
+	jmp .end_77
+.else_77:
+    
+        sprintf(ptrBuffer64, roStr_60, r13)
+.end_77:
+
+
+    multipop r10, r13, r14
 
     mov r13, [rbp - 0x8] ; r13 stores scope id
-    sprintf(ptrBuffer256, roStr_58, r13)
+    sprintf(ptrBuffer256, roStr_61, ptrBuffer64)
 
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
@@ -1785,7 +1872,7 @@ compile_condition_1:
     add rsp, 0x10
     pop rbp
     mov rax, 0
-    ret    
+    ret     
 
 ; this routine will compile simple if conditions
 ; the *MUST* be in the form of:
@@ -1824,7 +1911,7 @@ compile_condition_3:
     add r10, r11
     strcpy(ptr2Buffer64, r10, r12)
 
-    sprintf(ptrBuffer256, roStr_59, ptrBuffer64, ptr2Buffer64)
+    sprintf(ptrBuffer256, roStr_62, ptrBuffer64, ptr2Buffer64)
 
     ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
@@ -1836,125 +1923,126 @@ compile_condition_3:
 
     multipush r10, r13, r14
     mov r13d, dword [dwTokenCount]
-    mov r14, [tokenIndex] ; token index points to a 'then' token
-.while_74:
+    mov r14, [rbp] ; token index points to the first operand
+    add r14, 2
+.while_78:
     cmp r14, r13
-	jge .end_74
-;do_74:
+	jg .end_78
+;do_78:
 
         ; lacking an 'or', I have to do this for now
         mov r10w, word [rbx + Token.TokenType]
-.if_75:
+.if_79:
     cmp r10w, defKeywordElse
-	jne .end_75
-;then_75:
+	jne .end_79
+;then_79:
 
             jmp .found_matching_keyword
-.end_75:
+.end_79:
 
-.if_76:
+.if_80:
     cmp r10w, defKeywordEnd
-	jne .end_76
-;then_76:
+	jne .end_80
+;then_80:
 
             jmp .found_matching_keyword
-.end_76:
+.end_80:
 
         
         inc r14
         add rbx, Token.size
-    jmp .while_74
-    ; end while_74
-.end_74:
+    jmp .while_78
+    ; end while_78
+.end_78:
 
-    printf(roStr_60)
+    printf(roStr_63)
     ExitProcess(1)
 
 .found_matching_keyword:    
 
     mov r13, [rbp - 0x8] ; r13 stores scope id
-.if_77:
+.if_81:
     cmp r10w, defKeywordElse
-	jne .else_77
-;then_77:
+	jne .else_81
+;then_81:
 
-        sprintf(ptrBuffer64, roStr_61, r13)
-	jmp .end_77
-.else_77:
+        sprintf(ptrBuffer64, roStr_64, r13)
+	jmp .end_81
+.else_81:
     
-        sprintf(ptrBuffer64, roStr_62, r13)
-.end_77:
+        sprintf(ptrBuffer64, roStr_65, r13)
+.end_81:
 
 
     multipop r10, r13, r14
     
-.if_78:
-    cmp r10, OperatorEquals
-	jne .else_78
-;then_78:
-
-        sprintf(ptrBuffer256, roStr_63, ptrBuffer64)
-	jmp .end_78
-.else_78:
-
-.if_79:
-    cmp r10, OperatorNotEquals
-	jne .else_79
-;then_79:
-
-        sprintf(ptrBuffer256, roStr_64, ptrBuffer64)
-	jmp .end_79
-.else_79:
-
-.if_80:
-    cmp r10, OperatorLess
-	jne .else_80
-;then_80:
-
-        sprintf(ptrBuffer256, roStr_65, ptrBuffer64)
-	jmp .end_80
-.else_80:
-
-.if_81:
-    cmp r10, OperatorLessOrEqual
-	jne .else_81
-;then_81:
-
-        sprintf(ptrBuffer256, roStr_66, ptrBuffer64)
-	jmp .end_81
-.else_81:
-
 .if_82:
-    cmp r10, OperatorGreater
+    cmp r10, OperatorEquals
 	jne .else_82
 ;then_82:
 
-        sprintf(ptrBuffer256, roStr_67, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_66, ptrBuffer64)
 	jmp .end_82
 .else_82:
 
 .if_83:
-    cmp r10, OperatorGreaterOrEqual
+    cmp r10, OperatorNotEquals
 	jne .else_83
 ;then_83:
 
-        sprintf(ptrBuffer256, roStr_68, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_67, ptrBuffer64)
 	jmp .end_83
 .else_83:
 
-        printf(roStr_69, r10)
+.if_84:
+    cmp r10, OperatorLess
+	jne .else_84
+;then_84:
+
+        sprintf(ptrBuffer256, roStr_68, ptrBuffer64)
+	jmp .end_84
+.else_84:
+
+.if_85:
+    cmp r10, OperatorLessOrEqual
+	jne .else_85
+;then_85:
+
+        sprintf(ptrBuffer256, roStr_69, ptrBuffer64)
+	jmp .end_85
+.else_85:
+
+.if_86:
+    cmp r10, OperatorGreater
+	jne .else_86
+;then_86:
+
+        sprintf(ptrBuffer256, roStr_70, ptrBuffer64)
+	jmp .end_86
+.else_86:
+
+.if_87:
+    cmp r10, OperatorGreaterOrEqual
+	jne .else_87
+;then_87:
+
+        sprintf(ptrBuffer256, roStr_71, ptrBuffer64)
+	jmp .end_87
+.else_87:
+
+        printf(roStr_72, r10)
         ExitProcess(1)
+.end_87:
+
+.end_86:
+
+.end_85:
+
+.end_84:
+
 .end_83:
 
 .end_82:
-
-.end_81:
-
-.end_80:
-
-.end_79:
-
-.end_78:
 
 
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
@@ -2016,18 +2104,21 @@ section .data
 
 
 section .rodata
-    roStr_69 db "[\#27[91mERROR\#27[0m] Unsupported operator %x\r\n", 0
-    roStr_68 db "\tjl %s\r\n", 0
-    roStr_67 db "\tjle %s\r\n", 0
-    roStr_66 db "\tjg %s\r\n", 0
-    roStr_65 db "\tjge %s\r\n", 0
-    roStr_64 db "\tje %s\r\n", 0
-    roStr_63 db "\tjne %s\r\n", 0
-    roStr_62 db ".end_%d", 0
-    roStr_61 db ".else_%d", 0
-    roStr_60 db "[\#27[91mERROR\#27[0m] Expected 'then' or 'else' after if condition\r\n", 0
-    roStr_59 db "    cmp %s, %s\r\n", 0
-    roStr_58 db "    jne .end_%d\r\n", 0
+    roStr_72 db "[\#27[91mERROR\#27[0m] Unsupported operator %x\r\n", 0
+    roStr_71 db "\tjl %s\r\n", 0
+    roStr_70 db "\tjle %s\r\n", 0
+    roStr_69 db "\tjg %s\r\n", 0
+    roStr_68 db "\tjge %s\r\n", 0
+    roStr_67 db "\tje %s\r\n", 0
+    roStr_66 db "\tjne %s\r\n", 0
+    roStr_65 db ".end_%d", 0
+    roStr_64 db ".else_%d", 0
+    roStr_63 db "[\#27[91mERROR\#27[0m] Expected 'then' or 'else' after if condition\r\n", 0
+    roStr_62 db "    cmp %s, %s\r\n", 0
+    roStr_61 db "    jne %s\r\n", 0
+    roStr_60 db ".end_%d", 0
+    roStr_59 db ".else_%d", 0
+    roStr_58 db "[\#27[91mERROR\#27[0m] Expected 'then' or 'else' after if condition\r\n", 0
     roStr_57 db "    %s\r\n", 0
     roStr_56 db "    roStr_%d db %s, 0\r\n", 0
     roStr_55 db "[\#27[91mERROR\#27[0m]: String list full. Max strings allowed: %d\r\n", 0
@@ -2048,12 +2139,12 @@ section .rodata
     roStr_40 db "[WARN] Unknown token '%s'\r\n", 0
     roStr_39 db "[DEBUG] Token type %x; start: %d; length: %d\r\n", 0
     roStr_38 db "roStr_%d", 0
-    roStr_37 db "\tmov r15, [%s]\r\n\tadd r14, r15\r\n\tmov [%s], r14\r\n", 0
-    roStr_36 db "\tmov r15, %s\r\n\tadd r14, r15\r\n\tmov [%s], r14\r\n", 0
+    roStr_37 db "\tmov rdx, [%s]\r\n\tadd rax, rdx\r\n\tmov [%s], rax\r\n", 0
+    roStr_36 db "\tmov rdx, %s\r\n\tadd rax, rdx\r\n\tmov [%s], rax\r\n", 0
     roStr_35 db "[\#27[91mERROR\#27[0m] Expected literal or integer after operator\r\n", 0
     roStr_34 db "[\#27[91mERROR\#27[0m] Expected operator after assignment\r\n", 0
-    roStr_33 db "\tmov r14, [%s]\r\n", 0
-    roStr_32 db "\tmov r14, %s\r\n", 0
+    roStr_33 db "\r\n\tmov rax, [%s]\r\n", 0
+    roStr_32 db "\r\n\tmov rax, %s\r\n", 0
     roStr_31 db "[\#27[91mERROR\#27[0m] Expected literal or integer after assignment\r\n", 0
     roStr_30 db "[\#27[91mERROR\#27[0m] Expected assignment operator after literal '%s'\r\n", 0
     roStr_29 db "\r\nsection .data\r\n\t%s dq %s\r\nsection .text\r\n", 0
