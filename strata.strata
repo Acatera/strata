@@ -358,110 +358,59 @@ end `
     push rbp
     mov rbp, rsp
     sub rsp, 8 ; reserve space on the stack for the token type
-    mov [rbp], word 0 ; initialize token type to 0 `
-    
+    mov [rbp], word 0 ; initialize token type to 0`
+
 if CompareTokenWith(szKeywordIf) then `
-    mov [rbp], word KeywordIf
-    jmp .token_type_set`
-end 
-
-if CompareTokenWith(szKeywordThen) then `
-    mov [rbp], word KeywordThen
-    jmp .token_type_set`
-end 
-
-if CompareTokenWith(szKeywordElse) then `
-    mov [rbp], word KeywordElse
-    jmp .token_type_set`
-end 
-
-if CompareTokenWith(szKeywordEnd) then `
-    mov [rbp], word KeywordEnd
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szKeywordWhile) then `
-    mov [rbp], word KeywordWhile
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szKeywordDo) then `
-    mov [rbp], word KeywordDo
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szKeywordContinue) then `
-    mov [rbp], word KeywordContinue
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szKeywordBreak) then `
-    mov [rbp], word KeywordBreak
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szKeywordNumber) then `
-    mov [rbp], word KeywordDefineNumberVar
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szOperatorEquals) then `
-    mov [rbp], word OperatorEquals
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szOperatorNotEquals) then `
-    mov [rbp], word OperatorNotEquals
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szOperatorLessOrEqual) then `
-    mov [rbp], word OperatorLessOrEqual
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szOperatorLess) then `
-    mov [rbp], word OperatorLess
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szOperatorGreaterOrEqual) then `
-    mov [rbp], word OperatorGreaterOrEqual
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szOperatorGreater) then `
-    mov [rbp], word OperatorGreater
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szOperatorAssignment) then `
-    mov [rbp], word OperatorAssignment
-    jmp .token_type_set`
-end
-
-if CompareTokenWith(szOperatorPlus) then `
-    mov [rbp], word OperatorPlus
-    jmp .token_type_set`
-end
- `
+    mov [rbp], word KeywordIf`
+else if CompareTokenWith(szKeywordThen) then `
+    mov [rbp], word KeywordThen`
+else if CompareTokenWith(szKeywordElse) then `
+    mov [rbp], word KeywordElse`
+else if CompareTokenWith(szKeywordEnd) then `
+    mov [rbp], word KeywordEnd`
+else if CompareTokenWith(szKeywordWhile) then `
+    mov [rbp], word KeywordWhile`
+else if CompareTokenWith(szKeywordDo) then `
+    mov [rbp], word KeywordDo`
+else if CompareTokenWith(szKeywordContinue) then `
+    mov [rbp], word KeywordContinue`
+else if CompareTokenWith(szKeywordBreak) then `
+    mov [rbp], word KeywordBreak`
+else if CompareTokenWith(szKeywordNumber) then `
+    mov [rbp], word KeywordDefineNumberVar`
+else if CompareTokenWith(szOperatorEquals) then `
+    mov [rbp], word OperatorEquals`
+else if CompareTokenWith(szOperatorNotEquals) then `
+    mov [rbp], word OperatorNotEquals`
+else if CompareTokenWith(szOperatorLessOrEqual) then `
+    mov [rbp], word OperatorLessOrEqual`
+else if CompareTokenWith(szOperatorLess) then `
+    mov [rbp], word OperatorLess`
+else if CompareTokenWith(szOperatorGreaterOrEqual) then `
+    mov [rbp], word OperatorGreaterOrEqual`
+else if CompareTokenWith(szOperatorGreater) then `
+    mov [rbp], word OperatorGreater`
+else if CompareTokenWith(szOperatorAssignment) then `
+    mov [rbp], word OperatorAssignment`
+else if CompareTokenWith(szOperatorPlus) then `
+    mov [rbp], word OperatorPlus`
+else `
     ; check if token is a number
     PushCallerSavedRegs()
     strcpy(ptrBuffer64, r10, r9)
     mov rcx, ptrBuffer64
-    call atoi
-    mov r8, rdx`
-    if r8 != 0 then `
-        mov [rbp], word OperandInteger
-        PopCallerSavedRegs()
-        jmp .token_type_set`
+    call atoi`
+
+    if rdx != 0 then `
+        mov [rbp], word OperandInteger`
+    else `
+        ; otherwise, it's a literal
+        mov [rbp], word OperandLiteral`
     end `
-    PopCallerSavedRegs()
+    PopCallerSavedRegs()`
+end end end end end end end end end end end end end end
+end end end `
 
-    ; otherwise, it's a literal
-    mov [rbp], word OperandLiteral
-
-.token_type_set:
     ; test if token type is 0
     push rax
     mov ax, word [rbp]
@@ -1446,9 +1395,42 @@ compile_condition_1:
 
     ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+    
+    multipush r10, r13, r14
+    mov r13d, dword [dwTokenCount]
+    mov r14, [rbp] ; token index points to the first operand
+    add r14, 1`
+    
+    while r14 <= r13 do `
+        ; lacking an 'or', I have to do this for now
+        mov r10w, word [rbx + Token.TokenType]`
+        if r10w == defKeywordElse then `
+            jmp .found_matching_keyword`
+        end
+
+        if r10w == defKeywordEnd then `
+            jmp .found_matching_keyword`
+        end `
+        
+        inc r14
+        add rbx, Token.size`
+    end `
+    printf(`"[\#27[91mERROR\#27[0m] Expected 'then' or 'else' after if condition\r\n"`)
+    ExitProcess(1)
+
+.found_matching_keyword:    
+    mov r13, [rbp - 0x8] ; r13 stores scope id`
+    
+    if r10w == defKeywordElse then `
+        sprintf(ptrBuffer64, `".else_%d"`, r13)`
+    else `    
+        sprintf(ptrBuffer64, `".end_%d"`, r13)`
+    end `
+
+    multipop r10, r13, r14
 
     mov r13, [rbp - 0x8] ; r13 stores scope id
-    sprintf(ptrBuffer256, `"    jne .end_%d\r\n"`, r13)
+    sprintf(ptrBuffer256, `"    jne %s\r\n"`, ptrBuffer64)
 
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
@@ -1457,7 +1439,7 @@ compile_condition_1:
     add rsp, 0x10
     pop rbp
     mov rax, 0
-    ret    
+    ret     
 
 ; this routine will compile simple if conditions
 ; the *MUST* be in the form of:

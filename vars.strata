@@ -3,6 +3,8 @@
 section .text
     global _start
     
+%define myMacro() ; echo
+
 _start:
     InitStandardOutput()
     
@@ -10,6 +12,10 @@ _start:
     mov rax, 2`
     num i = 0
     
+    if myMacro() then 
+    else 
+    end
+
     while dword[i] < 100 do `
         printf(`"i = %d;i = %d;\n"`, [i], [i])
         `
