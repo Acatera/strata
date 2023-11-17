@@ -450,7 +450,7 @@ end
     strcpy(ptrBuffer64, r10, r9)
     mov rcx, ptrBuffer64
     call atoi
-    mov r8, rax`
+    mov r8, rdx`
     if r8 != 0 then `
         mov [rbp], word OperandInteger
         PopCallerSavedRegs()
@@ -1119,10 +1119,10 @@ end
         strcpy(ptr2Buffer64, r13, r15) ; literal name`
         
         if r12w == defOperandInteger then `
-            sprintf(ptr3Buffer64, `"\tmov r14, %s\r\n"`, ptr2Buffer64)
+            sprintf(ptr3Buffer64, `"\r\n\tmov r14, %s\r\n"`, ptr2Buffer64)
             WriteFile([hndDestFile], ptr3Buffer64, rax, dwBytesWritten)`
         else if r12w == defOperandLiteral then `
-            sprintf(ptr3Buffer64, `"\tmov r14, [%s]\r\n"`, ptr2Buffer64)
+            sprintf(ptr3Buffer64, `"\r\n\tmov r14, [%s]\r\n"`, ptr2Buffer64)
             WriteFile([hndDestFile], ptr3Buffer64, rax, dwBytesWritten)`
         end end `
         
@@ -1508,9 +1508,10 @@ compile_condition_3:
 
     multipush r10, r13, r14
     mov r13d, dword [dwTokenCount]
-    mov r14, [tokenIndex] ; token index points to a 'then' token`
+    mov r14, [rbp] ; token index points to the first operand
+    add r14, 2`
     
-    while r14 < r13 do `
+    while r14 <= r13 do `
         ; lacking an 'or', I have to do this for now
         mov r10w, word [rbx + Token.TokenType]`
         if r10w == defKeywordElse then `
