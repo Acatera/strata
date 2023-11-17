@@ -445,7 +445,6 @@ if CompareTokenWith(szOperatorPlus) then `
     jmp .token_type_set`
 end
  `
-.t:
     ; check if token is a number
     PushCallerSavedRegs()
     strcpy(ptrBuffer64, r10, r9)
@@ -781,16 +780,14 @@ end
             PushCallerSavedRegs()
             call compile_condition_3
             PopCallerSavedRegs()`
-        end 
-
-        if r10d == 1 then `
+        else if r10d == 1 then `
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
             and rdx, 0xffff
             PushCallerSavedRegs()
             call compile_condition_1
             PopCallerSavedRegs()`
-        end `
+        end end `
     
         pop rax ; rax stores pointer to block struct
         
@@ -926,16 +923,15 @@ end
             PushCallerSavedRegs()
             call compile_condition_3
             PopCallerSavedRegs()`
-        end 
-
-        if r10d == 1 then `
+        else if r10d == 1 then `
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
             and rdx, 0xffff
             PushCallerSavedRegs()
             call compile_condition_1
             PopCallerSavedRegs()`
-        end `
+        end end `
+
     
         pop rax ; rax stores pointer to block struct
         
@@ -1125,12 +1121,11 @@ end
         if r12w == defOperandInteger then `
             sprintf(ptr3Buffer64, `"\tmov r14, %s\r\n"`, ptr2Buffer64)
             WriteFile([hndDestFile], ptr3Buffer64, rax, dwBytesWritten)`
-        end 
-        
-        if r12w == defOperandLiteral then `
+        else if r12w == defOperandLiteral then `
             sprintf(ptr3Buffer64, `"\tmov r14, [%s]\r\n"`, ptr2Buffer64)
             WriteFile([hndDestFile], ptr3Buffer64, rax, dwBytesWritten)`
-        end `
+        end end `
+        
 
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]`
@@ -1165,12 +1160,10 @@ end
         if r12w == defOperandInteger then `
             sprintf(ptrBuffer256, `"\tmov r15, %s\r\n\tadd r14, r15\r\n\tmov [%s], r14\r\n"`, ptr2Buffer64, ptrBuffer64)
             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-        end
-
-        if r12w == defOperandLiteral then `
+        else if r12w == defOperandLiteral then `
             sprintf(ptrBuffer256, `"\tmov r15, [%s]\r\n\tadd r14, r15\r\n\tmov [%s], r14\r\n"`, ptr2Buffer64, ptrBuffer64)
             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-        end `        
+        end end `        
 
         multipop rax, rbx, r13, r14, r15
 
@@ -1518,6 +1511,7 @@ compile_condition_3:
     mov r14, [tokenIndex] ; token index points to a 'then' token`
     
     while r14 < r13 do `
+        ; lacking an 'or', I have to do this for now
         mov r10w, word [rbx + Token.TokenType]`
         if r10w == defKeywordElse then `
             jmp .found_matching_keyword`
@@ -1539,48 +1533,29 @@ compile_condition_3:
     
     if r10w == defKeywordElse then `
         sprintf(ptrBuffer64, `".else_%d"`, r13)`
-    end
-
-    if r10w == defKeywordEnd then `
+    else `    
         sprintf(ptrBuffer64, `".end_%d"`, r13)`
     end `
 
     multipop r10, r13, r14
     `
     if r10 == OperatorEquals then `
-        sprintf(ptrBuffer256, `"    jne %s\r\n"`, ptrBuffer64)
-        jmp .valid_operator_found`
-    end 
+        sprintf(ptrBuffer256, `"\tjne %s\r\n"`, ptrBuffer64)`
+    else if r10 == OperatorNotEquals then `
+        sprintf(ptrBuffer256, `"\tje %s\r\n"`, ptrBuffer64)`
+    else if r10 == OperatorLess then `
+        sprintf(ptrBuffer256, `"\tjge %s\r\n"`, ptrBuffer64)`
+    else if r10 == OperatorLessOrEqual then `
+        sprintf(ptrBuffer256, `"\tjg %s\r\n"`, ptrBuffer64)`
+    else if r10 == OperatorGreater then `
+        sprintf(ptrBuffer256, `"\tjle %s\r\n"`, ptrBuffer64)`
+    else if r10 == OperatorGreaterOrEqual then `
+        sprintf(ptrBuffer256, `"\tjl %s\r\n"`, ptrBuffer64)`
+    else `
+        printf(`"[\#27[91mERROR\#27[0m] Unsupported operator %x\r\n"`, r10)
+        ExitProcess(1)`
+    end end end end end end `
 
-    if r10 == OperatorNotEquals then `
-        sprintf(ptrBuffer256, `"    je %s\r\n"`, ptrBuffer64)
-        jmp .valid_operator_found`
-    end
-    
-    if r10 == OperatorLess then `
-        sprintf(ptrBuffer256, `"    jge %s\r\n"`, ptrBuffer64)
-        jmp .valid_operator_found`
-    end
-    
-    if r10 == OperatorLessOrEqual then `
-        sprintf(ptrBuffer256, `"    jg %s\r\n"`, ptrBuffer64)
-        jmp .valid_operator_found`
-    end
-    
-    if r10 == OperatorGreater then `
-        sprintf(ptrBuffer256, `"    jle %s\r\n"`, ptrBuffer64)
-        jmp .valid_operator_found`
-    end
-    
-    if r10 == OperatorGreaterOrEqual then `
-        sprintf(ptrBuffer256, `"    jl %s\r\n"`, ptrBuffer64)
-        jmp .valid_operator_found`
-    end `
-
-    printf(`"[\#27[91mERROR\#27[0m] Unsupported operator %x\r\n"`, r10)
-    ExitProcess(1)
-
-.valid_operator_found:
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
 .end:
