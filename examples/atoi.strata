@@ -1,0 +1,28 @@
+`%include "inc/std.inc"
+
+section .text
+    global _start
+
+_start:
+    InitStandardOutput()
+
+    printf(`"Hello, world!\n"`)
+
+    mov rcx, `"a123"`
+    call atoi
+    mov r15, rax
+    printf(`"atoi result = %d\n"`, r15)
+    printf(`"atoi result = %d\n"`, r15)
+    printf(`"atoi result = %d\n"`, r15)
+    printf(`"atoi result = %d\n"`, r15)
+    printf(`"atoi result = %d\n"`, r15)
+    printf(`"atoi result = %d\n"`, r15)
+    printf(`"atoi result = %d\n"`, r15)
+    printf(`"atoi result = %d\n"`, r15)
+    printf(`"atoi result = %d\n"`, r15)
+    printf(`"atoi result = %d\n"`, r15)
+    printf(`"atoi result = %d\n"`, r15)
+    printf(`"atoi result = %d\n"`, r15)
+
+    ExitProcess(0)
+`
