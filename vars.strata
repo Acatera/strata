@@ -10,22 +10,22 @@ _start:
     
     printf(`"Hello, World!\n"`)
     mov rax, 2`
-    num i = 100
+    num i = 10
     
     if myMacro() then 
     else 
     end
 
     while dword[i] >= 0 do `
-        printf(`"i = %d;i = %d;\n"`, [i], [i])`
+        printf(`"i = %d; i = %d;\n"`, [i], [i])`
         i = i - 1
     end 
     num l1 = 1
     l1 = l1 * 10 `
     printf(`"l1 = %d;\n"`, [l1])`
-    l1 = l1 +    10 `
+    l1 = l1 + 10 `
     printf(`"l1 = %d;\n"`, [l1])`
-    l1 = l1 + 1 `
+    l1 = l1 / 5 `
     printf(`"l1 = %d;\n"`, [l1])
    
     ExitProcess(0)`
