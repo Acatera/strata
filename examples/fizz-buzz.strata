@@ -1,0 +1,41 @@
+`%include "inc/std.inc"
+
+section .text
+    global _start
+
+_start:
+    InitStandardOutput()`
+    
+    num i = 1
+    num mod3 = 0
+    num mod5 = 0
+    num mod15 = 0
+    
+    while dword[i] < 100 do 
+        mod3 = i % 3
+        mod5 = i % 5
+        mod15 = i % 15
+        
+        if dword[mod15] == 0 then `
+            printf(`"FizzBuzz\r\n"`)`
+            i = i + 1
+            continue
+        end
+
+        if dword[mod3] == 0 then `
+            printf(`"Fizz\r\n"`)`
+            i = i + 1
+            continue
+        end 
+        
+        if dword[mod5] == 0 then `
+            printf(`"Buzz\r\n"`)`
+            i = i + 1
+            continue
+        end `
+
+        printf(`"%d\r\n"`, [i])`
+        i = i + 1
+    end `
+   
+    ExitProcess(0)`
