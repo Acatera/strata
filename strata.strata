@@ -41,6 +41,7 @@
 %define OperatorMinus            9
 %define OperatorMultiply        10
 %define OperatorDivide          11
+%define OperatorModulo          12
 
 ; Reserve 4 bits for operator type
 %define OperandStringLiteral     0 + (1 << 4)
@@ -71,6 +72,7 @@
 %define defOperatorMinus          word OperatorMinus
 %define defOperatorMultiply       word OperatorMultiply
 %define defOperatorDivide         word OperatorDivide
+%define defOperatorModulo         word OperatorModulo
 
 %define defOperandStringLiteral   word OperandStringLiteral
 %define defOperandAsmLiteral      word OperandAsmLiteral
@@ -408,6 +410,8 @@ else if CompareTokenWith(szOperatorMultiply) then `
     mov [rbp], word OperatorMultiply`
 else if CompareTokenWith(szOperatorDivide) then `
     mov [rbp], word OperatorDivide`
+else if CompareTokenWith(szOperatorModulo) then `
+    mov [rbp], word OperatorModulo`
 else `
     ; check if token is a number
     PushCallerSavedRegs()
@@ -423,7 +427,7 @@ else `
     end `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
-end end end end end end `
+end end end end end end end `
 
     ; test if token type is 0
     push rax
@@ -1092,17 +1096,19 @@ end end end end end end `
         mov r12w, word [rbx + Token.TokenType]`
 
         if r12w == defOperatorPlus then `
-            sprintf(pBufferTiny, `"\tadd rax, rcx\r\n"`)`
+            sprintf(ptr3Buffer64, `"\tadd rax, rcx\r\n\tmov [%s], rax\r\n"`, ptrBuffer64)`
         else if r12w == defOperatorMinus then `
-            sprintf(pBufferTiny, `"\tsub rax, rcx\r\n"`)`
+            sprintf(ptr3Buffer64, `"\tsub rax, rcx\r\n\tmov [%s], rax\r\n"`, ptrBuffer64)`
         else if r12w == defOperatorMultiply then `
-            sprintf(pBufferTiny, `"\tmul rcx\r\n"`)`
+            sprintf(ptr3Buffer64, `"\tmul rcx\r\n\tmov [%s], rax\r\n"`, ptrBuffer64)`
         else if r12w == defOperatorDivide then `
-            sprintf(pBufferTiny, `"\txor rdx, rdx\r\n\tdiv rcx\r\n"`)`
+            sprintf(ptr3Buffer64, `"\txor rdx, rdx\r\n\tdiv rcx\r\n\tmov [%s], rax\r\n"`, ptrBuffer64)`
+        else if r12w == defOperatorModulo then `
+            sprintf(ptr3Buffer64, `"\txor rdx, rdx\r\n\tdiv rcx\r\n\tmov [%s], rdx\r\n"`, ptrBuffer64)`
         else `
             printf(`"[\#27[91mERROR\#27[0m] Expected arithmetic operator\r\n"`)
             jmp .exit`
-        end end end end `
+        end end end end end `
 
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]`
@@ -1132,7 +1138,7 @@ end end end end end end `
             sprintf(ptrBuffer256, `"\tmov rcx, [%s]\r\n"`, ptr2Buffer64)`
         end end `        
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-        sprintf(ptrBuffer256, `"%s\tmov [%s], rax\r\n"`, pBufferTiny, ptrBuffer64)
+        sprintf(ptrBuffer256, `"%s"`, ptr3Buffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
         
         multipop rax, rbx, r13, r14, r15
@@ -1622,4 +1628,6 @@ section .data
     szOperatorMultiply.length equ $ - szOperatorMultiply
     szOperatorDivide db "/"
     szOperatorDivide.length equ $ - szOperatorDivide
+    szOperatorModulo db "%"
+    szOperatorModulo.length equ $ - szOperatorModulo
 `
