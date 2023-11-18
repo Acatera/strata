@@ -3,7 +3,7 @@
 ; %define DEBUG 0
 
 %define SOURCE_CODE_SIZE 1024*1024
-%define TINY_BUFFER_SIZE 16
+%define TINY_BUFFER_SIZE 32
 %define SMALL_BUFFER_SIZE 64
 %define MED_BUFFER_SIZE 256
 %define OPERATOR_BUFFER_SIZE 16
@@ -39,6 +39,7 @@
 %define OperatorAssignment       7
 %define OperatorPlus             8
 %define OperatorMinus            9
+%define OperatorMultiply        10
 
 ; Reserve 4 bits for operator type
 %define OperandStringLiteral     0 + (1 << 4)
@@ -67,6 +68,7 @@
 %define defOperatorAssignment     word OperatorAssignment
 %define defOperatorPlus           word OperatorPlus
 %define defOperatorMinus          word OperatorMinus
+%define defOperatorMultiply       word OperatorMultiply
 
 %define defOperandStringLiteral   word OperandStringLiteral
 %define defOperandAsmLiteral      word OperandAsmLiteral
@@ -400,6 +402,8 @@ else if CompareTokenWith(szOperatorPlus) then `
     mov [rbp], word OperatorPlus`
 else if CompareTokenWith(szOperatorMinus) then `
     mov [rbp], word OperatorMinus`
+else if CompareTokenWith(szOperatorMultiply) then `
+    mov [rbp], word OperatorMultiply`
 else `
     ; check if token is a number
     PushCallerSavedRegs()
@@ -415,7 +419,7 @@ else `
     end `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
-end end end end `
+end end end end end `
 
     ; test if token type is 0
     push rax
@@ -1084,13 +1088,15 @@ end end end end `
         mov r12w, word [rbx + Token.TokenType]`
 
         if r12w == defOperatorPlus then `
-            sprintf(pBufferTiny, `"add"`)`
+            sprintf(pBufferTiny, `"add rax, rdx"`)`
         else if r12w == defOperatorMinus then `
-            sprintf(pBufferTiny, `"sub"`)`
+            sprintf(pBufferTiny, `"sub rax, rdx"`)`
+        else if r12w == defOperatorMultiply then `
+            sprintf(pBufferTiny, `"mul rdx"`)`
         else `
             printf(`"[\#27[91mERROR\#27[0m] Expected arithmetic operator\r\n"`)
             jmp .exit`
-        end end `
+        end end end `
 
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]`
@@ -1120,9 +1126,9 @@ end end end end `
             sprintf(ptrBuffer256, `"\tmov rdx, [%s]\r\n"`, ptr2Buffer64)`
         end end `        
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-        sprintf(ptrBuffer256, `"\t%s rax, rdx\r\n\tmov [%s], rax\r\n"`, pBufferTiny, ptrBuffer64)
+        sprintf(ptrBuffer256, `"\t%s\r\n\tmov [%s], rax\r\n"`, pBufferTiny, ptrBuffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-    
+        
         multipop rax, rbx, r13, r14, r15
 
         PopCallerSavedRegs()
@@ -1606,5 +1612,7 @@ section .data
     szOperatorPlus.length equ $ - szOperatorPlus
     szOperatorMinus db "-"
     szOperatorMinus.length equ $ - szOperatorMinus
+    szOperatorMultiply db "*"
+    szOperatorMultiply.length equ $ - szOperatorMultiply
 
 `

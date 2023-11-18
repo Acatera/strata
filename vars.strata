@@ -17,14 +17,13 @@ _start:
     end
 
     while dword[i] >= 0 do `
-        printf(`"i = %d;i = %d;\n"`, [i], [i])
-        `
+        printf(`"i = %d;i = %d;\n"`, [i], [i])`
         i = i - 1
     end 
     num l1 = 1
-    l1 = l1 + 0 `
+    l1 = l1 * 10 `
     printf(`"l1 = %d;\n"`, [l1])`
-    l1 = l1 + 10 `
+    l1 = l1 +    10 `
     printf(`"l1 = %d;\n"`, [l1])`
     l1 = l1 + 1 `
     printf(`"l1 = %d;\n"`, [l1])
