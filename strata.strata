@@ -3,6 +3,7 @@
 ; %define DEBUG 0
 
 %define SOURCE_CODE_SIZE 1024*1024
+%define TINY_BUFFER_SIZE 16
 %define SMALL_BUFFER_SIZE 64
 %define MED_BUFFER_SIZE 256
 %define OPERATOR_BUFFER_SIZE 16
@@ -37,6 +38,7 @@
 %define OperatorGreaterOrEqual   6
 %define OperatorAssignment       7
 %define OperatorPlus             8
+%define OperatorMinus            9
 
 ; Reserve 4 bits for operator type
 %define OperandStringLiteral     0 + (1 << 4)
@@ -64,6 +66,7 @@
 %define defOperatorGreaterOrEqual word OperatorGreaterOrEqual
 %define defOperatorAssignment     word OperatorAssignment
 %define defOperatorPlus           word OperatorPlus
+%define defOperatorMinus          word OperatorMinus
 
 %define defOperandStringLiteral   word OperandStringLiteral
 %define defOperandAsmLiteral      word OperandAsmLiteral
@@ -101,6 +104,7 @@ endstruc
 %define BLOCK_ITEM_SIZE 8
 section .bss
     szSourceCode resb SOURCE_CODE_SIZE
+    pBufferTiny resb TINY_BUFFER_SIZE
     ptrBuffer64 resb SMALL_BUFFER_SIZE
     ptr2Buffer64 resb SMALL_BUFFER_SIZE
     ptr3Buffer64 resb SMALL_BUFFER_SIZE
@@ -394,6 +398,8 @@ else if CompareTokenWith(szOperatorAssignment) then `
     mov [rbp], word OperatorAssignment`
 else if CompareTokenWith(szOperatorPlus) then `
     mov [rbp], word OperatorPlus`
+else if CompareTokenWith(szOperatorMinus) then `
+    mov [rbp], word OperatorMinus`
 else `
     ; check if token is a number
     PushCallerSavedRegs()
@@ -409,7 +415,7 @@ else `
     end `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
-end end end `
+end end end end `
 
     ; test if token type is 0
     push rax
@@ -439,10 +445,8 @@ end end end `
     multipop rax, rbx, rcx, rdx, r15
 
     pop rbp
-
     add rsp, 8 ; restore stack pointer
 
-.advance_token:
     ; advance token start and reset token length
     _reset_counters_
 
@@ -1079,10 +1083,14 @@ end end end `
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]`
 
-        if r12w != defOperatorPlus then `
-            printf(`"[\#27[91mERROR\#27[0m] Expected operator after assignment\r\n"`)
+        if r12w == defOperatorPlus then `
+            sprintf(pBufferTiny, `"add"`)`
+        else if r12w == defOperatorMinus then `
+            sprintf(pBufferTiny, `"sub"`)`
+        else `
+            printf(`"[\#27[91mERROR\#27[0m] Expected arithmetic operator\r\n"`)
             jmp .exit`
-        end `
+        end end `
 
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]`
@@ -1107,13 +1115,14 @@ end end end `
         ; for some reason, i can't push three params`
         
         if r12w == defOperandInteger then `
-            sprintf(ptrBuffer256, `"\tmov rdx, %s\r\n\tadd rax, rdx\r\n\tmov [%s], rax\r\n"`, ptr2Buffer64, ptrBuffer64)
-            WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+            sprintf(ptrBuffer256, `"\tmov rdx, %s\r\n"`, ptr2Buffer64)`
         else if r12w == defOperandLiteral then `
-            sprintf(ptrBuffer256, `"\tmov rdx, [%s]\r\n\tadd rax, rdx\r\n\tmov [%s], rax\r\n"`, ptr2Buffer64, ptrBuffer64)
-            WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+            sprintf(ptrBuffer256, `"\tmov rdx, [%s]\r\n"`, ptr2Buffer64)`
         end end `        
-
+        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+        sprintf(ptrBuffer256, `"\t%s rax, rdx\r\n\tmov [%s], rax\r\n"`, pBufferTiny, ptrBuffer64)
+        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+    
         multipop rax, rbx, r13, r14, r15
 
         PopCallerSavedRegs()
@@ -1595,5 +1604,7 @@ section .data
     szOperatorAssignment.length equ $ - szOperatorAssignment
     szOperatorPlus db "+"
     szOperatorPlus.length equ $ - szOperatorPlus
+    szOperatorMinus db "-"
+    szOperatorMinus.length equ $ - szOperatorMinus
 
 `
