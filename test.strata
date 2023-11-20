@@ -6,9 +6,9 @@ _start:
     `
     uint64 i = 10
     uint64 j = 20
+    uint64 k = 0
 
-eval = i + j / 5 ; `
-    pop r15
-    printf(`"eval = %d\n"`, r15)
+    k = i * 10 + j / 5 ; `
+    printf(`"eval = %d\n"`, [k])
 
     ExitProcess(0)`

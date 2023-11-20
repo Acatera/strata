@@ -1123,7 +1123,7 @@ end end end end end end end end end end `
         PushCallerSavedRegs()
 
         ; look ahead for assignment operator
-        multipush rax, rbx, r13, r14, r15
+        multipush rax, rbx, rdx, r11, r12, r13, r14, r15
         mov rax, rbx
         mov rdx, Token.size
         mul rdx
@@ -1134,94 +1134,62 @@ end end end end end end end end end end `
         mov r15w, word [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
-        strcpy(ptrBuffer64, r13, r15) ; literal name
+        strcpy(ptr3Buffer64, r13, r15) ; literal name
 
         add rbx, Token.size
-        mov r12w, word [rbx + Token.TokenType]`
+        mov r12w, word [rbx + Token.TokenType]
 
-        if r12w != defOperatorAssignment then `
-            printf(`"[\#27[91mERROR\#27[0m] Expected assignment operator after literal '%s'\r\n"`, ptrBuffer64)
-            jmp .exit`
-        end `
+        movzx r12, word [rbx + Token.TokenType]
+        movzx r13, word [rbx + Token.TokenStart]
+        movzx r14, word [rbx + Token.TokenLength]
+        mov r15, szSourceCode
+        add r15, r13
+        strcpy(ptrBuffer64, r15, r14) 
+        mov qword [dqStatementOpCount], 1
+        `
 
-        add rbx, Token.size
-        mov r12w, word [rbx + Token.TokenType]`
-
-        if r12w != defOperandLiteral then 
-            if r12w != defOperandInteger then `
-                printf(`"[\#27[91mERROR\#27[0m] Expected literal or integer after assignment\r\n"`)
-                jmp .exit`
+        while r12w != defStatemendEnd do `
+            printf(`"Token type: %x; value: %s\r\n"`, r12, ptrBuffer64)`
+            if r12w == defOperandInteger then `
+                ; push to operator stack
+                sprintf(ptrBuffer256, `"\tpush %s\r\n"`, ptrBuffer64)
+                WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
             end
-        end `
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
-        mov r13, szSourceCode
-        add r13, r14
-        strcpy(ptr2Buffer64, r13, r15) ; literal name`
-        
-        if r12w == defOperandInteger then `
-            sprintf(ptr3Buffer64, `"\r\n\tmov rax, %s\r\n"`, ptr2Buffer64)
-            WriteFile([hndDestFile], ptr3Buffer64, rax, dwBytesWritten)`
-        else if r12w == defOperandLiteral then `
-            sprintf(ptr3Buffer64, `"\r\n\tmov rax, [%s]\r\n"`, ptr2Buffer64)
-            WriteFile([hndDestFile], ptr3Buffer64, rax, dwBytesWritten)`
-        end end `
-        
+            if r12w == defOperandLiteral then `
+                ; push to operator stack
+                sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptrBuffer64)
+                WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+            end 
 
-        add rbx, Token.size
-        mov r12w, word [rbx + Token.TokenType]`
-
-        if r12w == defOperatorPlus then `
-            sprintf(ptr3Buffer64, `"\tadd rax, rcx\r\n\tmov [%s], rax\r\n"`, ptrBuffer64)`
-        else if r12w == defOperatorMinus then `
-            sprintf(ptr3Buffer64, `"\tsub rax, rcx\r\n\tmov [%s], rax\r\n"`, ptrBuffer64)`
-        else if r12w == defOperatorMultiply then `
-            sprintf(ptr3Buffer64, `"\tmul rcx\r\n\tmov [%s], rax\r\n"`, ptrBuffer64)`
-        else if r12w == defOperatorDivide then `
-            sprintf(ptr3Buffer64, `"\txor rdx, rdx\r\n\tdiv rcx\r\n\tmov [%s], rax\r\n"`, ptrBuffer64)`
-        else if r12w == defOperatorModulo then `
-            sprintf(ptr3Buffer64, `"\txor rdx, rdx\r\n\tdiv rcx\r\n\tmov [%s], rdx\r\n"`, ptrBuffer64)`
-        else `
-            printf(`"[\#27[91mERROR\#27[0m] Expected arithmetic operator\r\n"`)
-            jmp .exit`
-        end end end end end `
-
-        add rbx, Token.size
-        mov r12w, word [rbx + Token.TokenType]`
-
-        if r12w != defOperandLiteral then 
             if r12w != defOperandInteger then `
-                printf(`"[\#27[91mERROR\#27[0m] Expected literal or integer after operator\r\n"`)
-                jmp .exit`
-            end
+                multipush rax, rcx, rdx
+                printf(`"Operator %x"`, r12)
+                mov rcx, r12
+                call push_operator
+                multipop rax, rcx, rdx`
+            end `
+            add rbx, Token.size
+            movzx r12, word [rbx + Token.TokenType]
+            movzx r13, word [rbx + Token.TokenStart]
+            movzx r14, word [rbx + Token.TokenLength]
+            mov r15, szSourceCode
+            add r15, r13
+            strcpy(ptrBuffer64, r15, r14)
+            inc qword [dqStatementOpCount]`
+        end 
+        
+        while qword[dqOperatorCount] >= 0 do `
+            call write_operator`
         end `
-
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
-        mov r13, szSourceCode
-        add r13, r14
-        strcpy(ptr2Buffer64, r13, r15) ; literal name
-
-        ; mov r14, [%2]
-        ; mov r15, [%3]
-        ; add r14, r15
-        ; mov [%1], r14
-        ; for some reason, i can't push three params`
         
-        if r12w == defOperandInteger then `
-            sprintf(ptrBuffer256, `"\tmov rcx, %s\r\n"`, ptr2Buffer64)`
-        else if r12w == defOperandLiteral then `
-            sprintf(ptrBuffer256, `"\tmov rcx, [%s]\r\n"`, ptr2Buffer64)`
-        end end `        
+        sprintf(ptrBuffer256, `"\tmov qword [%s], rax\r\n"`, ptr3Buffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-        sprintf(ptrBuffer256, `"%s"`, ptr3Buffer64)
-        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-        
-        multipop rax, rbx, r13, r14, r15
+
+        multipop rax, rbx, rdx, r11, r12, r13, r14, r15
 
         PopCallerSavedRegs()
-        SkipTokens(4)
+        SkipTokens([dqStatementOpCount])
         NextToken()`
     end 
 
