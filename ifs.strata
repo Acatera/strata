@@ -1,8 +1,26 @@
-if rcx == 0 then 
-else
-    if rax == 0 then
-    else 
-        if rdx == 0 then 
+`%include "inc/std.inc"
+
+section .text
+    global _start
+
+_start:
+    InitStandardOutput()`
+    uint64 number = 0;
+
+    if dword[number] == 0 then
+        while dword[number] < 10 do 
+            if dword[number] == 0 then `
+                printf(`"number is zero\n"`)`
+            else if dword[number] == 1 then `
+                printf(`"number is one\n"`)`
+            else if dword[number] == 2 then `
+                printf(`"number is two\n"`)`
+            else `
+                printf(`"number is something else\n"`)`
+            end end end
+            number = number + 1 ;
         end
-    end
-end
+    end `
+
+    ExitProcess(0)
+    `

@@ -1629,18 +1629,32 @@ compile_condition_3:
     multipush r10, r13, r14
     mov r13d, dword [dwTokenCount]
     mov r14, [rbp] ; token index points to the first operand
-    add r14, 2`
+    add r14, 2
+    mov r15, 0 ; count of encountered if keywords`
     
     while r14 <= r13 do `
         ; lacking an 'or', I have to do this for now
         mov r10w, word [rbx + Token.TokenType]`
-        if r10w == defKeywordElse then `
-            jmp .found_matching_keyword`
+        if r10w == defKeywordElse then 
+            if r15 == 0 then `
+                jmp .found_matching_keyword`
+            end 
         end
 
-        if r10w == defKeywordEnd then `
+        if r10w == defKeywordEnd then 
+            if r15 != 0 then `
+                inc r14
+                add rbx, Token.size
+                dec r15`
+                continue
+            end `
             jmp .found_matching_keyword`
-        end `
+        end 
+        
+        if r10w == defKeywordIf then `
+            inc r15`
+        end 
+        `
         
         inc r14
         add rbx, Token.size`
