@@ -105,6 +105,15 @@ struc Block
     .size equ $ - .TokenIndex
 endstruc
 
+struc IR
+    .OpType:    resw 1
+    .OpSubType: resw 1
+    .Line:      resw 1
+    .Column:    resw 1
+    .Value:     resq 1
+    .size equ $ - .OpType
+endstruc
+
 %define MAX_TOKEN_COUNT 1024 * 16
 
 %define BLOCK_ITEM_SIZE 8
@@ -122,6 +131,8 @@ section .bss
     tokenList resq MAX_TOKEN_COUNT * Token.size
     dwTokenCount resd 1
     bProcessingIfCondition resq 1
+    arrIR resq MAX_TOKEN_COUNT * IR.size
+    arrIRCount resq 1
 
     hndSourceFile resq 1
     hndDestFile resq 1
@@ -327,19 +338,15 @@ end `
     mov rdi, szSourceCode
 
 .read_token_loop:
-    mov rbx, 0xd    ; CR
-    mov rax, ' '
-    mov rcx, 0xa    ; LF
-    mov rdx, 0x9    ; szTab
     cmp byte [rdi], 0
     je .source_code_end
-    cmp byte [rdi], al
+    cmp byte [rdi], 0x20
     je .token_found
-    cmp byte [rdi], bl
+    cmp byte [rdi], 0xd
     je .token_found
-    cmp byte [rdi], cl
+    cmp byte [rdi], 0xa
     je .token_found
-    cmp byte [rdi], dl
+    cmp byte [rdi], 0x9
     je .token_found
     cmp byte [rdi], chAsmStart
     je .asm_literal_start
@@ -455,6 +462,13 @@ end end end end end end end `
     mov [rbx + Token.TokenLength], r9 ; token length
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r15
+
+    multipush rax, rdx, r15
+    array_ith(IR, arrIR, [arrIRCount], r15)
+    mov rax, [rbp]    ; token type
+    and rax, 0xffff
+    mov [r15 + IR.OpType], rax
+    multipop rax, rdx, r15
 
     pop rbp
     add rsp, 8 ; restore stack pointer
