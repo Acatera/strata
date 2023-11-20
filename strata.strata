@@ -155,7 +155,15 @@ section .data
 
     ; asm output 
     cStrAsmHeader db "bits 64", 0xd, 0xa
-                  db "default rel", 0xd, 0xa, 0xd, 0xa, 0
+                  db "default rel", 0xd, 0xa, 0xd, 0xa
+                  db "%include ", 0x22, "inc/std.inc", 0x22, 0xd, 0xa
+                  db "", 0xd, 0xa
+                  db "section .text", 0xd, 0xa
+                  db "    global _start", 0xd, 0xa
+                  db "", 0xd, 0xa
+                  db "_start:", 0xd, 0xa
+                  db "    InitStandardOutput()", 0xd, 0xa
+            
     cStrAsmHeader.length equ $ - cStrAsmHeader - 1
     cStrReadOnlySectionHeader db 0xd, 0xa, "section .rodata", 0xd, 0xa, 0
     cStrReadOnlySectionHeader.length equ $ - cStrReadOnlySectionHeader - 1

@@ -1,0 +1,7 @@
+num a = 34
+num b = 35
+a = a + b `
+printf(`"a = %d"`, [a])
+
+ExitProcess(0)
+`
