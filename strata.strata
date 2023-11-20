@@ -48,6 +48,7 @@
 %define OperandAsmLiteral        1 + (1 << 4)
 %define OperandLiteral           2 + (1 << 4)
 %define OperandInteger           3 + (1 << 4)
+%define StatemendEnd             4 + (1 << 4)
 
 ; Reserve 4 bits for operand type
 %define KeywordIf                0 + (1 << (4 + 4))
@@ -59,6 +60,7 @@
 %define KeywordContinue          6 + (1 << (4 + 4))
 %define KeywordBreak             7 + (1 << (4 + 4))
 %define KeywordDefineNumberVar   8 + (1 << (4 + 4))
+%define KeywordDefineStringVar   9 + (1 << (4 + 4))
 
 ; todo - revisit this
 %define defOperatorEquals         word OperatorEquals
@@ -78,6 +80,7 @@
 %define defOperandAsmLiteral      word OperandAsmLiteral
 %define defOperandLiteral         word OperandLiteral
 %define defOperandInteger         word OperandInteger
+%define defStatemendEnd           word StatemendEnd
 
 %define defKeywordIf              word KeywordIf
 %define defKeywordThen            word KeywordThen
@@ -88,6 +91,7 @@
 %define defKeywordContinue        word KeywordContinue
 %define defKeywordBreak           word KeywordBreak
 %define defKeywordDefineNumberVar word KeywordDefineNumberVar
+%define defKeywordDefineStringVar word KeywordDefineStringVar
 
 %define TOKEN_TYPE_SIZE 2
 
@@ -110,6 +114,7 @@ endstruc
 %define BLOCK_ITEM_SIZE 8
 section .bss
     szSourceCode resb SOURCE_CODE_SIZE
+    szTokenValue resb SMALL_BUFFER_SIZE
     pBufferTiny resb TINY_BUFFER_SIZE
     ptrBuffer64 resb SMALL_BUFFER_SIZE
     ptr2Buffer64 resb SMALL_BUFFER_SIZE
@@ -388,6 +393,8 @@ else if CompareTokenWith(szKeywordBreak) then `
     mov [rbp], word KeywordBreak`
 else if CompareTokenWith(szKeywordNumber) then `
     mov [rbp], word KeywordDefineNumberVar`
+else if CompareTokenWith(szKeywordString) then `
+    mov [rbp], word KeywordDefineStringVar`    
 else if CompareTokenWith(szOperatorEquals) then `
     mov [rbp], word OperatorEquals`
 else if CompareTokenWith(szOperatorNotEquals) then `
@@ -412,6 +419,8 @@ else if CompareTokenWith(szOperatorDivide) then `
     mov [rbp], word OperatorDivide`
 else if CompareTokenWith(szOperatorModulo) then `
     mov [rbp], word OperatorModulo`
+else if CompareTokenWith(szStatementEnd) then `
+    mov [rbp], word StatemendEnd`
 else `
     ; check if token is a number
     PushCallerSavedRegs()
@@ -427,7 +436,7 @@ else `
     end `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
-end end end end end end end `
+end end end end end end end end end `
 
     ; test if token type is 0
     push rax
@@ -806,7 +815,7 @@ end end end end end end end `
         if bx != KeywordThen then 
             if bx != KeywordElse then 
                 if bx != KeywordDo then `
-                    printf(`"[\#27[91mERROR\#27[0m] Keyw ord 'end' is not after 'then', 'else' or 'do'\r\n"`, szSourceFile)
+                    printf(`"[\#27[91mERROR\#27[0m] Keyword 'end' is not after 'then', 'else' or 'do'\r\n"`, szSourceFile)
                     jmp .exit
                     `
                 end
@@ -983,7 +992,7 @@ end end end end end end end `
         NextToken()`
     end 
 
-    ` ; keyword 'num'`
+    ` ; keyword 'uint64'`
     if currentToken.Type == defKeywordDefineNumberVar then `
         PushCallerSavedRegs()
 
@@ -1004,7 +1013,7 @@ end end end end end end end `
         add r13, r14`
 
         if r12w != defOperandLiteral then `
-            printf(`"[\#27[91mERROR\#27[0m] Expected identifier after 'num'\r\n"`)
+            printf(`"[\#27[91mERROR\#27[0m] Expected identifier after 'uint64'\r\n"`)
             jmp .exit`
         end `
 
@@ -1015,7 +1024,7 @@ end end end end end end end `
         mov r12w, word [rbx + Token.TokenType]`
         
         if r12w != defOperatorAssignment then `
-            printf(`"[\#27[91mERROR\#27[0m] Expected assignment operator after 'num'\r\n"`)
+            printf(`"[\#27[91mERROR\#27[0m] Expected assignment operator after 'uint64'\r\n"`)
             jmp .exit`
         end `
 
@@ -1034,6 +1043,64 @@ end end end end end end end `
         ; todo - write them at the top of asm file
         ; write variable declaration
         sprintf(ptrBuffer256, `"\r\nsection .data\r\n\t%s dq %s\r\nsection .text\r\n"`, ptrBuffer64, ptr2Buffer64)
+        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+
+        PopCallerSavedRegs()
+        SkipTokens(3)
+        NextToken()`
+    end 
+
+     ` ; keyword 'string'`
+    if currentToken.Type == defKeywordDefineStringVar then `
+        PushCallerSavedRegs()
+
+        ; look ahead for identifier
+        multipush rax, rbx, r13, r14, r15
+        mov rax, rbx
+        inc rax
+        mov rdx, Token.size
+        mul rdx
+        mov rbx, tokenList
+        add rbx, rax
+        
+        ; get identifier
+        mov r12w, word [rbx + Token.TokenType]
+        mov r14w, word [rbx + Token.TokenStart]
+        mov r15w, word [rbx + Token.TokenLength]
+        mov r13, szSourceCode
+        add r13, r14`
+
+        if r12w != defOperandLiteral then `
+            printf(`"[\#27[91mERROR\#27[0m] Expected identifier after 'string'\r\n"`)
+            jmp .exit`
+        end `
+
+        strcpy(ptrBuffer64, r13, r15)
+        
+        ; check if assignment operator is next
+        add rbx, Token.size
+        mov r12w, word [rbx + Token.TokenType]`
+        
+        if r12w != defOperatorAssignment then `
+            printf(`"[\#27[91mERROR\#27[0m] Expected assignment operator after 'string'\r\n"`)
+            jmp .exit`
+        end `
+
+        ; get value
+        add rbx, Token.size
+
+        mov r14w, word [rbx + Token.TokenStart]
+        mov r15w, word [rbx + Token.TokenLength]
+        mov r13, szSourceCode
+        add r13, r14
+        strcpy(ptr2Buffer64, r13, r15)
+
+        multipop rax, rbx, r13, r14, r15
+        sub rbx, Token.size
+
+        ; todo - write them at the top of asm file
+        ; write variable declaration
+        sprintf(ptrBuffer256, `"\r\nsection .bss\r\n\t%s resb %s\r\nsection .text\r\n"`, ptrBuffer64, ptr2Buffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
         PopCallerSavedRegs()
@@ -1604,8 +1671,10 @@ section .data
     szKeywordContinue.length equ $ - szKeywordContinue
     szKeywordBreak db "break"
     szKeywordBreak.length equ $ - szKeywordBreak
-    szKeywordNumber db "num"
+    szKeywordNumber db "uint64"
     szKeywordNumber.length equ $ - szKeywordNumber
+    szKeywordString db "string"
+    szKeywordString.length equ $ - szKeywordString
     szOperatorEquals db "=="
     szOperatorEquals.length equ $ - szOperatorEquals
     szOperatorNotEquals db "!="
@@ -1630,4 +1699,6 @@ section .data
     szOperatorDivide.length equ $ - szOperatorDivide
     szOperatorModulo db "%"
     szOperatorModulo.length equ $ - szOperatorModulo
+    szStatementEnd db ";"
+    szStatementEnd.length equ $ - szStatementEnd
 `

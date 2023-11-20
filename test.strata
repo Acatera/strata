@@ -1,0 +1,5 @@
+uint64 x = 1
+uint64 y = 2
+uint64 condition = 0
+
+condition = x == 1
