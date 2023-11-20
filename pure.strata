@@ -1,6 +1,7 @@
 num a = 34
-a = a + 36
-while qword[a] > 0 do
+num zero = 0
+
+while a > 0 do
     debug a
     a = a - 1
 end

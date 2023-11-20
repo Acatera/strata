@@ -1562,7 +1562,7 @@ compile_condition_3:
     add r10, r11
     strcpy(ptr2Buffer64, r10, r12)
 
-    sprintf(ptrBuffer256, `"    cmp %s, %s\r\n"`, ptrBuffer64, ptr2Buffer64)
+    sprintf(ptrBuffer256, `"\tmov rax, [%s]\r\n\tcmp rax, %s\r\n"`, ptrBuffer64, ptr2Buffer64)
 
     ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
