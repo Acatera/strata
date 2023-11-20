@@ -106,11 +106,13 @@ struc Block
 endstruc
 
 struc IR
-    .OpType:    resw 1
-    .OpSubType: resw 1
-    .Line:      resw 1
-    .Column:    resw 1
-    .Value:     resq 1
+    .OpType:       resq 1
+    .OpSubType:    resq 1
+    .Line:         resq 1
+    .Column:       resq 1
+    .Value:        resq 1
+    .TokenStart:   resq 1
+    .TokenLength:  resq 1
     .size equ $ - .OpType
 endstruc
 
@@ -133,6 +135,8 @@ section .bss
     bProcessingIfCondition resq 1
     arrIR resq MAX_TOKEN_COUNT * IR.size
     arrIRCount resq 1
+    qwLine resq 1
+    qwColumn resq 1
 
     hndSourceFile resq 1
     hndDestFile resq 1
@@ -335,15 +339,17 @@ end `
     ; reset offset
     xor r8, r8          ; token start
     xor r9, r9          ; token length
+    mov qword [qwColumn], 1
+    mov qword [qwLine], 1
     mov rdi, szSourceCode
 
 .read_token_loop:
     cmp byte [rdi], 0
     je .source_code_end
     cmp byte [rdi], 0x20
-    je .token_found
+    je .space_found
     cmp byte [rdi], 0xd
-    je .token_found
+    je .new_line_found
     cmp byte [rdi], 0xa
     je .token_found
     cmp byte [rdi], 0x9
@@ -359,6 +365,14 @@ end `
 .source_code_end:
     cmp r9, 0
     je .source_code_parsed
+
+.space_found:
+    inc qword [qwColumn]
+    jump .token_found
+
+.new_line_found:
+    inc qword [qwLine]
+    mov qword [qwColumn], 1
 
 .token_found:
     ; is token length 0?`
@@ -464,10 +478,22 @@ end end end end end end end `
     multipop rax, rbx, rcx, rdx, r15
 
     multipush rax, rdx, r15
+    mov r15, [qwLine]
+    printf(`"Line: %d"`, r15)
     array_ith(IR, arrIR, [arrIRCount], r15)
     mov rax, [rbp]    ; token type
-    and rax, 0xffff
+    ;and rax, 0xffff
     mov [r15 + IR.OpType], rax
+    mov [r15 + IR.TokenStart], r8 ; token start
+    mov [r15 + IR.TokenLength], r9 ; token length
+    mov rax, [qwLine]
+    mov [r15 + IR.Line], rax ; token length
+    mov rax, [qwColumn]
+    mov [r15 + IR.Column], rax ; token length
+    add rax, r9
+    inc rax
+    mov [qwColumn], rax
+    inc qword [arrIRCount]
     multipop rax, rdx, r15
 
     pop rbp
@@ -560,6 +586,26 @@ end end end end end end end `
     printf(`"[\#27[92mINFO\#27[0m] Found %d tokens.\r\n"`, r15)
     mov r14, 0
     mov r13, tokenList
+    multipush r11, r12, r13, r14, r15
+    mov r15, [arrIRCount]`
+
+    num opIndex = 0
+
+    while qword[opIndex] < r15 do `
+        array_ith(IR, arrIR, [opIndex], r14)
+        mov r13, [r14 + IR.OpType]
+        mov r11, [r14 + IR.Line]
+        mov r12, [r14 + IR.Column]
+        printf(`"Token #%d: type - %x"`, [opIndex], r13)
+        printf(`", line - %d, col - %d\r\n"`, r11, r12)
+        printf(`"%s:%d"`, szSourceFile, r11)
+        printf(`":%d\r\n"`, r12)`
+        opIndex = opIndex + 1
+    end
+
+
+`
+    multipop r11, r12, r13, r14, r15
 
 %define NextToken() nextToken
 %macro nextToken 0
