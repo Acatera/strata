@@ -1,0 +1,8 @@
+if rcx == 0 then 
+else
+    if rax == 0 then
+    else 
+        if rdx == 0 then 
+        end
+    end
+end

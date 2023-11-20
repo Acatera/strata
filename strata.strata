@@ -61,6 +61,7 @@
 %define KeywordBreak             7 + (1 << (4 + 4))
 %define KeywordDefineNumberVar   8 + (1 << (4 + 4))
 %define KeywordDefineStringVar   9 + (1 << (4 + 4))
+%define KeywordEval             10 + (1 << (4 + 4))
 
 ; todo - revisit this
 %define defOperatorEquals         word OperatorEquals
@@ -92,6 +93,7 @@
 %define defKeywordBreak           word KeywordBreak
 %define defKeywordDefineNumberVar word KeywordDefineNumberVar
 %define defKeywordDefineStringVar word KeywordDefineStringVar
+%define defKeywordEval            word KeywordEval
 
 %define TOKEN_TYPE_SIZE 2
 
@@ -128,6 +130,12 @@ section .bss
     dwTokenCount resd 1
     bProcessingIfCondition resq 1
 
+    pOperatorStack resq 32
+    dqOperatorCount resq 1
+    pOperandStack resq 32
+    dqOperandCount resq 1
+    dqStatementOpCount resq 1
+    
     hndSourceFile resq 1
     hndDestFile resq 1
     dwBytesRead resd 1
@@ -395,6 +403,8 @@ else if CompareTokenWith(szKeywordNumber) then `
     mov [rbp], word KeywordDefineNumberVar`
 else if CompareTokenWith(szKeywordString) then `
     mov [rbp], word KeywordDefineStringVar`    
+else if CompareTokenWith(szKeywordEval) then `
+    mov [rbp], word KeywordEval`    
 else if CompareTokenWith(szOperatorEquals) then `
     mov [rbp], word OperatorEquals`
 else if CompareTokenWith(szOperatorNotEquals) then `
@@ -436,7 +446,7 @@ else `
     end `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
-end end end end end end end end end `
+end end end end end end end end end end `
 
     ; test if token type is 0
     push rax
@@ -1108,7 +1118,7 @@ end end end end end end end end end `
         NextToken()`
     end 
 
-      `; literal `
+    `; literal `
     if currentToken.Type == defOperandLiteral then `
         PushCallerSavedRegs()
 
@@ -1212,6 +1222,72 @@ end end end end end end end end end `
 
         PopCallerSavedRegs()
         SkipTokens(4)
+        NextToken()`
+    end 
+
+    `; eval `
+    if currentToken.Type == defKeywordEval then `
+        PushCallerSavedRegs()
+
+        ; look ahead for assignment operator
+        multipush rax, rbx, rdx, r11, r12, r13, r14, r15
+        add rbx, 2
+        mov rax, rbx
+        mov rdx, Token.size
+        mul rdx
+        mov rbx, tokenList
+        add rbx, rax
+
+        ; todo - check if assignment operator is present
+
+        movzx r12, word [rbx + Token.TokenType]
+        movzx r13, word [rbx + Token.TokenStart]
+        movzx r14, word [rbx + Token.TokenLength]
+        mov r15, szSourceCode
+        add r15, r13
+        strcpy(ptrBuffer64, r15, r14) 
+        mov qword [dqStatementOpCount], 1
+        `
+
+        while r12w != defStatemendEnd do `
+            printf(`"Token type: %x; value: %s\r\n"`, r12, ptrBuffer64)`
+            if r12w == defOperandInteger then `
+                ; push to operator stack
+                sprintf(ptrBuffer256, `"\tpush %s\r\n"`, ptrBuffer64)
+                WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+            end
+
+            if r12w == defOperandLiteral then `
+                ; push to operator stack
+                sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptrBuffer64)
+                WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+            end 
+
+            if r12w != defOperandInteger then `
+                multipush rax, rcx, rdx
+                printf(`"Operator %x"`, r12)
+                mov rcx, r12
+                call push_operator
+                multipop rax, rcx, rdx`
+            end `
+            add rbx, Token.size
+            movzx r12, word [rbx + Token.TokenType]
+            movzx r13, word [rbx + Token.TokenStart]
+            movzx r14, word [rbx + Token.TokenLength]
+            mov r15, szSourceCode
+            add r15, r13
+            strcpy(ptrBuffer64, r15, r14)
+            inc qword [dqStatementOpCount]`
+        end 
+        
+        while qword[dqOperatorCount] >= 0 do `
+            call write_operator`
+        end `
+
+        multipop rax, rbx, rdx, r11, r12, r13, r14, r15
+
+        PopCallerSavedRegs()
+        SkipTokens([dqStatementOpCount])
         NextToken()`
     end 
 
@@ -1642,6 +1718,100 @@ compile_condition_3:
     ; mov rax, 0
     ret
 
+push_operator:
+    PushCalleeSavedRegs()
+
+    mov rax, [dqOperatorCount]
+    mov rdx, qword 8 ; size of pointer
+    mul rdx
+    mov rdx, pOperatorStack
+    add rax, rdx`
+    if qword[dqOperatorCount] == 0 then `
+        mov [rax], rcx
+        mov r15, [rax]
+        printf(`"Pushing operator %x\r\n"`, r15)
+        inc qword [dqOperatorCount]
+        PopCalleeSavedRegs()
+        ret`
+    end `
+    sub rax, 8
+    mov r15, [rax]
+    printf(`"Prev operator %x\r\n"`, r15)
+    mov r15, rcx
+    printf(`"This operator %x\r\n"`, r15)`
+    
+    while [rax] > rcx do
+        if qword[dqOperatorCount] <= 0 then
+            break
+        end `
+        PushCallerSavedRegs()
+        call write_operator
+        PopCallerSavedRegs()
+        push rax
+        printf(`"Greater than\r\n"`)
+        pop rax
+        sub rax, 8 `
+    end
+    `
+    add rax, 8
+    mov [rax], r15
+    printf(`"Pushed operator %x\r\n"`, r15)
+    inc qword [dqOperatorCount]
+
+.end:    
+    PopCalleeSavedRegs()
+    ret
+
+write_operator:
+    PushCalleeSavedRegs()
+
+    mov rax, [dqOperatorCount]
+    dec rax
+    mov rdx, qword 8 ; size of pointer
+    mul rdx
+    mov rdx, pOperatorStack
+    add rax, rdx
+    mov r15, [rax]`
+
+    if r15w == defOperatorPlus then `
+        push rax
+        printf(`"Adding\r\n"`)
+        sprintf(ptrBuffer256, `"\tpop rax\r\n\tpop rcx\r\n\tadd rax, rcx\r\n\tpush rax\r\n"`)
+        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+        pop rax`
+    end 
+
+    if r15w == defOperatorMinus then `
+        push rax
+        printf(`"Subtracting\r\n"`)
+        sprintf(ptrBuffer256, `"\tpop rcx\r\n\tpop rax\r\n\tsub rax, rcx\r\n\tpush rax\r\n"`)
+        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+        pop rax`
+    end 
+
+    if r15w == defOperatorMultiply then  `
+        push rax
+        printf(`"Multiplying\r\n"`)
+        sprintf(ptrBuffer256, `"\tpop rax\r\n\tpop rcx\r\n\txor rdx, rdx\r\n\tmul rcx\r\n\tpush rax\r\n"`)
+        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+        pop rax`
+    end
+
+    if r15w == defOperatorDivide then  `
+        push rax
+        printf(`"Dividing\r\n"`)
+        sprintf(ptrBuffer256, `"\tpop rcx\r\n\tpop rax\r\n\txor rdx, rdx\r\n\tdiv rcx\r\n\tpush rax\r\n"`)
+        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+        pop rax`
+    end
+    `
+
+    dec qword [dqOperatorCount]
+
+.end:
+    PopCalleeSavedRegs()
+    ret    
+
 section .data
     szStrataFileExtension db ".strata"
     szStrataFileExtension.length equ $ - szStrataFileExtension
@@ -1675,6 +1845,8 @@ section .data
     szKeywordNumber.length equ $ - szKeywordNumber
     szKeywordString db "string"
     szKeywordString.length equ $ - szKeywordString
+    szKeywordEval db "eval"
+    szKeywordEval.length equ $ - szKeywordEval
     szOperatorEquals db "=="
     szOperatorEquals.length equ $ - szOperatorEquals
     szOperatorNotEquals db "!="
