@@ -1153,20 +1153,16 @@ end end end end end end end end end end `
                 ; push to operator stack
                 sprintf(ptrBuffer256, `"\tpush %s\r\n"`, ptrBuffer64)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-            end
-
-            if r12w == defOperandLiteral then `
+            else if r12w == defOperandLiteral then `
                 ; push to operator stack
                 sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptrBuffer64)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-            end 
-
-            if r12w != defOperandInteger then `
+            else if r12w != defOperandInteger then `
                 multipush rax, rcx, rdx
                 mov rcx, r12
                 call push_operator
                 multipop rax, rcx, rdx`
-            end `
+            end end end `
             add rbx, Token.size
             movzx r12, word [rbx + Token.TokenType]
             movzx r13, word [rbx + Token.TokenStart]
@@ -1215,27 +1211,21 @@ end end end end end end end end end end `
         mov qword [dqStatementOpCount], 1
         `
 
-        while r12w != defStatemendEnd do `
-            printf(`"Token type: %x; value: %s\r\n"`, r12, ptrBuffer64)`
+        while r12w != defStatemendEnd do 
             if r12w == defOperandInteger then `
                 ; push to operator stack
                 sprintf(ptrBuffer256, `"\tpush %s\r\n"`, ptrBuffer64)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-            end
-
-            if r12w == defOperandLiteral then `
+            else if r12w == defOperandLiteral then `
                 ; push to operator stack
                 sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptrBuffer64)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-            end 
-
-            if r12w != defOperandInteger then `
+            else if r12w != defOperandInteger then `
                 multipush rax, rcx, rdx
-                printf(`"Operator %x"`, r12)
                 mov rcx, r12
                 call push_operator
                 multipop rax, rcx, rdx`
-            end `
+            end end end `
             add rbx, Token.size
             movzx r12, word [rbx + Token.TokenType]
             movzx r13, word [rbx + Token.TokenStart]
