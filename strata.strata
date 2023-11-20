@@ -59,6 +59,8 @@
 %define KeywordContinue          6 + (1 << (4 + 4))
 %define KeywordBreak             7 + (1 << (4 + 4))
 %define KeywordDefineNumberVar   8 + (1 << (4 + 4))
+%define KeywordDebug             9 + (1 << (4 + 4))
+
 
 ; todo - revisit this
 %define defOperatorEquals         word OperatorEquals
@@ -88,6 +90,7 @@
 %define defKeywordContinue        word KeywordContinue
 %define defKeywordBreak           word KeywordBreak
 %define defKeywordDefineNumberVar word KeywordDefineNumberVar
+%define defKeywordDebug           word KeywordDebug
 
 %define TOKEN_TYPE_SIZE 2
 
@@ -158,6 +161,9 @@ section .data
                   db "default rel", 0xd, 0xa, 0xd, 0xa
                   db "%include ", 0x22, "inc/std.inc", 0x22, 0xd, 0xa
                   db "", 0xd, 0xa
+                  db "section .data", 0xd, 0xa
+                  db "    cStrDebugPrint db ", 0x22,"%d", 0x22, ", 0xd, 0xa, 0", 0xd, 0xa
+                  db "", 0xd, 0xa
                   db "section .text", 0xd, 0xa
                   db "    global _start", 0xd, 0xa
                   db "", 0xd, 0xa
@@ -167,6 +173,7 @@ section .data
     cStrAsmHeader.length equ $ - cStrAsmHeader - 1
     cStrReadOnlySectionHeader db 0xd, 0xa, "section .rodata", 0xd, 0xa, 0
     cStrReadOnlySectionHeader.length equ $ - cStrReadOnlySectionHeader - 1
+    cStrDebugPrint db "%d", 0xd, 0xa, 0
 
 section .text
     global _start
@@ -396,6 +403,8 @@ else if CompareTokenWith(szKeywordBreak) then `
     mov [rbp], word KeywordBreak`
 else if CompareTokenWith(szKeywordNumber) then `
     mov [rbp], word KeywordDefineNumberVar`
+else if CompareTokenWith(szKeywordDebug) then `
+    mov [rbp], word KeywordDebug`
 else if CompareTokenWith(szOperatorEquals) then `
     mov [rbp], word OperatorEquals`
 else if CompareTokenWith(szOperatorNotEquals) then `
@@ -435,7 +444,7 @@ else `
     end `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
-end end end end end end end `
+end end end end end end end end `
 
     ; test if token type is 0
     push rax
@@ -1049,6 +1058,43 @@ end end end end end end end `
         NextToken()`
     end 
 
+     ` ; keyword 'debug'`
+    if currentToken.Type == defKeywordDebug then `
+        PushCallerSavedRegs()
+
+        ; look ahead for identifier
+        multipush rax, rbx, r13, r14, r15
+        mov rax, rbx
+        inc rax
+        mov rdx, Token.size
+        mul rdx
+        mov rbx, tokenList
+        add rbx, rax
+        
+        ; get identifier
+        mov r12w, word [rbx + Token.TokenType]
+        mov r14w, word [rbx + Token.TokenStart]
+        mov r15w, word [rbx + Token.TokenLength]
+        mov r13, szSourceCode
+        add r13, r14`
+
+        if r12w != defOperandLiteral then `
+            printf(`"[\#27[91mERROR\#27[0m] Expected identifier after 'num'\r\n"`)
+            jmp .exit`
+        end `
+
+        strcpy(ptrBuffer64, r13, r15)
+        
+        ;;sprintf(ptrBuffer256, `"\tmov r15, qword [a]\r\n\tprintf(cStrDebugPrint, [a])\r\n"`, ptrBuffer64)
+        sprintf(ptrBuffer256, `"\tprintf(cStrDebugPrint, [a])\r\n"`, ptrBuffer64)
+        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+        multipop rax, rbx, r13, r14, r15
+
+        PopCallerSavedRegs()
+        SkipTokens(1)
+        NextToken()`
+    end 
+
       `; literal `
     if currentToken.Type == defOperandLiteral then `
         PushCallerSavedRegs()
@@ -1196,6 +1242,9 @@ end end end end end end end `
 %undef currentToken.Type
 %undef currentToken.Start
 %undef currentToken.Length
+
+    sprintf(ptrBuffer64, `"\r\n\tExitProcess(0)\r\n"`)
+    WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
 
     call write_string_list
 
@@ -1614,6 +1663,8 @@ section .data
     szKeywordBreak.length equ $ - szKeywordBreak
     szKeywordNumber db "num"
     szKeywordNumber.length equ $ - szKeywordNumber
+    szKeywordDebug db "debug"
+    szKeywordDebug.length equ $ - szKeywordDebug
     szOperatorEquals db "=="
     szOperatorEquals.length equ $ - szOperatorEquals
     szOperatorNotEquals db "!="

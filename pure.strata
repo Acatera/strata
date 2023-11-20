@@ -1,7 +1,6 @@
 num a = 34
-num b = 35
-a = a + b `
-printf(`"a = %d"`, [a])
-
-ExitProcess(0)
-`
+a = a + 36
+while qword[a] > 0 do
+    debug a
+    a = a - 1
+end
