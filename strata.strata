@@ -1148,8 +1148,7 @@ end end end end end end end end end end `
         mov qword [dqStatementOpCount], 1
         `
 
-        while r12w != defStatemendEnd do `
-            printf(`"Token type: %x; value: %s\r\n"`, r12, ptrBuffer64)`
+        while r12w != defStatemendEnd do 
             if r12w == defOperandInteger then `
                 ; push to operator stack
                 sprintf(ptrBuffer256, `"\tpush %s\r\n"`, ptrBuffer64)
@@ -1164,7 +1163,6 @@ end end end end end end end end end end `
 
             if r12w != defOperandInteger then `
                 multipush rax, rcx, rdx
-                printf(`"Operator %x"`, r12)
                 mov rcx, r12
                 call push_operator
                 multipop rax, rcx, rdx`
@@ -1711,16 +1709,13 @@ push_operator:
     if qword[dqOperatorCount] == 0 then `
         mov [rax], rcx
         mov r15, [rax]
-        printf(`"Pushing operator %x\r\n"`, r15)
         inc qword [dqOperatorCount]
         PopCalleeSavedRegs()
         ret`
     end `
     sub rax, 8
     mov r15, [rax]
-    printf(`"Prev operator %x\r\n"`, r15)
-    mov r15, rcx
-    printf(`"This operator %x\r\n"`, r15)`
+    mov r15, rcx`
     
     while [rax] > rcx do
         if qword[dqOperatorCount] <= 0 then
@@ -1730,14 +1725,12 @@ push_operator:
         call write_operator
         PopCallerSavedRegs()
         push rax
-        printf(`"Greater than\r\n"`)
         pop rax
         sub rax, 8 `
     end
     `
     add rax, 8
     mov [rax], r15
-    printf(`"Pushed operator %x\r\n"`, r15)
     inc qword [dqOperatorCount]
 
 .end:    
@@ -1757,7 +1750,6 @@ write_operator:
 
     if r15w == defOperatorPlus then `
         push rax
-        printf(`"Adding\r\n"`)
         sprintf(ptrBuffer256, `"\tpop rax\r\n\tpop rcx\r\n\tadd rax, rcx\r\n\tpush rax\r\n"`)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
         pop rax`
@@ -1765,7 +1757,6 @@ write_operator:
 
     if r15w == defOperatorMinus then `
         push rax
-        printf(`"Subtracting\r\n"`)
         sprintf(ptrBuffer256, `"\tpop rcx\r\n\tpop rax\r\n\tsub rax, rcx\r\n\tpush rax\r\n"`)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
         pop rax`
@@ -1773,7 +1764,6 @@ write_operator:
 
     if r15w == defOperatorMultiply then  `
         push rax
-        printf(`"Multiplying\r\n"`)
         sprintf(ptrBuffer256, `"\tpop rax\r\n\tpop rcx\r\n\txor rdx, rdx\r\n\tmul rcx\r\n\tpush rax\r\n"`)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
         pop rax`
@@ -1781,7 +1771,6 @@ write_operator:
 
     if r15w == defOperatorDivide then  `
         push rax
-        printf(`"Dividing\r\n"`)
         sprintf(ptrBuffer256, `"\tpop rcx\r\n\tpop rax\r\n\txor rdx, rdx\r\n\tdiv rcx\r\n\tpush rax\r\n"`)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
         pop rax`
