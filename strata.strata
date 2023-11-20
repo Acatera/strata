@@ -694,7 +694,7 @@ end end end end end end end `
     ` ; keyword 'if'`
     if currentToken.Type == defKeywordIf then `
         PushCallerSavedRegs()
-        sprintf(ptrBuffer64, `"\r\n.if_%d:\r\n"`, [wScopedBlockCurrentId])
+        sprintf(ptrBuffer64, `"\r\n;.if_%d:\r\n"`, [wScopedBlockCurrentId])
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
 
         PushBlockToken(defKeywordIf, [wScopedBlockCurrentId])
