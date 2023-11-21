@@ -101,6 +101,8 @@ struc Token
     .TokenType:    resw 1 ; if you change this, also update TOKEN_TYPE_SIZE
     .TokenStart:   resq 1
     .TokenLength:  resq 1
+    .Line:         resq 1
+    .Column:       resq 1
     .size equ $ - .TokenType
 endstruc
 
@@ -129,7 +131,8 @@ section .bss
     tokenList resq MAX_TOKEN_COUNT * Token.size
     dwTokenCount resd 1
     bProcessingIfCondition resq 1
-
+    dqCurrentLine resq 1
+    dqLineStart resq 1
     pOperatorStack resq 32
     dqOperatorCount resq 1
     pOperandStack resq 32
@@ -366,6 +369,12 @@ end `
     cmp r9, 0
     je .source_code_parsed
 
+.newline_found:
+    inc qword [dqCurrentLine]
+    add r8, 2
+    mov [dqLineStart], r8
+    sub r8, 2
+
 .token_found:
     ; is token length 0?`
     if r9 == 0 then `
@@ -472,6 +481,11 @@ end end end end end end end end end end `
     mov [rbx + Token.TokenType], word ax ; token type
     mov [rbx + Token.TokenStart], r8 ; token start
     mov [rbx + Token.TokenLength], r9 ; token length
+    mov rax, [dqCurrentLine]
+    mov [rbx + Token.Line], rax ; line
+    mov rax, r8
+    sub rax, [dqLineStart]
+    mov [rbx + Token.Column], rax ; column
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r15
 
@@ -1032,9 +1046,14 @@ end end end end end end end end end end `
         ; check if assignment operator is next
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]`
-        
         if r12w != defOperatorAssignment then `
+            push rbx
             printf(`"[\#27[91mERROR\#27[0m] Expected assignment operator after 'uint64'\r\n"`)
+            pop rbx
+            sub rbx, Token.size
+            mov r13, qword [rbx + Token.Line]
+            mov r14, qword [rbx + Token.Column]
+            printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, r13, r14)
             jmp .exit`
         end `
 
