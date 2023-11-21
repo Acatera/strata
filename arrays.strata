@@ -1,0 +1,2 @@
+array uints = uint64 [ 10 ] ;
+array uint64s = uint64 [ 100 ] ;
