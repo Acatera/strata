@@ -1,2 +1,6 @@
 array uints = uint64 [ 10 ] ;
-array uint64s = uint64 [ 100 ] ;
+uint64 index = 0
+
+while qword[index] < 10 do
+    index = index + 1 ;
+end

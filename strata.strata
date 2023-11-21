@@ -97,6 +97,10 @@
 %define defKeywordEval            word KeywordEval
 %define defKeywordArray           word KeywordArray
 
+
+%define UINT64     1
+%define TYPE_ARRAY 2
+
 %define TOKEN_TYPE_SIZE 2
 
 struc Token
@@ -113,6 +117,12 @@ struc Block
     .BlockId   resw 1
     .TokenType resw 1
     .size equ $ - .TokenIndex
+endstruc
+
+struc Name
+    .Pointer resq 1
+    .Type    resq 1
+    .size equ $ - .Pointer
 endstruc
 
 %define MAX_TOKEN_COUNT 1024 * 16
@@ -141,6 +151,10 @@ section .bss
     dqOperandCount resq 1
     dqStatementOpCount resq 1
     
+    szNames resb 1024 * 64
+    pNames resb 1024 * Name.size
+    dqNameCount resq 1
+
     hndSourceFile resq 1
     hndDestFile resq 1
     dwBytesRead resd 1
@@ -336,6 +350,10 @@ end `
     ; initialize string list end pointer
     mov rax, pStringList
     mov [pStringListEnd], rax
+
+    ; initialize name list
+    mov rax, szNames
+    mov [pNames + Name.Pointer], rax
 
 ;-----------------------------------source code parsing----------------------------------
 .start_parsing_source_code:
@@ -1339,6 +1357,12 @@ end end end end end end end end end end end `
             jmp .exit`
         end `
 
+        multipush rax, rcx, rdx
+        mov rcx, ptrBuffer64
+        mov rdx, TYPE_ARRAY
+        call push_variable
+        multipop rax, rcx, rdx
+        
         sprintf(ptrBuffer256, `"section .bss\r\n\t%s resq %s\r\nsection .text\r\n"`, ptrBuffer64, ptr2Buffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
@@ -1517,6 +1541,48 @@ end end end end end end end end end end end `
 
     printf(`"[\#27[92mINFO\#27[0m] Generated %s.exe\r\n"`, szFilenameWithoutExtension, szFilenameWithoutExtension)
     jmp .exit
+
+; this routine will save a name to the variable list, along with its type
+; rcx holds a null terminated string, rdx holds the type
+push_variable:
+    PushCalleeSavedRegs()
+    
+    mov r15, rdx
+    mov r14, rcx
+
+    ; set up array
+    mov rax, [dqNameCount]
+    mov rdx, Name.size
+    mul rdx
+    mov rdx, pNames
+    add rax, rdx
+    mov r13, rax
+
+    ; store name
+    mov r12, [r13 + Name.Pointer]
+    mov rsi, r14
+    mov rdi, r12
+
+.loop:
+    cmp byte [rsi], 0
+    je .end_loop
+    movsb
+    jmp .loop
+
+.end_loop:
+    ; store type
+    mov [r13 + Name.Type], r15
+
+    ; increment name count  
+    add r13, Name.size
+    inc rdi
+    mov [r13 + Name.Pointer], rdi
+    
+    inc qword [dqNameCount]
+
+.end:
+    PopCalleeSavedRegs()
+    ret
 
 ; this routine will save a string literal to the string list
 ; rcx holds token start, rdx holds token length
