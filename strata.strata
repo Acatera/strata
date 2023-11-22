@@ -59,10 +59,11 @@
 %define KeywordDo                5 + (1 << (4 + 4))
 %define KeywordContinue          6 + (1 << (4 + 4))
 %define KeywordBreak             7 + (1 << (4 + 4))
-%define KeywordDefineNumberVar   8 + (1 << (4 + 4))
-%define KeywordDefineStringVar   9 + (1 << (4 + 4))
-%define KeywordEval             10 + (1 << (4 + 4))
-%define KeywordArray            11 + (1 << (4 + 4))
+%define KeywordDefineUInt8       8 + (1 << (4 + 4))
+%define KeywordDefineUInt64      9 + (1 << (4 + 4))
+%define KeywordDefineStringVar  10 + (1 << (4 + 4))
+%define KeywordEval             11 + (1 << (4 + 4))
+%define KeywordArray            12 + (1 << (4 + 4))
 
 ; todo - revisit this
 %define defOperatorEquals         word OperatorEquals
@@ -92,15 +93,17 @@
 %define defKeywordDo              word KeywordDo
 %define defKeywordContinue        word KeywordContinue
 %define defKeywordBreak           word KeywordBreak
-%define defKeywordDefineNumberVar word KeywordDefineNumberVar
+%define defKeywordDefineUInt8     word KeywordDefineUInt8
+%define defKeywordDefineUInt64    word KeywordDefineUInt64
 %define defKeywordDefineStringVar word KeywordDefineStringVar
 %define defKeywordEval            word KeywordEval
 %define defKeywordArray           word KeywordArray
 
 
-%define TYPE_UINT64    1
-%define TYPE_ARRAY     2
-%define TYPE_STRING    3
+%define TYPE_UINT8     1
+%define TYPE_UINT64    2
+%define TYPE_ARRAY     3
+%define TYPE_STRING    4
 
 %define TOKEN_TYPE_SIZE 2
 
@@ -121,8 +124,10 @@ struc Block
 endstruc
 
 struc Name
-    .Pointer resq 1
-    .Type    resq 1
+    .Pointer  resq 1
+    .Type     resq 1
+    .DataSize resq 1
+    .Reserved resq 1
     .size equ $ - .Pointer
 endstruc
 
@@ -429,8 +434,10 @@ else if CompareTokenWith(szKeywordContinue) then `
     mov [rbp], word KeywordContinue`
 else if CompareTokenWith(szKeywordBreak) then `
     mov [rbp], word KeywordBreak`
-else if CompareTokenWith(szKeywordNumber) then `
-    mov [rbp], word KeywordDefineNumberVar`
+else if CompareTokenWith(szKeywordUInt8) then `
+    mov [rbp], word KeywordDefineUInt8`    
+else if CompareTokenWith(szKeywordUInt64) then `
+    mov [rbp], word KeywordDefineUInt64`
 else if CompareTokenWith(szKeywordString) then `
     mov [rbp], word KeywordDefineStringVar`    
 else if CompareTokenWith(szKeywordEval) then `
@@ -478,7 +485,7 @@ else `
     end `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
-end end end end end end end end end end end `
+end end end end end end end end end end end end `
 
     ; test if token type is 0
     push rax
@@ -1040,7 +1047,7 @@ end end end end end end end end end end end `
     end 
 
     ` ; keyword 'uint64'`
-    if currentToken.Type == defKeywordDefineNumberVar then `
+    if currentToken.Type == defKeywordDefineUInt64 then `
         PushCallerSavedRegs()
 
         ; look ahead for identifier
@@ -1101,6 +1108,75 @@ end end end end end end end end end end end `
         ; todo - write them at the top of asm file
         ; write variable declaration
         sprintf(ptrBuffer256, `"\r\nsection .data\r\n\t%s dq %s\r\nsection .text\r\n"`, ptrBuffer64, ptr2Buffer64)
+        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+
+        PopCallerSavedRegs()
+        SkipTokens(3)
+        NextToken()`
+    end 
+
+    ` ; keyword 'uint8'`
+    if currentToken.Type == defKeywordDefineUInt8 then `
+        PushCallerSavedRegs()
+
+        ; look ahead for identifier
+        multipush rax, rbx, r13, r14, r15
+        mov rax, rbx
+        inc rax
+        mov rdx, Token.size
+        mul rdx
+        mov rbx, tokenList
+        add rbx, rax
+        
+        ; get identifier
+        mov r12w, word [rbx + Token.TokenType]
+        mov r14w, word [rbx + Token.TokenStart]
+        mov r15w, word [rbx + Token.TokenLength]
+        mov r13, szSourceCode
+        add r13, r14`
+
+        if r12w != defOperandLiteral then `
+            printf(`"[\#27[91mERROR\#27[0m] Expected identifier after 'uint8'\r\n"`)
+            jmp .exit`
+        end `
+
+        strcpy(ptrBuffer64, r13, r15)
+
+        multipush rax, rcx, rdx
+        mov rcx, ptrBuffer64
+        mov rdx, TYPE_UINT8
+        call push_variable
+        multipop rax, rcx, rdx
+        
+        ; check if assignment operator is next
+        add rbx, Token.size
+        mov r12w, word [rbx + Token.TokenType]`
+        if r12w != defOperatorAssignment then `
+            push rbx
+            printf(`"[\#27[91mERROR\#27[0m] Expected assignment operator after 'uint8'\r\n"`)
+            pop rbx
+            sub rbx, Token.size
+            mov r13, qword [rbx + Token.Line]
+            mov r14, qword [rbx + Token.Column]
+            printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, r13, r14)
+            jmp .exit`
+        end `
+
+        ; get value
+        add rbx, Token.size
+
+        mov r14w, word [rbx + Token.TokenStart]
+        mov r15w, word [rbx + Token.TokenLength]
+        mov r13, szSourceCode
+        add r13, r14
+        strcpy(ptr2Buffer64, r13, r15)
+
+        multipop rax, rbx, r13, r14, r15
+        sub rbx, Token.size
+
+        ; todo - write them at the top of asm file
+        ; write variable declaration
+        sprintf(ptrBuffer256, `"\r\nsection .data\r\n\t%s db %s\r\nsection .text\r\n"`, ptrBuffer64, ptr2Buffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
         PopCallerSavedRegs()
@@ -1195,6 +1271,7 @@ end end end end end end end end end end end `
         mov rcx, ptr3Buffer64
         call get_data_type
         mov r15, rax
+        mov r11, rdx ; data type size in bytes
         multipop rax, rcx`
 
         if r15 == TYPE_ARRAY then `
@@ -1232,17 +1309,44 @@ end end end end end end end end end end end `
             add r15, r13
 
             strcpy(ptr2Buffer64, r15, r14)
-            inc qword [dqStatementOpCount]
+            inc qword [dqStatementOpCount]`
 
-            sprintf(ptrBuffer256, `"\tmov rax, [%s]\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n"`, ptrBuffer64, ptr3Buffer64)
-            WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-
-            if r12w == defOperandInteger then `
-                sprintf(ptrBuffer256, `"\tmov qword [rdx], %s\r\n"`, ptr2Buffer64)
+            if r11 == 1 then `
+                sprintf(ptrBuffer256, `"\tmov rdx, %s\r\n\tadd rdx, [%s]\r\n"`, ptr3Buffer64, ptrBuffer64)
+                WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+            else if r11 == 8 then `
+                sprintf(ptrBuffer256, `"\tmov rax, [%s]\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n"`, ptrBuffer64, ptr3Buffer64)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
             else `
-                sprintf(ptrBuffer256, `"\tmov rax, [%s]\r\n\tmov [rdx], rax\r\n"`, ptr2Buffer64)
-                WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                printf(`"[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n"`, r11)
+                printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                jmp .exit`
+            end end 
+
+            if r12w == defOperandInteger then
+                if r11 == 1 then `
+                    sprintf(ptrBuffer256, `"\tmov byte [rdx], %s\r\n"`, ptr2Buffer64)
+                    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                else if r11 == 8 then `
+                    sprintf(ptrBuffer256, `"\tmov qword [rdx], %s\r\n"`, ptr2Buffer64)
+                    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                else `
+                    printf(`"[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n"`, r11)
+                    printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                    jmp .exit`
+                end end 
+            else 
+                if r11 == 1 then `
+                    sprintf(ptrBuffer256, `"\tmovzx rax, byte [%s]\r\n\tmov byte [rdx], al\r\n"`, ptr2Buffer64)
+                    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                else if r11 == 8 then `
+                    sprintf(ptrBuffer256, `"\tmov rax, [%s]\r\n\tmov [rdx], rax\r\n"`, ptr2Buffer64)
+                    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                else `
+                    printf(`"[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n"`, r11)
+                    printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                    jmp .exit`
+                end end
             end `
             ; todo - verify that the next token is a ';'
             add rbx, Token.size`
@@ -1269,6 +1373,7 @@ end end end end end end end end end end end `
                     mov rcx, ptrBuffer64
                     call get_data_type
                     mov r15, rax
+                    mov r11, rdx ; data type size in bytes
                     multipop rax, rcx`
                     if r15 == TYPE_ARRAY then `
                         push rax
@@ -1279,8 +1384,18 @@ end end end end end end end end end end end `
                         movzx r14, word [rbx + Token.TokenLength]
                         mov r15, szSourceCode
                         add r15, r13
-                        strcpy(ptr2Buffer64, r15, r14) 
-                        sprintf(ptrBuffer256, `"\tmov rax, [%s]\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n\tpush qword [rdx]\r\n"`, ptr2Buffer64, ptrBuffer64)
+                        strcpy(ptr2Buffer64, r15, r14) `
+
+                        if r11 == 1 then `
+                            sprintf(ptrBuffer256, `"\tmov rdx, %s\r\n\tadd rdx, [%s]\r\n\tmovzx rax, byte [rdx]\r\n\tpush qword rax\r\n"`, ptrBuffer64, ptr2Buffer64)`
+                        else if r11 == 8 then `
+                            sprintf(ptrBuffer256, `"\tmov rax, [%s]\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n\tpush qword [rdx]\r\n"`, ptr2Buffer64, ptrBuffer64)`
+                        else `
+                            printf(`"[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n"`, r11)
+                            printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                            jmp .exit`
+                        end end `
+                        
                         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
                         mov rax, [dqStatementOpCount]
                         add rax, 3
@@ -1383,6 +1498,7 @@ end end end end end end end end end end end `
         NextToken()`
     end 
 
+    `; array `
     if currentToken.Type == defKeywordArray then `
         PushCallerSavedRegs()
 
@@ -1415,10 +1531,14 @@ end end end end end end end end end end end `
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]`
 
-        if r12w != defKeywordDefineNumberVar then `
+        if r12w == defKeywordDefineUInt8 then `
+            mov r11, 1`
+        else if r12w == defKeywordDefineUInt64 then `
+            mov r11, 8`
+        else `
             printf(`"[\#27[91mERROR\#27[0m] Expected 'uint64' after 'array'\r\n"`)
             jmp .exit`
-        end `
+        end end `
 
         ; skip '['
         ; todo - check if '[' is present
@@ -1452,13 +1572,22 @@ end end end end end end end end end end end `
             jmp .exit`
         end `
 
-        multipush rax, rcx, rdx
+        multipush rax, rcx, rdx, r8
         mov rcx, ptrBuffer64
         mov rdx, TYPE_ARRAY
+        mov r8, r11
         call push_variable
-        multipop rax, rcx, rdx
+        multipop rax, rcx, rdx, r8`
         
-        sprintf(ptrBuffer256, `"section .bss\r\n\t%s resq %s\r\nsection .text\r\n"`, ptrBuffer64, ptr2Buffer64)
+        if r11 == 1 then `
+            sprintf(ptrBuffer256, `"section .bss\r\n\t%s resb %s\r\nsection .text\r\n"`, ptrBuffer64, ptr2Buffer64)`
+        else if r11 == 8 then `
+            sprintf(ptrBuffer256, `"section .bss\r\n\t%s resq %s\r\nsection .text\r\n"`, ptrBuffer64, ptr2Buffer64)`
+        else `
+            printf(`"[\#27[91mERROR\#27[0m] Unsupported array type\r\n"`)
+            jmp .exit`
+        end end `
+
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
         multipop rax, rbx, rdx, r11, r12, r13, r14, r15
@@ -1651,7 +1780,8 @@ get_data_type:
         strcmp(r12, r15)`
 
         if rax == 0 then `
-            mov r11, [r10 + Name.Type]`
+            mov r11, [r10 + Name.Type]
+            mov rdx, [r10 + Name.DataSize]`
             break
         end `
         add r10, Name.size
@@ -1664,7 +1794,7 @@ get_data_type:
     ret
 
 ; this routine will save a name to the variable list, along with its type
-; rcx holds a null terminated string, rdx holds the type
+; rcx holds a null terminated string, rdx holds the type, r8 holds the data size
 push_variable:
     PushCalleeSavedRegs()
     
@@ -1693,6 +1823,9 @@ push_variable:
 .end_loop:
     ; store type
     mov [r13 + Name.Type], r15
+
+    ; store data size
+    mov [r13 + Name.DataSize], r8
 
     ; increment name count  
     add r13, Name.size
@@ -2110,8 +2243,10 @@ section .data
     szKeywordContinue.length equ $ - szKeywordContinue
     szKeywordBreak db "break"
     szKeywordBreak.length equ $ - szKeywordBreak
-    szKeywordNumber db "uint64"
-    szKeywordNumber.length equ $ - szKeywordNumber
+    szKeywordUInt8 db "uint8"
+    szKeywordUInt8.length equ $ - szKeywordUInt8
+    szKeywordUInt64 db "uint64"
+    szKeywordUInt64.length equ $ - szKeywordUInt64
     szKeywordString db "string"
     szKeywordString.length equ $ - szKeywordString
     szKeywordEval db "eval"
