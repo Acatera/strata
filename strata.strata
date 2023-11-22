@@ -1192,7 +1192,6 @@ end end end end end end end end end end end `
 
         ; fetch data type from names table
         multipush rax, rcx
-
         mov rcx, ptr3Buffer64
         call get_data_type
         mov r15, rax
@@ -1267,9 +1266,34 @@ end end end end end end end end end end end `
                     sprintf(ptrBuffer256, `"\tpush %s\r\n"`, ptrBuffer64)
                     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
                 else if r12w == defOperandLiteral then `
-                    ; push to operator stack
-                    sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptrBuffer64)
-                    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                    ; fetch data type from names table
+                    multipush rax, rcx
+                    mov rcx, ptrBuffer64
+                    call get_data_type
+                    mov r15, rax
+                    multipop rax, rcx`
+                    if r15 == TYPE_ARRAY then `
+                        push rax
+                        ; todo - verify that the next token is a '['
+                        add rbx, Token.size * 2
+                        movzx r12, word [rbx + Token.TokenType]
+                        movzx r13, word [rbx + Token.TokenStart]
+                        movzx r14, word [rbx + Token.TokenLength]
+                        mov r15, szSourceCode
+                        add r15, r13
+                        strcpy(ptr2Buffer64, r15, r14) 
+                        sprintf(ptrBuffer256, `"\tmov rax, [%s]\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n\tpush qword [rdx]\r\n"`, ptr2Buffer64, ptrBuffer64)
+                        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+                        mov rax, [dqStatementOpCount]
+                        add rax, 3
+                        mov [dqStatementOpCount], rax
+                        pop rax
+                        add rbx, Token.size`
+                    else `    
+                        ; push to operator stack
+                        sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptrBuffer64)
+                        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                    end 
                 else if r12w != defOperandInteger then `
                     multipush rax, rcx, rdx
                     mov rcx, r12
@@ -2030,6 +2054,13 @@ write_operator:
     if r15w == defOperatorDivide then  `
         push rax
         sprintf(ptrBuffer256, `"\tpop rcx\r\n\tpop rax\r\n\txor rdx, rdx\r\n\tdiv rcx\r\n\tpush rax\r\n"`)
+        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+        pop rax`
+    end
+
+    if r15w == defOperatorModulo then  `
+        push rax
+        sprintf(ptrBuffer256, `"\tpop rcx\r\n\tpop rax\r\n\txor rdx, rdx\r\n\tdiv rcx\r\n\tpush rdx\r\n"`)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
         pop rax`
     end
