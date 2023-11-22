@@ -1198,7 +1198,6 @@ end end end end end end end end end end end `
         multipop rax, rcx`
 
         if r15 == TYPE_ARRAY then `
-            printf(`"Found literal %s of type %x\r\n"`, ptr3Buffer64, r15)
             mov qword [dqStatementOpCount], 1
             
             ; todo - verify that the next token is a '['            
@@ -1248,7 +1247,6 @@ end end end end end end end end end end end `
             ; todo - verify that the next token is a ';'
             add rbx, Token.size`
         else `
-            printf(`"Found literal %s of type %x\r\n"`, ptr3Buffer64, r15)
             add rbx, Token.size
             mov r12w, word [rbx + Token.TokenType]
 
@@ -1889,14 +1887,25 @@ compile_condition_3:
     add r10, r11
     strcpy(ptrBuffer64, r10, r12)
 
+    ; fetch data type from names table
+    multipush rax, rcx
+    mov rcx, ptrBuffer64
+    call get_data_type
+    mov r15, rax
+    multipop rax, rcx
+
     add rbx, Token.size * 2 ; advance to second operand
     mov r10, szSourceCode
     mov r11, [rbx + Token.TokenStart]
     mov r12, [rbx + Token.TokenLength]
     add r10, r11
-    strcpy(ptr2Buffer64, r10, r12)
+    strcpy(ptr2Buffer64, r10, r12)`
 
-    sprintf(ptrBuffer256, `"    cmp %s, %s\r\n"`, ptrBuffer64, ptr2Buffer64)
+    if r15 == TYPE_UINT64 then `
+        sprintf(ptrBuffer256, `"\tmov r15, [%s]\r\n\tcmp r15, %s\r\n"`, ptrBuffer64, ptr2Buffer64)`
+    else `
+        sprintf(ptrBuffer256, `"    cmp %s, %s\r\n"`, ptrBuffer64, ptr2Buffer64)`
+    end `
 
     ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
