@@ -98,8 +98,9 @@
 %define defKeywordArray           word KeywordArray
 
 
-%define UINT64     1
-%define TYPE_ARRAY 2
+%define TYPE_UINT64    1
+%define TYPE_ARRAY     2
+%define TYPE_STRING    3
 
 %define TOKEN_TYPE_SIZE 2
 
@@ -1064,6 +1065,12 @@ end end end end end end end end end end end `
         end `
 
         strcpy(ptrBuffer64, r13, r15)
+
+        multipush rax, rcx, rdx
+        mov rcx, ptrBuffer64
+        mov rdx, TYPE_UINT64
+        call push_variable
+        multipop rax, rcx, rdx
         
         ; check if assignment operator is next
         add rbx, Token.size
@@ -1127,6 +1134,12 @@ end end end end end end end end end end end `
         end `
 
         strcpy(ptrBuffer64, r13, r15)
+
+        multipush rax, rcx, rdx
+        mov rcx, ptrBuffer64
+        mov rdx, TYPE_STRING
+        call push_variable
+        multipop rax, rcx, rdx
         
         ; check if assignment operator is next
         add rbx, Token.size
@@ -1177,49 +1190,109 @@ end end end end end end end end end end end `
         add r13, r14
         strcpy(ptr3Buffer64, r13, r15) ; literal name
 
-        add rbx, Token.size
-        mov r12w, word [rbx + Token.TokenType]
+        ; fetch data type from names table
+        multipush rax, rcx
 
-        movzx r12, word [rbx + Token.TokenType]
-        movzx r13, word [rbx + Token.TokenStart]
-        movzx r14, word [rbx + Token.TokenLength]
-        mov r15, szSourceCode
-        add r15, r13
-        strcpy(ptrBuffer64, r15, r14) 
-        mov qword [dqStatementOpCount], 1
-        `
+        mov rcx, ptr3Buffer64
+        call get_data_type
+        mov r15, rax
+        multipop rax, rcx`
 
-        while r12w != defStatemendEnd do 
-            if r12w == defOperandInteger then `
-                ; push to operator stack
-                sprintf(ptrBuffer256, `"\tpush %s\r\n"`, ptrBuffer64)
-                WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-            else if r12w == defOperandLiteral then `
-                ; push to operator stack
-                sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptrBuffer64)
-                WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-            else if r12w != defOperandInteger then `
-                multipush rax, rcx, rdx
-                mov rcx, r12
-                call push_operator
-                multipop rax, rcx, rdx`
-            end end end `
+        if r15 == TYPE_ARRAY then `
+            printf(`"Found literal %s of type %x\r\n"`, ptr3Buffer64, r15)
+            mov qword [dqStatementOpCount], 1
+            
+            ; todo - verify that the next token is a '['            
+            add rbx, Token.size
+            inc qword [dqStatementOpCount]
+
+            ; read index
             add rbx, Token.size
             movzx r12, word [rbx + Token.TokenType]
             movzx r13, word [rbx + Token.TokenStart]
             movzx r14, word [rbx + Token.TokenLength]
             mov r15, szSourceCode
             add r15, r13
+
             strcpy(ptrBuffer64, r15, r14)
-            inc qword [dqStatementOpCount]`
-        end 
-        
-        while qword[dqOperatorCount] >= 0 do `
-            call write_operator`
+            inc qword [dqStatementOpCount]
+            
+            ; todo - verify that the next token is a ']'
+            add rbx, Token.size
+            inc qword [dqStatementOpCount]
+
+            ; todo - verify that the next token is an assignment operator
+            add rbx, Token.size
+            inc qword [dqStatementOpCount]
+
+            ; read value
+            add rbx, Token.size
+            movzx r12, word [rbx + Token.TokenType]
+            movzx r13, word [rbx + Token.TokenStart]
+            movzx r14, word [rbx + Token.TokenLength]
+            mov r15, szSourceCode
+            add r15, r13
+
+            strcpy(ptr2Buffer64, r15, r14)
+            inc qword [dqStatementOpCount]
+
+            sprintf(ptrBuffer256, `"\tmov rax, [%s]\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n"`, ptrBuffer64, ptr3Buffer64)
+            WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+
+            if r12w == defOperandInteger then `
+                sprintf(ptrBuffer256, `"\tmov qword [rdx], %s\r\n"`, ptr2Buffer64)
+                WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+            else `
+                sprintf(ptrBuffer256, `"\tmov rax, [%s]\r\n\tmov [rdx], rax\r\n"`, ptr2Buffer64)
+                WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+            end `
+            ; todo - verify that the next token is a ';'
+            add rbx, Token.size`
+        else `
+            printf(`"Found literal %s of type %x\r\n"`, ptr3Buffer64, r15)
+            add rbx, Token.size
+            mov r12w, word [rbx + Token.TokenType]
+
+            movzx r12, word [rbx + Token.TokenType]
+            movzx r13, word [rbx + Token.TokenStart]
+            movzx r14, word [rbx + Token.TokenLength]
+            mov r15, szSourceCode
+            add r15, r13
+            strcpy(ptrBuffer64, r15, r14) 
+            mov qword [dqStatementOpCount], 1`
+
+            while r12w != defStatemendEnd do 
+                if r12w == defOperandInteger then `
+                    ; push to operator stack
+                    sprintf(ptrBuffer256, `"\tpush %s\r\n"`, ptrBuffer64)
+                    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                else if r12w == defOperandLiteral then `
+                    ; push to operator stack
+                    sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptrBuffer64)
+                    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                else if r12w != defOperandInteger then `
+                    multipush rax, rcx, rdx
+                    mov rcx, r12
+                    call push_operator
+                    multipop rax, rcx, rdx`
+                end end end `
+                add rbx, Token.size
+                movzx r12, word [rbx + Token.TokenType]
+                movzx r13, word [rbx + Token.TokenStart]
+                movzx r14, word [rbx + Token.TokenLength]
+                mov r15, szSourceCode
+                add r15, r13
+                strcpy(ptrBuffer64, r15, r14)
+                inc qword [dqStatementOpCount]`
+            end 
+            
+            while qword[dqOperatorCount] >= 0 do `
+                call write_operator`
+            end `
+            
+            sprintf(ptrBuffer256, `"\tpop rax\r\n\tmov qword [%s], rax\r\n"`, ptr3Buffer64)
+            WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
         end `
-        
-        sprintf(ptrBuffer256, `"\tpop rax\r\n\tmov qword [%s], rax\r\n"`, ptr3Buffer64)
-        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
         multipop rax, rbx, rdx, r11, r12, r13, r14, r15
 
@@ -1541,6 +1614,32 @@ end end end end end end end end end end end `
 
     printf(`"[\#27[92mINFO\#27[0m] Generated %s.exe\r\n"`, szFilenameWithoutExtension, szFilenameWithoutExtension)
     jmp .exit
+
+get_data_type:
+    PushCalleeSavedRegs()
+
+    mov r15, rcx ; r15 holds pointer to name
+    xor r11, r11
+    mov r14, [dqNameCount]
+    mov r13, 0
+    mov r10, pNames`
+
+    while r13 < r14 do `
+        mov r12, [r10 + Name.Pointer]
+        strcmp(r12, r15)`
+
+        if rax == 0 then `
+            mov r11, [r10 + Name.Type]`
+            break
+        end `
+        add r10, Name.size
+        inc r13`
+    end `
+
+.end:
+    mov rax, r11
+    PopCalleeSavedRegs()
+    ret
 
 ; this routine will save a name to the variable list, along with its type
 ; rcx holds a null terminated string, rdx holds the type

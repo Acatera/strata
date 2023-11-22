@@ -1,6 +1,27 @@
+`%include "inc/std.inc"
+section .text
+    global _start
+
+_start:
+    InitStandardOutput()
+`
 array uints = uint64 [ 10 ] ;
 uint64 index = 0
+uint64 twice = 0
+uint64 thrice = 0
+uint64 modulo = 0
 
-while qword[index] < 10 do
+while qword[index] < 10 do 
+    twice = index * 2 ;
+    thrice = index * 3 ;
+    modulo = index % 2 ;
+
+    if qword[modulo] == 0 then
+        uints [ index ] = thrice ;
+    else
+        uints [ index ] = twice ;
+    end
+
     index = index + 1 ;
-end
+end `
+ExitProcess(0)`
