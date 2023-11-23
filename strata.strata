@@ -201,6 +201,17 @@ proc printHumanTokenType
     end end end end end end end end
     end end
 endproc printHumanTokenType
+
+proc printUnexpectedToken `
+    printf(`"[\#27[91mERROR\#27[0m] line %d - Unexpected token: "`, [currentLine])
+    `
+    printHumanTokenTypeArg1 = tokenTypeValue ;
+    printHumanTokenType
+    `
+    ExitProcess(1)
+    `
+endproc printUnexpectedToken
+
 `
 %define SOURCE_CODE_SIZE 1024*1024
 %define TINY_BUFFER_SIZE 32
@@ -963,12 +974,8 @@ while tokenI < [tokenCount] do
             pushTokenToIRStack
 
             machineState = EXPECTING_ASSIGNMENT ;
-        else `
-            printf(`"ERROR: Unexpected identifier\n"`)
-            `
-            printHumanTokenTypeArg1 = tokenTypeValue ;
-            printHumanTokenType
-            `ExitProcess(1) ; todo - remove this`
+        else 
+            printUnexpectedToken
         end
     else if tokenTypeValue == 7 then `; operator assignment`
         if machineState == [EXPECTING_ASSIGNMENT] then `
@@ -979,12 +986,8 @@ while tokenI < [tokenCount] do
             pushTokenToIRStack
 
             machineState = EXPECTING_CONSTANT_INTEGER ;
-        else `
-            printf(`"ERROR: Unexpected identifier\n"`)
-            `
-            printHumanTokenTypeArg1 = tokenTypeValue ;
-            printHumanTokenType
-            `ExitProcess(1) ; todo - remove this`
+        else 
+            printUnexpectedToken
         end
     else if tokenTypeValue == 19 then `; constant integer`
         if machineState == [EXPECTING_CONSTANT_INTEGER] then `
@@ -995,14 +998,10 @@ while tokenI < [tokenCount] do
             pushTokenToIRStack
 
             machineState = EXPECTING_SEMICOLON ;
-        else `
-            printf(`"ERROR: Unexpected identifier\n"`)
-            `
-            printHumanTokenTypeArg1 = tokenTypeValue ;
-            printHumanTokenType
-            `ExitProcess(1) ; todo - remove this`
+        else 
+            printUnexpectedToken
         end
-    else if tokenTypeValue == 20 then `; constant integer`
+    else if tokenTypeValue == 20 then `; semicolon`
         if machineState == [EXPECTING_SEMICOLON] then `
             printf(`"shifting SEMICOLON\n"`)
             `
@@ -1011,13 +1010,9 @@ while tokenI < [tokenCount] do
             pushTokenToIRStack
 
             machineState = EXPECTING_ANYTHING ;
-        else `
-            printf(`"ERROR: Unexpected identifier\n"`)
-            `
-            printHumanTokenTypeArg1 = tokenTypeValue ;
-            printHumanTokenType
-            `ExitProcess(1) ; todo - remove this`
-        end        
+        else 
+            printUnexpectedToken
+        end   
     else
         printHumanTokenTypeArg1 = tokenTypeValue ;
         printHumanTokenType
