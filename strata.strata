@@ -1076,6 +1076,7 @@ end end end end end end end end end end end end `
         multipush rax, rcx, rdx
         mov rcx, ptrBuffer64
         mov rdx, TYPE_UINT64
+        mov r8, 8
         call push_variable
         multipop rax, rcx, rdx
         
@@ -1145,6 +1146,7 @@ end end end end end end end end end end end end `
         multipush rax, rcx, rdx
         mov rcx, ptrBuffer64
         mov rdx, TYPE_UINT8
+        mov r8, 1
         call push_variable
         multipop rax, rcx, rdx
         
@@ -1427,7 +1429,24 @@ end end end end end end end end end end end end `
                 call write_operator`
             end `
             
-            sprintf(ptrBuffer256, `"\tpop rax\r\n\tmov qword [%s], rax\r\n"`, ptr3Buffer64)
+             ; fetch data type from names table
+            multipush rax, rcx
+            mov rcx, ptr3Buffer64
+            call get_data_type
+            mov r15, rax
+            mov r11, rdx ; data type size in bytes
+            multipop rax, rcx
+            `
+            
+            if r15 == TYPE_UINT8 then `
+                sprintf(ptrBuffer256, `"\tpop rax\r\n\tmov byte [%s], al\r\n"`, ptr3Buffer64)`
+            else if r15 == TYPE_UINT64 then `
+                sprintf(ptrBuffer256, `"\tpop rax\r\n\tmov qword [%s], rax\r\n"`, ptr3Buffer64)`
+            else `
+                printf(`"[\#27[91mERROR\#27[0m] 5Unsupported data type of size %d\r\n"`, r11)
+                printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                jmp .exit`
+            end end `
             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
         end `
 
@@ -2020,7 +2039,7 @@ compile_condition_3:
     add r10, r11
     strcpy(ptrBuffer64, r10, r12)
 
-    ; fetch data type from names table
+    ; fetch data type for first operand
     multipush rax, rcx
     mov rcx, ptrBuffer64
     call get_data_type
@@ -2034,11 +2053,13 @@ compile_condition_3:
     add r10, r11
     strcpy(ptr2Buffer64, r10, r12)`
 
-    if r15 == TYPE_UINT64 then `
+    if r15 == TYPE_UINT8 then `
+        sprintf(ptrBuffer256, `"\tmov r15, [%s]\r\n\tcmp r15, %s\r\n"`, ptrBuffer64, ptr2Buffer64)`
+    else if r15 == TYPE_UINT64 then `
         sprintf(ptrBuffer256, `"\tmov r15, [%s]\r\n\tcmp r15, %s\r\n"`, ptrBuffer64, ptr2Buffer64)`
     else `
         sprintf(ptrBuffer256, `"    cmp %s, %s\r\n"`, ptrBuffer64, ptr2Buffer64)`
-    end `
+    end end `
 
     ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
@@ -2109,7 +2130,7 @@ compile_condition_3:
     else if r10 == OperatorGreaterOrEqual then `
         sprintf(ptrBuffer256, `"\tjl %s\r\n"`, ptrBuffer64)`
     else `
-        printf(`"[\#27[91mERROR\#27[0m] Unsupported operator %x\r\n"`, r10)
+        printf(`"[\#27[91mERROR\#27[0m] 7Unsupported operator %x\r\n"`, r10)
         ExitProcess(1)`
     end end end end end end `
 
