@@ -2,6 +2,15 @@
 %include "inc/std.inc"
 ; %define DEBUG 0
 `
+`;state machine`
+uint64 EXPECTING_ANYTHING         = 0
+uint64 EXPECTING_IDENTIFIER       = 1
+uint64 EXPECTING_ASSIGNMENT       = 2
+uint64 EXPECTING_CONSTANT_INTEGER = 3
+uint64 EXPECTING_SEMICOLON        = 4
+
+uint64 machineState = 0
+
 array tokens = uint64 [ 65536 ] ;
 uint64 tokenCount = 0
 uint64 tokenSize = 2
@@ -12,6 +21,7 @@ uint64 tokenLineIndex = 0
 uint64 tokenLineValue = 0
 uint64 currentTokenType = 0
 uint64 nextBLockId = 0
+uint64 currentLine = 1
 
 array irStack = uint64 [ 65536 ] ;
 uint64 irStackCount = 0
@@ -38,6 +48,10 @@ proc pushTokenToIRStack `
 
     irStackCount = irStackCount + 1 ;
 endproc pushTokenToIRStack
+
+proc incrementCurrentLine
+    currentLine = currentLine + 1 ;
+endproc incrementCurrentLine
 
 uint64 printHumanTokenTypeArg1 = 0
 proc printHumanTokenType
@@ -575,7 +589,7 @@ end `
     cmp byte [rdi], bl
     je .token_found
     cmp byte [rdi], cl
-    je .token_found
+    je .newline_found
     cmp byte [rdi], dl
     je .token_found
     cmp byte [rdi], chAsmStart
@@ -595,6 +609,11 @@ end `
     add r8, 2
     mov [dqLineStart], r8
     sub r8, 2
+    `
+    currentLine = currentLine + 1 ;
+    `
+    ;printf(`"Newline %d\n"`, [currentLine])
+
 
 .token_found:
     ; is token length 0?`
@@ -790,9 +809,12 @@ end end `
 
     PushCallerSavedRegs()
     PushCalleeSavedRegs()
+
 `
 tokenTypeIndex = tokenCount * tokenSize + 0 ;
+tokenLineIndex = tokenCount * tokenSize + 1 ;
 tokens [ tokenTypeIndex ] = currentTokenType ;
+tokens [ tokenLineIndex ] = currentLine ;
 tokenCount = tokenCount + 1 ;
 `
     PopCalleeSavedRegs()
@@ -813,9 +835,16 @@ tokenCount = tokenCount + 1 ;
 .asm_literal_loop:
     cmp byte [rdi], chAsmStart
     je .asm_literal_end
+    cmp byte [rdi], 0xa
+    je .asm_newline
+.after_asm_newline:
     inc r14
     inc rdi
     jmp .asm_literal_loop
+
+.asm_newline:
+    call incrementCurrentLine
+    jmp .after_asm_newline
 
 .asm_literal_end:
     inc rdi ; move offset past trailing '0x40'
@@ -845,7 +874,9 @@ tokenCount = tokenCount + 1 ;
 `
 currentTokenType = 17 ;
 tokenTypeIndex = tokenCount * tokenSize + 0 ;
+tokenLineIndex = tokenCount * tokenSize + 1 ;
 tokens [ tokenTypeIndex ] = currentTokenType ;
+tokens [ tokenLineIndex ] = currentLine ;
 tokenCount = tokenCount + 1 ;
 `
     PopCalleeSavedRegs()
@@ -893,7 +924,9 @@ tokenCount = tokenCount + 1 ;
 `
 currentTokenType = 16 ;
 tokenTypeIndex = tokenCount * tokenSize + 0 ;
+tokenLineIndex = tokenCount * tokenSize + 1 ;
 tokens [ tokenTypeIndex ] = currentTokenType ;
+tokens [ tokenLineIndex ] = currentLine ;
 tokenCount = tokenCount + 1 ;
 `
     PopCalleeSavedRegs()
@@ -908,49 +941,90 @@ tokenCount = tokenCount + 1 ;
     mov r13, tokenList
 `
 tokenI = 0 ;
-while tokenI < [tokenCount] do
+while tokenI < [tokenCount] do 
     tokenTypeIndex = tokenI * tokenSize + 0 ;
+    tokenLineIndex = tokenI * tokenSize + 1 ;
     tokenTypeValue = tokens [ tokenTypeIndex ] ;
-    if tokenTypeValue == 256 then `; if
-        printf(`"+- IF BLOCK %d --\n"`, [nextBLockId])
+    tokenLineValue = tokens [ tokenLineIndex ] ; 
+    if tokenTypeValue == 265 then `; uint64
+        printf(`"shifting UINT64\n"`)
         `
         tokenTypeToPush = tokenTypeValue ;
-        tokenValueToPush = nextBLockId ;
+        tokenValueToPush = 0 ;
         pushTokenToIRStack
 
-        nextBLockId = nextBLockId + 1 ;
-    else if tokenTypeValue == 257 then 
-        irStackI = irStackCount - 1 ;
-        while irStackI >= 0 do `
-            ;printf(`"irStackI: %d\n"`, [irStackI])
+        machineState = EXPECTING_IDENTIFIER ;
+    else if tokenTypeValue == 18 then `; identifier`
+        if machineState == [EXPECTING_IDENTIFIER] then `
+            printf(`"shifting IDENTIFIER\n"`)
             `
-            irStackTokenTypeIndex  = irStackI * irStackSize ;
-            irStackTokenValueIndex = irStackI * irStackSize + 1 ;
+            tokenTypeToPush = tokenTypeValue ;
+            tokenValueToPush = 0 ;
+            pushTokenToIRStack
 
-            irStackTokenTypeValue = irStack [ irStackTokenTypeIndex ] ;
-            irStackTokenValueValue = irStack [ irStackTokenValueIndex ] ;
+            machineState = EXPECTING_ASSIGNMENT ;
+        else `
+            printf(`"ERROR: Unexpected identifier\n"`)
             `
-            ;printf(`"irStackTokenTypeValue: %d\n"`, [irStackTokenTypeValue])
-            ;printf(`"irStackTokenValueValue: %d\n"`, [irStackTokenValueValue])
-            `
-            if irStackTokenTypeValue == 256 then `; while
-                printf(`"+- THEN BLOCK %d (expecting condition to be present)\n"`, [irStackTokenValueValue])
-                `
-                break
-            end
-
-            irStackI = irStackI - 1 ;
+            printHumanTokenTypeArg1 = tokenTypeValue ;
+            printHumanTokenType
+            `ExitProcess(1) ; todo - remove this`
         end
-
-        if irStackI < 0 then `
-            printf(`"[\#27[91mERROR\#27[0m] 'then' without 'if'\n"`)
-            ExitProcess(1)
+    else if tokenTypeValue == 7 then `; operator assignment`
+        if machineState == [EXPECTING_ASSIGNMENT] then `
+            printf(`"shifting ASSIGNMENT\n"`)
             `
+            tokenTypeToPush = tokenTypeValue ;
+            tokenValueToPush = 0 ;
+            pushTokenToIRStack
+
+            machineState = EXPECTING_CONSTANT_INTEGER ;
+        else `
+            printf(`"ERROR: Unexpected identifier\n"`)
+            `
+            printHumanTokenTypeArg1 = tokenTypeValue ;
+            printHumanTokenType
+            `ExitProcess(1) ; todo - remove this`
         end
+    else if tokenTypeValue == 19 then `; constant integer`
+        if machineState == [EXPECTING_CONSTANT_INTEGER] then `
+            printf(`"shifting INTEGER\n"`)
+            `
+            tokenTypeToPush = tokenTypeValue ;
+            tokenValueToPush = 0 ;
+            pushTokenToIRStack
+
+            machineState = EXPECTING_SEMICOLON ;
+        else `
+            printf(`"ERROR: Unexpected identifier\n"`)
+            `
+            printHumanTokenTypeArg1 = tokenTypeValue ;
+            printHumanTokenType
+            `ExitProcess(1) ; todo - remove this`
+        end
+    else if tokenTypeValue == 20 then `; constant integer`
+        if machineState == [EXPECTING_SEMICOLON] then `
+            printf(`"shifting SEMICOLON\n"`)
+            `
+            tokenTypeToPush = tokenTypeValue ;
+            tokenValueToPush = 0 ;
+            pushTokenToIRStack
+
+            machineState = EXPECTING_ANYTHING ;
+        else `
+            printf(`"ERROR: Unexpected identifier\n"`)
+            `
+            printHumanTokenTypeArg1 = tokenTypeValue ;
+            printHumanTokenType
+            `ExitProcess(1) ; todo - remove this`
+        end        
     else
         printHumanTokenTypeArg1 = tokenTypeValue ;
         printHumanTokenType
-    end end
+        `
+        ExitProcess(1) ; todo - remove this
+        `
+    end end end end end
 
     tokenI = tokenI + 1 ;
 end
