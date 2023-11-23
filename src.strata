@@ -5,7 +5,8 @@ section .text
 _start:
     InitStandardOutput()
 `
-
+then 
+end
 array uints = uint64 [ 20 ] ;
 array myStr = uint8 [ 26 ] ;
 uint64 index = 0
