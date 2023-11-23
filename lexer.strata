@@ -1,0 +1,37 @@
+`
+array sourceCode = uint8 [ 1048576 ] ;
+uint64 bytesRead = 0
+
+`
+    strcpy(sourceCode, szSourceCode, [dwBytesRead])
+    mov rax, [dwBytesRead]
+    mov [bytesRead], rax
+    printf(`"Source code size: %d bytes\r\n"`, [bytesRead])
+`
+uint64 i = 0
+uint64 j = 0
+uint8 c = 0
+array token = uint8 [ 64 ] ;
+
+while i < [bytesRead] do
+    c = sourceCode [ i ] ;
+    if c == 32 then
+        token [ j ] = 0 ;
+        j = 0 ;
+        `
+        printf(`"Token %s\n"`, token)
+        `
+        while c == 32 do
+            i = i + 1 ;
+            c = sourceCode [ i ] ;
+        end
+        continue;
+    else
+        token [ j ] = c ;
+        j = j + 1 ;
+    end
+    i = i + 1 ;
+end
+`    
+
+    ExitProcess(0)

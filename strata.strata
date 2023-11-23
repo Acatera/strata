@@ -1,7 +1,14 @@
  `
 %include "inc/std.inc"
 ; %define DEBUG 0
-
+`
+array tokens = uint64 [ 65536 ] ;
+uint64 tokenCount = 0
+uint64 tokenI = 0
+uint64 tokenTypeIndex = 0
+uint64 tokenTypeValue = 0
+uint64 currentTokenType = 0
+`
 %define SOURCE_CODE_SIZE 1024*1024
 %define TINY_BUFFER_SIZE 32
 %define SMALL_BUFFER_SIZE 64
@@ -416,60 +423,114 @@ end `
     push rbp
     mov rbp, rsp
     sub rsp, 8 ; reserve space on the stack for the token type
-    mov [rbp], word 0 ; initialize token type to 0`
+    mov [rbp], word 0 ; initialize token type to 0
+`
+currentTokenType = 0 ;
 
 if CompareTokenWith(szKeywordIf) then `
-    mov [rbp], word KeywordIf`
+    mov [rbp], word KeywordIf
+    `
+    currentTokenType = 256 ;
 else if CompareTokenWith(szKeywordThen) then `
-    mov [rbp], word KeywordThen`
+    mov [rbp], word KeywordThen
+    `
+    currentTokenType = 257 ;
 else if CompareTokenWith(szKeywordElse) then `
-    mov [rbp], word KeywordElse`
+    mov [rbp], word KeywordElse
+    `
+    currentTokenType = 258 ;
 else if CompareTokenWith(szKeywordEnd) then `
-    mov [rbp], word KeywordEnd`
+    mov [rbp], word KeywordEnd
+    `
+    currentTokenType = 259 ;
 else if CompareTokenWith(szKeywordWhile) then `
-    mov [rbp], word KeywordWhile`
+    mov [rbp], word KeywordWhile
+    `
+    currentTokenType = 260 ;
 else if CompareTokenWith(szKeywordDo) then `
-    mov [rbp], word KeywordDo`
+    mov [rbp], word KeywordDo
+    `
+    currentTokenType = 261 ;
 else if CompareTokenWith(szKeywordContinue) then `
-    mov [rbp], word KeywordContinue`
+    mov [rbp], word KeywordContinue
+    `
+    currentTokenType = 262 ;
 else if CompareTokenWith(szKeywordBreak) then `
-    mov [rbp], word KeywordBreak`
+    mov [rbp], word KeywordBreak
+    `
+    currentTokenType = 263 ;
 else if CompareTokenWith(szKeywordUInt8) then `
-    mov [rbp], word KeywordDefineUInt8`    
+    mov [rbp], word KeywordDefineUInt8
+    `    
+    currentTokenType = 264 ;
 else if CompareTokenWith(szKeywordUInt64) then `
-    mov [rbp], word KeywordDefineUInt64`
+    mov [rbp], word KeywordDefineUInt64
+    `
+    currentTokenType = 265 ;
 else if CompareTokenWith(szKeywordString) then `
-    mov [rbp], word KeywordDefineStringVar`    
+    mov [rbp], word KeywordDefineStringVar
+    `    
+    currentTokenType = 266 ;
 else if CompareTokenWith(szKeywordEval) then `
-    mov [rbp], word KeywordEval`
+    mov [rbp], word KeywordEval
+    `
+    currentTokenType = 267 ;
 else if CompareTokenWith(szKeywordArray) then `
-    mov [rbp], word KeywordArray`
+    mov [rbp], word KeywordArray
+    `
+    currentTokenType = 268 ;
 else if CompareTokenWith(szOperatorEquals) then `
-    mov [rbp], word OperatorEquals`
+    mov [rbp], word OperatorEquals
+    `
+    currentTokenType = 1 ;
 else if CompareTokenWith(szOperatorNotEquals) then `
-    mov [rbp], word OperatorNotEquals`
+    mov [rbp], word OperatorNotEquals
+    `
+    currentTokenType = 2 ;
 else if CompareTokenWith(szOperatorLessOrEqual) then `
-    mov [rbp], word OperatorLessOrEqual`
+    mov [rbp], word OperatorLessOrEqual
+    `
+    currentTokenType = 3 ;
 else if CompareTokenWith(szOperatorLess) then `
-    mov [rbp], word OperatorLess`
+    mov [rbp], word OperatorLess
+    `
+    currentTokenType = 4 ;
 else if CompareTokenWith(szOperatorGreaterOrEqual) then `
-    mov [rbp], word OperatorGreaterOrEqual`
+    mov [rbp], word OperatorGreaterOrEqual
+    `
+    currentTokenType = 5 ;
 else if CompareTokenWith(szOperatorGreater) then `
-    mov [rbp], word OperatorGreater`
+    mov [rbp], word OperatorGreater
+    `
+    currentTokenType = 6 ;
 else if CompareTokenWith(szOperatorAssignment) then `
-    mov [rbp], word OperatorAssignment`
+    mov [rbp], word OperatorAssignment
+    `
+    currentTokenType = 7 ;
 else if CompareTokenWith(szOperatorPlus) then `
-    mov [rbp], word OperatorPlus`
+    mov [rbp], word OperatorPlus
+    `
+    currentTokenType = 8 ;
 else if CompareTokenWith(szOperatorMinus) then `
-    mov [rbp], word OperatorMinus`
+    mov [rbp], word OperatorMinus
+    `
+    currentTokenType = 9 ;
 else if CompareTokenWith(szOperatorMultiply) then `
-    mov [rbp], word OperatorMultiply`
+    mov [rbp], word OperatorMultiply
+    `
+    currentTokenType = 10 ;
 else if CompareTokenWith(szOperatorDivide) then `
-    mov [rbp], word OperatorDivide`
+    mov [rbp], word OperatorDivide
+    `
+    currentTokenType = 11 ;
 else if CompareTokenWith(szOperatorModulo) then `
-    mov [rbp], word OperatorModulo`
+    mov [rbp], word OperatorModulo
+    `
+    currentTokenType = 12 ;
 else if CompareTokenWith(szStatementEnd) then `
-    mov [rbp], word StatemendEnd`
+    mov [rbp], word StatemendEnd
+    `
+    currentTokenType = 20 ;
 else `
     ; check if token is a number
     PushCallerSavedRegs()
@@ -478,10 +539,14 @@ else `
     call atoi`
 
     if rdx != 0 then `
-        mov [rbp], word OperandInteger`
+        mov [rbp], word OperandInteger
+        `
+        currentTokenType = 19 ;
     else `
         ; otherwise, it's a literal
-        mov [rbp], word OperandLiteral`
+        mov [rbp], word OperandLiteral
+        `
+        currentTokenType = 18 ;
     end `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
@@ -518,6 +583,16 @@ end end end end end end end end end end end end `
     mov [rbx + Token.Column], rax ; column
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r15
+
+    PushCallerSavedRegs()
+    PushCalleeSavedRegs()
+`
+tokenTypeIndex = tokenCount + 0 ;
+tokens [ tokenTypeIndex ] = currentTokenType ;
+tokenCount = tokenCount + 1 ;
+`
+    PopCalleeSavedRegs()
+    PopCallerSavedRegs()
 
     pop rbp
     add rsp, 8 ; restore stack pointer
@@ -561,7 +636,16 @@ end end end end end end end end end end end end `
     mov [rbx + Token.TokenLength], r14 ; token start
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r10, r14
-
+    PushCallerSavedRegs()
+    PushCalleeSavedRegs()
+`
+currentTokenType = 17 ;
+tokenTypeIndex = tokenCount + 0 ;
+tokens [ tokenTypeIndex ] = currentTokenType ;
+tokenCount = tokenCount + 1 ;
+`
+    PopCalleeSavedRegs()
+    PopCallerSavedRegs()
     jmp .read_token_loop
 
 .string_literal_start:
@@ -600,7 +684,16 @@ end end end end end end end end end end end end `
     mov [rbx + Token.TokenLength], r14 ; token start
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r10, r14
-
+    PushCallerSavedRegs()
+    PushCalleeSavedRegs()
+`
+currentTokenType = 16 ;
+tokenTypeIndex = tokenCount + 0 ;
+tokens [ tokenTypeIndex ] = currentTokenType ;
+tokenCount = tokenCount + 1 ;
+`
+    PopCalleeSavedRegs()
+    PopCallerSavedRegs()
     jmp .read_token_loop
 ;-----------------------------------source code parsing----------------------------------
 
@@ -609,7 +702,23 @@ end end end end end end end end end end end end `
     printf(`"[\#27[92mINFO\#27[0m] Found %d tokens.\r\n"`, r15)
     mov r14, 0
     mov r13, tokenList
-
+`
+tokenI = 0 ;
+while tokenI < [tokenCount] do
+    tokenTypeIndex = tokenI + 0 ;
+    tokenTypeValue = tokens [ tokenTypeIndex ] ;
+    if tokenTypeValue != 0 then
+        `
+        printf(`"Found token type %x\n"`, [tokenTypeValue])
+        `
+    else 
+        `
+        printf(`"Unknown token type %x\n"`, [tokenTypeValue])
+        `
+    end
+    tokenI = tokenI + 1 ;
+end
+`
 %define NextToken() nextToken
 %macro nextToken 0
     add rdx, Token.size ; jump to next token
@@ -949,7 +1058,7 @@ end end end end end end end end end end end end `
             mov dx, word [rax + Block.BlockId]
             and rdx, 0xffff
             PushCallerSavedRegs()
-            call compile_condition_3
+            call compile_while_condition_3
             PopCallerSavedRegs()`
         else if r10d == 1 then `
             mov rcx, r11 ; rcx stores token index of first token of if condition
@@ -2054,7 +2163,137 @@ compile_condition_3:
     strcpy(ptr2Buffer64, r10, r12)`
 
     if r15 == TYPE_UINT8 then `
+        sprintf(ptrBuffer256, `"\tmovzx r15, byte [%s]\r\n\tcmp r15, %s\r\n"`, ptrBuffer64, ptr2Buffer64)`
+    else if r15 == TYPE_UINT64 then `
         sprintf(ptrBuffer256, `"\tmov r15, [%s]\r\n\tcmp r15, %s\r\n"`, ptrBuffer64, ptr2Buffer64)`
+    else `
+        sprintf(ptrBuffer256, `"    cmp %s, %s\r\n"`, ptrBuffer64, ptr2Buffer64)`
+    end end `
+
+    ; write comparison
+    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+   
+    ; write operator
+    sub rbx, Token.size ; move back to operator
+    mov r10, [rbx - Token.TokenType]
+    and r10, 0xffff
+
+    multipush r10, r13, r14
+    mov r13d, dword [dwTokenCount]
+    mov r14, [rbp] ; token index points to the first operand
+    add r14, 2
+    mov r15, 0 ; count of encountered if keywords`
+    
+    while r14 <= r13 do `
+        ; lacking an 'or', I have to do this for now
+        mov r10w, word [rbx + Token.TokenType]`
+        if r10w == defKeywordElse then 
+            if r15 == 0 then `
+                jmp .found_matching_keyword`
+            end 
+        end
+
+        if r10w == defKeywordEnd then 
+            if r15 != 0 then `
+                inc r14
+                add rbx, Token.size
+                dec r15`
+                continue
+            end `
+            jmp .found_matching_keyword`
+        end 
+        
+        if r10w == defKeywordIf then `
+            inc r15`
+        end 
+
+        if r10w == defKeywordWhile then `
+            inc r15`
+        end
+        `
+        
+        inc r14
+        add rbx, Token.size`
+    end `
+    printf(`"[\#27[91mERROR\#27[0m] Expected 'then' or 'else' after if condition\r\n"`)
+    ExitProcess(1)
+
+.found_matching_keyword:    
+
+    mov r13, [rbp - 0x8] ; r13 stores scope id`
+    
+    if r10w == defKeywordElse then `
+        sprintf(ptrBuffer64, `".else_%d"`, r13)`
+    else `    
+        sprintf(ptrBuffer64, `".end_%d"`, r13)`
+    end `
+
+    multipop r10, r13, r14
+    `
+    if r10 == OperatorEquals then `
+        sprintf(ptrBuffer256, `"\tjne %s\r\n"`, ptrBuffer64)`
+    else if r10 == OperatorNotEquals then `
+        sprintf(ptrBuffer256, `"\tje %s\r\n"`, ptrBuffer64)`
+    else if r10 == OperatorLess then `
+        sprintf(ptrBuffer256, `"\tjge %s\r\n"`, ptrBuffer64)`
+    else if r10 == OperatorLessOrEqual then `
+        sprintf(ptrBuffer256, `"\tjg %s\r\n"`, ptrBuffer64)`
+    else if r10 == OperatorGreater then `
+        sprintf(ptrBuffer256, `"\tjle %s\r\n"`, ptrBuffer64)`
+    else if r10 == OperatorGreaterOrEqual then `
+        sprintf(ptrBuffer256, `"\tjl %s\r\n"`, ptrBuffer64)`
+    else `
+        printf(`"[\#27[91mERROR\#27[0m] 7Unsupported operator %x\r\n"`, r10)
+        ExitProcess(1)`
+    end end end end end end `
+
+    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+
+.end:
+    PopCalleeSavedRegs()
+    add rsp, 0x10
+    pop rbp
+    ; mov rax, 0
+    ret
+
+compile_while_condition_3:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 0x10 ; reserve space on the stack for the token index
+    mov [rbp], rcx ; store token index on the stack
+    mov [rbp - 0x8], rdx ; store scope id on the stack
+    PushCalleeSavedRegs()
+
+    ; get first operand
+    mov rax, rcx
+    mov rdx, Token.size
+    mul rdx
+    mov rcx, tokenList
+    add rcx, rax
+    mov rbx, rcx
+
+    mov r10, szSourceCode
+    mov r11, [rbx + Token.TokenStart]
+    mov r12, [rbx + Token.TokenLength]
+    add r10, r11
+    strcpy(ptrBuffer64, r10, r12)
+
+    ; fetch data type for first operand
+    multipush rax, rcx
+    mov rcx, ptrBuffer64
+    call get_data_type
+    mov r15, rax
+    multipop rax, rcx
+
+    add rbx, Token.size * 2 ; advance to second operand
+    mov r10, szSourceCode
+    mov r11, [rbx + Token.TokenStart]
+    mov r12, [rbx + Token.TokenLength]
+    add r10, r11
+    strcpy(ptr2Buffer64, r10, r12)`
+
+    if r15 == TYPE_UINT8 then `
+        sprintf(ptrBuffer256, `"\tmovzx r15, byte [%s]\r\n\tcmp r15, %s\r\n"`, ptrBuffer64, ptr2Buffer64)`
     else if r15 == TYPE_UINT64 then `
         sprintf(ptrBuffer256, `"\tmov r15, [%s]\r\n\tcmp r15, %s\r\n"`, ptrBuffer64, ptr2Buffer64)`
     else `
@@ -2107,14 +2346,8 @@ compile_condition_3:
 
 .found_matching_keyword:    
 
-    mov r13, [rbp - 0x8] ; r13 stores scope id`
-    
-    if r10w == defKeywordElse then `
-        sprintf(ptrBuffer64, `".else_%d"`, r13)`
-    else `    
-        sprintf(ptrBuffer64, `".end_%d"`, r13)`
-    end `
-
+    mov r13, [rbp - 0x8] ; r13 stores scope id
+    sprintf(ptrBuffer64, `".end_%d"`, r13)
     multipop r10, r13, r14
     `
     if r10 == OperatorEquals then `

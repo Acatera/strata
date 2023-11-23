@@ -1,0 +1,57 @@
+`%include "inc/std.inc"
+section .text
+    global _start
+
+_start:
+    InitStandardOutput()
+`
+array uints = uint64 [ 20 ] ;
+array myStr = uint8 [ 26 ] ;
+uint64 index = 0
+uint64 typeIndex = 0
+uint64 pointerIndex = 0
+uint64 typeValue = 0
+uint64 pointerValue = 0
+
+while index < 20 do 
+    if index > 10 then 
+        break 
+    end
+    typeIndex = index + 0 ;
+    pointerIndex = index + 1 ;
+    typeValue = index ;
+    pointerValue = index * 1164 ;
+
+    uints [ typeIndex ] = typeValue ;
+    uints [ pointerIndex ] = pointerValue ;
+
+    index = index + 2 ;
+end 
+
+uint64 ascii = 0
+index = 0 ;
+while index < 26 do 
+    ascii = index + 65 ;
+    myStr [ index ] = ascii ;
+    index = index + 1 ;
+end
+
+index = 0 ;
+
+while index < 20 do 
+    typeIndex = index + 0 ;
+    pointerIndex = index + 1 ;
+    typeValue = uints [ typeIndex ] ;
+    pointerValue = uints [ pointerIndex ] ;
+    `
+    printf(`"Type: %d, Pointer: %x\n"`, [typeValue], [pointerValue])
+    `
+    index = index + 2 ;
+end 
+uint8 c = 2
+c = myStr [ c ] ;
+`
+printf(`"String: %s\n"`, myStr)
+printf(`"Char: %d\n"`, [c])
+
+ExitProcess(0)`
