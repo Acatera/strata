@@ -11,6 +11,155 @@ uint64 tokenTypeValue = 0
 uint64 tokenLineIndex = 0
 uint64 tokenLineValue = 0
 uint64 currentTokenType = 0
+
+uint64 printHumanTokenTypeArg1 = 0
+proc printHumanTokenType
+    if printHumanTokenTypeArg1 == 1 then
+        `
+        printf(`"OP_EQUALS\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 2 then
+        `
+        printf(`"OP_NOT_EQUALS\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 3 then
+        `
+        printf(`"OP_LESS\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 4 then
+        `
+        printf(`"OP_LESS_OR_EQAL\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 5 then
+        `
+        printf(`"OP_GREATER\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 6 then
+        `
+        printf(`"OP_GREATER_OR_EQUAL\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 7 then
+        `
+        printf(`"OP_ASSIGNMENT\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 8 then
+        `
+        printf(`"OP_PLUS\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 9 then
+        `
+        printf(`"OP_MINUS\n"`)
+        `     
+    else if printHumanTokenTypeArg1 == 10 then
+        `
+        printf(`"OP_MUL\n"`)
+        ` 
+    else if printHumanTokenTypeArg1 == 11 then
+        `
+        printf(`"OP_DIV\n"`)
+        ` 
+    else if printHumanTokenTypeArg1 == 12 then
+        `
+        printf(`"OP_MOD\n"`)
+        `    
+    else if printHumanTokenTypeArg1 == 256 then
+        `
+        printf(`"KEYWORD_IF\n"`)
+        `  
+    else if printHumanTokenTypeArg1 == 257 then
+        `
+        printf(`"KEYWORD_THEN\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 258 then
+        `
+        printf(`"KEYWORD_ELSE\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 259 then
+        `
+        printf(`"KEYWORD_END\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 260 then
+        `
+        printf(`"KEYWORD_WHILE\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 261 then
+        `
+        printf(`"KEYWORD_DO\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 262 then
+        `
+        printf(`"KEYWORD_CONTINUE\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 263 then
+        `
+        printf(`"KEYWORD_BREAK\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 264 then
+        `
+        printf(`"KEYWORD_UINT8\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 265 then
+        `
+        printf(`"KEYWORD_UINT64\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 266 then
+        `
+        printf(`"KEYWORD_STRING--\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 267 then
+        `
+        printf(`"KEYWORD_EVAL--\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 268 then
+        `
+        printf(`"KEYWORD_ARRAY\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 269 then
+        `
+        printf(`"KEYWORD_PROC\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 270 then
+        `
+        printf(`"KEYWORD_ENDPROC\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 16 then
+        `
+        printf(`"CONSTANT_STRING\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 17 then
+        `
+        printf(`"ASM_LITERAL\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 18 then
+        `
+        printf(`"IDENTIFIER\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 19 then
+        `
+        printf(`"CONSTANT_INTEGER\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 20 then
+        `
+        printf(`"SEMICOLON\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 21 then
+        `
+        printf(`"SQBRACKET_OPEN\n"`)
+        `
+    else if printHumanTokenTypeArg1 == 22 then
+        `
+        printf(`"SQBRACKET_CLOSE\n"`)
+        `
+    else 
+        `
+        printf(`"Unknown token type %x\n"`, [printHumanTokenTypeArg1])
+        `
+    end end end end end end end end
+    end end end end end end end end
+    end end end end end end end end
+    end end end end end end end end
+    end end
+endproc printHumanTokenType
 `
 %define SOURCE_CODE_SIZE 1024*1024
 %define TINY_BUFFER_SIZE 32
@@ -59,6 +208,8 @@ uint64 currentTokenType = 0
 %define OperandLiteral           2 + (1 << 4)
 %define OperandInteger           3 + (1 << 4)
 %define StatemendEnd             4 + (1 << 4)
+%define SquareBracketOpen        5 + (1 << 4)
+%define SquareBracketClose       6 + (1 << 4)
 
 ; Reserve 4 bits for operand type
 %define KeywordIf                0 + (1 << (4 + 4))
@@ -96,6 +247,8 @@ uint64 currentTokenType = 0
 %define defOperandLiteral         word OperandLiteral
 %define defOperandInteger         word OperandInteger
 %define defStatemendEnd           word StatemendEnd
+%define defSquareBracketOpen      word SquareBracketOpen
+%define defSquareBracketClose     word SquareBracketClose
 
 %define defKeywordIf              word KeywordIf
 %define defKeywordThen            word KeywordThen
@@ -506,19 +659,19 @@ else if CompareTokenWith(szOperatorNotEquals) then `
 else if CompareTokenWith(szOperatorLessOrEqual) then `
     mov [rbp], word OperatorLessOrEqual
     `
-    currentTokenType = 3 ;
+    currentTokenType = 4 ;
 else if CompareTokenWith(szOperatorLess) then `
     mov [rbp], word OperatorLess
     `
-    currentTokenType = 4 ;
+    currentTokenType = 3 ;
 else if CompareTokenWith(szOperatorGreaterOrEqual) then `
     mov [rbp], word OperatorGreaterOrEqual
     `
-    currentTokenType = 5 ;
+    currentTokenType = 6 ;
 else if CompareTokenWith(szOperatorGreater) then `
     mov [rbp], word OperatorGreater
     `
-    currentTokenType = 6 ;
+    currentTokenType = 5 ;
 else if CompareTokenWith(szOperatorAssignment) then `
     mov [rbp], word OperatorAssignment
     `
@@ -547,6 +700,14 @@ else if CompareTokenWith(szStatementEnd) then `
     mov [rbp], word StatemendEnd
     `
     currentTokenType = 20 ;
+else if CompareTokenWith(szSquareBracketOpen) then `
+    mov [rbp], word SquareBracketOpen
+    `
+    currentTokenType = 21 ;  
+else if CompareTokenWith(szSquareBracketClose) then `
+    mov [rbp], word SquareBracketClose
+    `
+    currentTokenType = 22 ;  
 else `
     ; check if token is a number
     PushCallerSavedRegs()
@@ -566,8 +727,8 @@ else `
     end `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
-end end end end end end end end end end end end end end `
-
+end end end end end end end end end end end end end end 
+end end `
     ; test if token type is 0
     push rax
     mov ax, word [rbp]
@@ -723,15 +884,9 @@ tokenI = 0 ;
 while tokenI < [tokenCount] do
     tokenTypeIndex = tokenI * tokenSize + 0 ;
     tokenTypeValue = tokens [ tokenTypeIndex ] ;
-    if tokenTypeValue != 0 then
-        `
-        printf(`"Found token type %x\n"`, [tokenTypeValue])
-        `
-    else 
-        `
-        printf(`"Unknown token type %x\n"`, [tokenTypeValue])
-        `
-    end
+    
+    printHumanTokenTypeArg1 = tokenTypeValue ;
+    printHumanTokenType
     tokenI = tokenI + 1 ;
 end
 `
@@ -2626,4 +2781,8 @@ section .data
     szOperatorModulo.length equ $ - szOperatorModulo
     szStatementEnd db ";"
     szStatementEnd.length equ $ - szStatementEnd
+    szSquareBracketOpen db "["
+    szSquareBracketOpen.length equ $ - szSquareBracketOpen
+    szSquareBracketClose db "]"
+    szSquareBracketClose.length equ $ - szSquareBracketClose
 `

@@ -1,7 +1,10 @@
 @echo off
 strata-sh strata
-@REM call bss strata.asm
 
+REM check if exit code is 0. if it's not, exit
+if not %errorlevel%==0 (
+    exit /b %errorlevel%
+)
 REM if an argument was passed, run strata.exe with it
 echo.
 
