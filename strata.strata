@@ -64,6 +64,7 @@
 %define KeywordDefineStringVar  10 + (1 << (4 + 4))
 %define KeywordEval             11 + (1 << (4 + 4))
 %define KeywordArray            12 + (1 << (4 + 4))
+%define KeywordStruct           13 + (1 << (4 + 4))
 
 ; todo - revisit this
 %define defOperatorEquals         word OperatorEquals
@@ -98,12 +99,14 @@
 %define defKeywordDefineStringVar word KeywordDefineStringVar
 %define defKeywordEval            word KeywordEval
 %define defKeywordArray           word KeywordArray
+%define defKeywordStruct          word KeywordStruct
 
 
 %define TYPE_UINT8     1
 %define TYPE_UINT64    2
 %define TYPE_ARRAY     3
 %define TYPE_STRING    4
+%define TYPE_STRUCT    5
 
 %define TOKEN_TYPE_SIZE 2
 
@@ -444,6 +447,8 @@ else if CompareTokenWith(szKeywordEval) then `
     mov [rbp], word KeywordEval`
 else if CompareTokenWith(szKeywordArray) then `
     mov [rbp], word KeywordArray`
+else if CompareTokenWith(szKeywordStruct) then `
+    mov [rbp], word KeywordStruct`
 else if CompareTokenWith(szOperatorEquals) then `
     mov [rbp], word OperatorEquals`
 else if CompareTokenWith(szOperatorNotEquals) then `
@@ -485,7 +490,7 @@ else `
     end `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
-end end end end end end end end end end end end `
+end end end end end end end end end end end end end `
 
     ; test if token type is 0
     push rax
@@ -1443,7 +1448,7 @@ end end end end end end end end end end end end `
             else if r15 == TYPE_UINT64 then `
                 sprintf(ptrBuffer256, `"\tpop rax\r\n\tmov qword [%s], rax\r\n"`, ptr3Buffer64)`
             else `
-                printf(`"[\#27[91mERROR\#27[0m] 5Unsupported data type of size %d\r\n"`, r11)
+                printf(`"[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n"`, r11)
                 printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, qword [rbx + Token.Line], qword [rbx + Token.Column])
                 jmp .exit`
             end end `
@@ -1613,6 +1618,76 @@ end end end end end end end end end end end end `
 
         PopCallerSavedRegs()
         SkipTokens(7)
+        NextToken()`
+    end
+
+    `; struct `
+    if currentToken.Type == defKeywordStruct then `
+        PushCallerSavedRegs()
+
+        multipush rax, rbx, rdx
+
+        mov rax, rbx
+        mov rdx, Token.size
+        mul rdx
+        mov rbx, tokenList
+        add rbx, rax ; this points to 'array' token
+
+        ; look ahead for identifier
+        add rbx, Token.size
+
+        mov qword [dqStatementOpCount], 1
+
+        mov r12w, word [rbx + Token.TokenType]
+        mov r14w, word [rbx + Token.TokenStart]
+        mov r15w, word [rbx + Token.TokenLength]
+        mov r13, szSourceCode
+        add r13, r14
+        strcpy(ptrBuffer64, r13, r15) ; literal name
+
+        printf(`"Struct name: %s\r\n"`, ptrBuffer64)
+        
+        add rbx, Token.size
+        mov r12w, word [rbx + Token.TokenType]`
+        
+        while r12w != defKeywordEnd do 
+            if r12w == defKeywordDefineUInt64 then `
+                mov r11, TYPE_UINT64
+                inc qword [dqStatementOpCount]`
+            else `
+                printf(`"[\#27[91mERROR\#27[0m] Expected identifier after 'struct' name\r\n"`)
+                jmp .exit`
+            end `
+
+            add rbx, Token.size
+            mov r12w, word [rbx + Token.TokenType]
+            mov r14w, word [rbx + Token.TokenStart]
+            mov r15w, word [rbx + Token.TokenLength]
+            mov r13, szSourceCode
+            add r13, r14
+            strcpy(ptrBuffer64, r13, r15) ; literal name
+
+            printf(`"Struct member: %s\r\n"`, ptrBuffer64)
+            inc qword [dqStatementOpCount]
+
+            add rbx, Token.size
+            mov r12w, word [rbx + Token.TokenType]
+            inc qword [dqStatementOpCount]`
+
+            if r12w != defStatemendEnd then `
+                printf(`"[\#27[91mERROR\#27[0m] Expected ';' after struct member\r\n"`)
+                jmp .exit`
+            end `
+
+            add rbx, Token.size
+            mov r12w, word [rbx + Token.TokenType]`
+        end `
+
+        inc qword [dqStatementOpCount]
+        multipop rax, rbx, rdx
+
+        PopCallerSavedRegs()
+        SkipTokens([dqStatementOpCount])
         NextToken()`
     end
 
@@ -2274,6 +2349,8 @@ section .data
     szKeywordEval.length equ $ - szKeywordEval
     szKeywordArray db "array"
     szKeywordArray.length equ $ - szKeywordArray
+    szKeywordStruct db "struct"
+    szKeywordStruct.length equ $ - szKeywordStruct
     szOperatorEquals db "=="
     szOperatorEquals.length equ $ - szOperatorEquals
     szOperatorNotEquals db "!="

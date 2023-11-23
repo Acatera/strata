@@ -1,0 +1,5 @@
+struct myStruct
+    uint64 field1 ;
+    uint64 field2 ;
+    uint64 pointer ;
+end
