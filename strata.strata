@@ -4,9 +4,12 @@
 `
 array tokens = uint64 [ 65536 ] ;
 uint64 tokenCount = 0
+uint64 tokenSize = 2
 uint64 tokenI = 0
 uint64 tokenTypeIndex = 0
 uint64 tokenTypeValue = 0
+uint64 tokenLineIndex = 0
+uint64 tokenLineValue = 0
 uint64 currentTokenType = 0
 `
 %define SOURCE_CODE_SIZE 1024*1024
@@ -71,6 +74,8 @@ uint64 currentTokenType = 0
 %define KeywordDefineStringVar  10 + (1 << (4 + 4))
 %define KeywordEval             11 + (1 << (4 + 4))
 %define KeywordArray            12 + (1 << (4 + 4))
+%define KeywordProc             13 + (1 << (4 + 4))
+%define KeywordEndProc          14 + (1 << (4 + 4))
 
 ; todo - revisit this
 %define defOperatorEquals         word OperatorEquals
@@ -105,12 +110,15 @@ uint64 currentTokenType = 0
 %define defKeywordDefineStringVar word KeywordDefineStringVar
 %define defKeywordEval            word KeywordEval
 %define defKeywordArray           word KeywordArray
+%define defKeywordProc            word KeywordProc
+%define defKeywordEndProc         word KeywordEndProc
 
 
 %define TYPE_UINT8     1
 %define TYPE_UINT64    2
 %define TYPE_ARRAY     3
 %define TYPE_STRING    4
+%define TYPE_PROC      5
 
 %define TOKEN_TYPE_SIZE 2
 
@@ -439,6 +447,10 @@ else if CompareTokenWith(szKeywordElse) then `
     mov [rbp], word KeywordElse
     `
     currentTokenType = 258 ;
+else if CompareTokenWith(szKeywordEndProc) then `
+    mov [rbp], word KeywordEndProc
+    `
+    currentTokenType = 270 ; 
 else if CompareTokenWith(szKeywordEnd) then `
     mov [rbp], word KeywordEnd
     `
@@ -479,6 +491,10 @@ else if CompareTokenWith(szKeywordArray) then `
     mov [rbp], word KeywordArray
     `
     currentTokenType = 268 ;
+else if CompareTokenWith(szKeywordProc) then `
+    mov [rbp], word KeywordProc
+    `
+    currentTokenType = 269 ;    
 else if CompareTokenWith(szOperatorEquals) then `
     mov [rbp], word OperatorEquals
     `
@@ -550,7 +566,7 @@ else `
     end `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
-end end end end end end end end end end end end `
+end end end end end end end end end end end end end end `
 
     ; test if token type is 0
     push rax
@@ -587,7 +603,7 @@ end end end end end end end end end end end end `
     PushCallerSavedRegs()
     PushCalleeSavedRegs()
 `
-tokenTypeIndex = tokenCount + 0 ;
+tokenTypeIndex = tokenCount * tokenSize + 0 ;
 tokens [ tokenTypeIndex ] = currentTokenType ;
 tokenCount = tokenCount + 1 ;
 `
@@ -640,7 +656,7 @@ tokenCount = tokenCount + 1 ;
     PushCalleeSavedRegs()
 `
 currentTokenType = 17 ;
-tokenTypeIndex = tokenCount + 0 ;
+tokenTypeIndex = tokenCount * tokenSize + 0 ;
 tokens [ tokenTypeIndex ] = currentTokenType ;
 tokenCount = tokenCount + 1 ;
 `
@@ -688,7 +704,7 @@ tokenCount = tokenCount + 1 ;
     PushCalleeSavedRegs()
 `
 currentTokenType = 16 ;
-tokenTypeIndex = tokenCount + 0 ;
+tokenTypeIndex = tokenCount * tokenSize + 0 ;
 tokens [ tokenTypeIndex ] = currentTokenType ;
 tokenCount = tokenCount + 1 ;
 `
@@ -705,7 +721,7 @@ tokenCount = tokenCount + 1 ;
 `
 tokenI = 0 ;
 while tokenI < [tokenCount] do
-    tokenTypeIndex = tokenI + 0 ;
+    tokenTypeIndex = tokenI * tokenSize + 0 ;
     tokenTypeValue = tokens [ tokenTypeIndex ] ;
     if tokenTypeValue != 0 then
         `
@@ -1384,8 +1400,14 @@ end
         mov r15, rax
         mov r11, rdx ; data type size in bytes
         multipop rax, rcx`
+        if r15 == TYPE_PROC then `
+            sprintf(ptrBuffer256, `"\r\ncall %s\r\n"`, ptr3Buffer64)
+            WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+            multipop rax, rbx, rdx, r11, r12, r13, r14, r15
 
-        if r15 == TYPE_ARRAY then `
+            PopCallerSavedRegs()
+            NextToken()`
+        else if r15 == TYPE_ARRAY then `
             mov qword [dqStatementOpCount], 1
             
             ; todo - verify that the next token is a '['            
@@ -1557,7 +1579,7 @@ end
                 jmp .exit`
             end end `
             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-        end `
+        end end `
 
         multipop rax, rbx, rdx, r11, r12, r13, r14, r15
 
@@ -1724,6 +1746,73 @@ end
         SkipTokens(7)
         NextToken()`
     end
+
+    `; keyword 'proc'`
+    if currentToken.Type == defKeywordProc then `
+        PushCallerSavedRegs()
+
+        multipush rax, rbx, rdx, r11, r12, r13, r14, r15
+        mov rax, rbx
+        mov rdx, Token.size
+        mul rdx
+        mov rbx, tokenList
+        add rbx, rax ; this points to 'array' token
+
+        ; look ahead for identifier
+        add rbx, Token.size
+
+        mov r14w, word [rbx + Token.TokenStart]
+        mov r15w, word [rbx + Token.TokenLength]
+        mov r13, szSourceCode
+        add r13, r14
+        strcpy(ptrBuffer64, r13, r15) ; literal name
+
+        sprintf(ptrBuffer256, `"\r\n\tjmp %s_end\r\n%s:\r\n"`, ptrBuffer64, ptrBuffer64)
+        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+
+        multipush rax, rcx, rdx, r8
+        mov rcx, ptrBuffer64
+        mov rdx, TYPE_PROC
+        mov r8, 0
+        call push_variable
+        multipop rax, rcx, rdx, r8
+
+        multipop rax, rbx, rdx, r11, r12, r13, r14, r15
+
+        PopCallerSavedRegs()
+        SkipTokens(1)
+        NextToken()`
+    end 
+
+    `; keyword 'endproc'`
+    if currentToken.Type == defKeywordEndProc then `
+        PushCallerSavedRegs()
+
+        multipush rax, rbx, rdx, r11, r12, r13, r14, r15
+        mov rax, rbx
+        mov rdx, Token.size
+        mul rdx
+        mov rbx, tokenList
+        add rbx, rax ; this points to 'array' token
+
+        ; look ahead for identifier
+        add rbx, Token.size
+
+        mov r14w, word [rbx + Token.TokenStart]
+        mov r15w, word [rbx + Token.TokenLength]
+        mov r13, szSourceCode
+        add r13, r14
+        strcpy(ptrBuffer64, r13, r15) ; literal name
+
+        sprintf(ptrBuffer256, `"\r\n\tret\r\n%s_end:\r\n"`, ptrBuffer64)
+        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+
+        multipop rax, rbx, rdx, r11, r12, r13, r14, r15
+
+        PopCallerSavedRegs()
+        SkipTokens(1)
+        NextToken()`
+    end 
 
     if currentToken.Type == defOperandStringLiteral then `
         ; todo - optimize strings by removing duplicate strings
@@ -2507,6 +2596,10 @@ section .data
     szKeywordEval.length equ $ - szKeywordEval
     szKeywordArray db "array"
     szKeywordArray.length equ $ - szKeywordArray
+    szKeywordProc db "proc"
+    szKeywordProc.length equ $ - szKeywordProc
+    szKeywordEndProc db "endproc"
+    szKeywordEndProc.length equ $ - szKeywordEndProc
     szOperatorEquals db "=="
     szOperatorEquals.length equ $ - szOperatorEquals
     szOperatorNotEquals db "!="

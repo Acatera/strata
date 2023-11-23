@@ -5,6 +5,7 @@ section .text
 _start:
     InitStandardOutput()
 `
+
 array uints = uint64 [ 20 ] ;
 array myStr = uint8 [ 26 ] ;
 uint64 index = 0
@@ -12,6 +13,10 @@ uint64 typeIndex = 0
 uint64 pointerIndex = 0
 uint64 typeValue = 0
 uint64 pointerValue = 0
+
+proc myProc
+    index = 0 ;
+endproc myProc
 
 while index < 20 do 
     if index > 10 then 
@@ -36,8 +41,7 @@ while index < 26 do
     index = index + 1 ;
 end
 
-index = 0 ;
-
+myProc
 while index < 20 do 
     typeIndex = index + 0 ;
     pointerIndex = index + 1 ;
