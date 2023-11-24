@@ -294,6 +294,8 @@ endproc printUnexpectedToken
 %define StatemendEnd             4 + (1 << 4)
 %define SquareBracketOpen        5 + (1 << 4)
 %define SquareBracketClose       6 + (1 << 4)
+%define ParenOpen                7 + (1 << 4)
+%define ParenClose               8 + (1 << 4)
 
 ; Reserve 4 bits for operand type
 %define KeywordIf                0 + (1 << (4 + 4))
@@ -333,6 +335,8 @@ endproc printUnexpectedToken
 %define defStatemendEnd           word StatemendEnd
 %define defSquareBracketOpen      word SquareBracketOpen
 %define defSquareBracketClose     word SquareBracketClose
+%define defParenOpen              word ParenOpen
+%define defParenClose             word ParenClose
 
 %define defKeywordIf              word KeywordIf
 %define defKeywordThen            word KeywordThen
@@ -797,6 +801,14 @@ else if CompareTokenWith(szSquareBracketClose) then `
     mov [rbp], word SquareBracketClose
     `
     currentTokenType = 22 ;  
+else if CompareTokenWith(szParenOpen) then `
+    mov [rbp], word ParenOpen
+    `
+    currentTokenType = 23 ;  
+else if CompareTokenWith(szParenClose) then `
+    mov [rbp], word ParenClose
+    `
+    currentTokenType = 24 ; 
 else `
     ; check if token is a number
     PushCallerSavedRegs()
@@ -817,7 +829,7 @@ else `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
 end end end end end end end end end end end end end end 
-end end `
+end end end end `
     ; test if token type is 0
     push rax
     mov ax, word [rbp]
@@ -1675,7 +1687,7 @@ end
         mov r11, rdx ; data type size in bytes
         multipop rax, rcx`
         if r15 == TYPE_PROC then `
-            sprintf(ptrBuffer256, `"\r\ncall %s\r\n"`, ptr3Buffer64)
+            sprintf(ptrBuffer256, `"\r\n\tcall %s\r\n"`, ptr3Buffer64)
             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
             multipop rax, rbx, rdx, r11, r12, r13, r14, r15
 
@@ -1758,6 +1770,15 @@ end
             ; todo - verify that the next token is a ';'
             add rbx, Token.size`
         else `
+            ; check if assignment operator is next
+            add rbx, Token.size
+            mov r12w, word [rbx + Token.TokenType]`
+
+            if r12w != defOperatorAssignment then `
+                printf(`"[\#27[91mERROR\#27[0m] Expected assignment operator after literal\r\n"`)
+                jmp .exit`
+            end `
+
             add rbx, Token.size
             mov r12w, word [rbx + Token.TokenType]
 
@@ -1767,7 +1788,27 @@ end
             mov r15, szSourceCode
             add r15, r13
             strcpy(ptrBuffer64, r15, r14) 
-            mov qword [dqStatementOpCount], 1`
+            mov qword [dqStatementOpCount], 1
+            ; fetch data type from names table
+            multipush rax, rcx
+            mov rcx, ptrBuffer64
+            call get_data_type
+            mov r15, rax
+            mov r11, rdx ; data type size in bytes
+            multipop rax, rcx
+            printf(`"Found operand of type %d:  %s\r\n"`, r15, ptrBuffer64)
+            `
+
+            if r15 == TYPE_PROC then `
+                printf(`"Found proc call\r\n"`)
+                sprintf(ptrBuffer256, `"\r\n\tcall %s\r\n\tmov [%s], rax\r\n"`, ptrBuffer64, ptr3Buffer64)
+                WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+                multipop rax, rbx, rdx, r11, r12, r13, r14, r15
+
+                PopCallerSavedRegs()
+                SkipTokens(3)
+                NextToken()`
+            end
 
             while r12w != defStatemendEnd do 
                 if r12w == defOperandInteger then `
@@ -1842,7 +1883,12 @@ end
             mov r11, rdx ; data type size in bytes
             multipop rax, rcx
             `
-            
+
+            if r15 == 0 then `
+                printf(`"[\#27[91mERROR\#27[0m] Unknown identifier '%s'\r\n"`, ptr3Buffer64)
+                jmp .exit`
+            end 
+
             if r15 == TYPE_UINT8 then `
                 sprintf(ptrBuffer256, `"\tpop rax\r\n\tmov byte [%s], al\r\n"`, ptr3Buffer64)`
             else if r15 == TYPE_UINT64 then `
@@ -2030,31 +2076,66 @@ end
         mov rdx, Token.size
         mul rdx
         mov rbx, tokenList
-        add rbx, rax ; this points to 'array' token
+        add rbx, rax ; rax now points to 'proc' token
 
         ; look ahead for identifier
         add rbx, Token.size
+        mov qword [dqStatementOpCount], 1
 
         mov r14w, word [rbx + Token.TokenStart]
         mov r15w, word [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
-        strcpy(ptrBuffer64, r13, r15) ; literal name
+        strcpy(ptrBuffer64, r13, r15) ; name of the procedure
 
         sprintf(ptrBuffer256, `"\r\n\tjmp %s_end\r\n%s:\r\n"`, ptrBuffer64, ptrBuffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
-        multipush rax, rcx, rdx, r8
+        add rbx, Token.size
+        mov r12w, word [rbx + Token.TokenType]
+        inc qword [dqStatementOpCount]`
+
+        if r12w != defParenOpen then `
+            printf(`"[\#27[91mERROR\#27[0m] Expected '(' after 'proc'\r\n"`)
+            jmp .exit`
+        end `
+
+        ; move to first argument
+        add rbx, Token.size
+        mov r12w, word [rbx + Token.TokenType]
+        inc qword [dqStatementOpCount]`
+
+        while r12w != defParenClose do `
+            ; get argument name
+            mov r14w, word [rbx + Token.TokenStart]
+            mov r15w, word [rbx + Token.TokenLength]
+            mov r13, szSourceCode
+            add r13, r14
+            strcpy(ptr2Buffer64, r13, r15) ; name of the argument
+
+            printf(`"[\#27[92mINFO\#27[0m] Argument '%s' found\r\n"`, ptr2Buffer64)
+
+            add rbx, Token.size
+            mov r12w, word [rbx + Token.TokenType]
+            inc qword [dqStatementOpCount]`
+        end `
+        
+
+        multipush rax, rcx, rdx, r8, r9
         mov rcx, ptrBuffer64
         mov rdx, TYPE_PROC
         mov r8, 0
+        ; todo - get number of arguments, construct a symbol table and push it
+        mov r9, 0 
         call push_variable
-        multipop rax, rcx, rdx, r8
+        multipop rax, rcx, rdx, r8, r9
+
+        printf(`"[\#27[92mINFO\#27[0m] Procedure '%s' found\r\n"`, ptrBuffer64)
 
         multipop rax, rbx, rdx, r11, r12, r13, r14, r15
 
         PopCallerSavedRegs()
-        SkipTokens(1)
+        SkipTokens([dqStatementOpCount])
         NextToken()`
     end 
 
@@ -2908,4 +2989,8 @@ section .data
     szSquareBracketOpen.length equ $ - szSquareBracketOpen
     szSquareBracketClose db "]"
     szSquareBracketClose.length equ $ - szSquareBracketClose
+    szParenOpen db "("
+    szParenOpen.length equ $ - szParenOpen
+    szParenClose db ")"
+    szParenClose.length equ $ - szParenClose
 `

@@ -9,30 +9,30 @@ _start:
 `
 uint64 sum = 0
 
-proc myProc ( arg1, arg2 )
-    result = arg1 + arg2
-    return
+proc myProc ( arg1 arg2 )
 endproc myProc
+sum = 0 ;
+sum = 1 + 2 ;
 
-sum = myProc ( 1, 2 ) ;
+sum = myProc ( 1 2 ) ;
 `
     ; myProc(1, 2);
-    sub rsp, 0x10
-    mov [rsp], 1   ;arg1
-    mov [rsp+8], 2 ;arg2
-    call myProc
-    add rsp, 0x10
+    ; sub rsp, 0x10
+    ; mov [rsp], 1   ;arg1
+    ; mov [rsp+8], 2 ;arg2
+    ; call myProc
+    ; add rsp, 0x10
 
 .myProc:
-    push rbp
-    mov rbp, rsp
+    ;push rbp
+    ;mov rbp, rsp
 
-    mov rax, [rbp+16] ; arg1
-    add rax, [rbp+24] ; arg2
+    ;mov rax, [rbp+16] ; arg1
+    ;add rax, [rbp+24] ; arg2
     
-    mov rsp, rbp
-    pop rbp
-    ret
+    ;mov rsp, rbp
+    ;pop rbp
+    ;ret
 
 
 ExitProcess(0)
