@@ -9,16 +9,26 @@ _start:
 `
 uint64 _ = 0
 
+
+proc parameterlessProc ( number )
+    `
+    printf(`"parameterlessProc\n"`)
+    `
+endproc parameterlessProc
+
 proc otherProc ( arg1 arg2 )
     `
-    printf(`"otherProc\n"`)
+    printf(`"otherProc %d, myProcVar %d\n"`, [rbp+16], [myProcVar])
     `
+    _ = parameterlessProc ( arg2 ) ;
 endproc otherProc
 
+
+
 proc myProc ( arg1 arg2 ) 
-
-
-
+    arg1 = 100 ;
+    _ = otherProc ( arg1 arg2 ) ;
+    uint64 myProcVar = 123
 endproc myProc
 
 uint64 sum = 0

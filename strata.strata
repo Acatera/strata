@@ -428,6 +428,7 @@ section .bss
     pCurrentSymbolTable resq 1
     pCurrentProcedureSymbolTable resq 1
     dqCurrentAssignedOperandValue resq 1 ; this is used to store the offset from rbp, in case of paramaters
+    dqCurrentParamValue resq 1 ; this is used to store the offset from rbp, in case of paramaters
 
 %define CONST_STRING_COUNT 1024
 %define CONST_STRING_CAPACITY 1024*256 
@@ -1900,17 +1901,31 @@ end
                 movzx r14, word [rbx + Token.TokenLength]
                 mov r15, szSourceCode
                 add r15, r13
-                strcpy(ptr2Buffer64, r15, r14)`
+                strcpy(ptr2Buffer64, r15, r14)
+                
+                multipush rax, rcx, r10
+                mov rcx, ptr2Buffer64
+                call get_data_type
+                mov r15, rax
+                mov r11, rdx ; data type size in bytes
+                mov [dqCurrentParamValue], r8  ; value (or pointer to a structure)
+                multipop rax, rcx, r10`
                 
                 while r12w != defParenOpen do 
                     if r12w == defOperandInteger then `
                         ; push to operator stack
                         sprintf(ptrBuffer256, `"\tpush qword %s\r\n"`, ptr2Buffer64)
                         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-                    else `
-                        ; push to operator stack
-                        sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptr2Buffer64)
-                        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                    else 
+                        if r8 != 0 then `
+                            ; push to operator stack
+                            sprintf(ptrBuffer256, `"\tpush qword [rbp + %d]\r\n"`, [dqCurrentParamValue])
+                            WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                        else `
+                            ; push to operator stack
+                            sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptr2Buffer64)
+                            WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                        end
                     end `
                     sub rbx, Token.size
                     mov r12w, word [rbx + Token.TokenType]
@@ -1918,7 +1933,15 @@ end
                     movzx r14, word [rbx + Token.TokenLength]
                     mov r15, szSourceCode
                     add r15, r13
-                    strcpy(ptr2Buffer64, r15, r14) `
+                    strcpy(ptr2Buffer64, r15, r14) 
+                    
+                    multipush rax, rcx, r10
+                    mov rcx, ptr2Buffer64
+                    call get_data_type
+                    mov r15, rax
+                    mov r11, rdx ; data type size in bytes
+                    mov [dqCurrentParamValue], r8  ; value (or pointer to a structure)
+                    multipop rax, rcx, r10`
                 end `
 
 
