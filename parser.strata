@@ -1,0 +1,119 @@
+`
+%include "inc/std.inc"
+
+section .text   
+    global _start
+
+_start:
+    InitStandardOutput()
+`
+
+array tokens = uint64 [ 100 ] ;
+uint64 tokenCount = 0 ;
+
+uint64 TOKEN_UINT8     = 1 ;
+uint64 TOKEN_UINT64     = 2 ;
+uint64 TOKEN_IDENTIFIER = 3 ;
+uint64 TOKEN_ASSIGNMENT = 4 ;
+uint64 TOKEN_CONSTANT_INTEGER      = 5 ;
+uint64 TOKEN_SEMICOLON  = 6 ;
+
+uint64 i = 0 ;
+
+tokens [ i ] = TOKEN_UINT8 ;
+i = i + 1 ;
+tokens [ i ] = TOKEN_IDENTIFIER ;
+i = i + 1 ;
+tokens [ i ] = TOKEN_ASSIGNMENT ;
+i = i + 1 ;
+tokens [ i ] = TOKEN_CONSTANT_INTEGER ;
+i = i + 1 ;
+tokens [ i ] = TOKEN_SEMICOLON ;
+i = i + 1 ;
+
+tokens [ i ] = TOKEN_UINT8 ;
+i = i + 1 ;
+tokens [ i ] = TOKEN_IDENTIFIER ;
+i = i + 1 ;
+tokens [ i ] = TOKEN_ASSIGNMENT ;
+i = i + 1 ;
+tokens [ i ] = TOKEN_CONSTANT_INTEGER ;
+i = i + 1 ;
+tokens [ i ] = TOKEN_SEMICOLON ;
+i = i + 1 ;
+tokenCount = i  ;
+
+i = 0 ;
+
+uint64 currentToken = 0 ;
+uint64 expectedToken = 0 ;
+
+proc consumeToken
+    if currentToken == [expectedToken] then
+        i = i + 1 ;
+        currentToken = tokens [ i ] ;
+    else `
+        printf(`"Error: expected token %d but got %d\n"`, [expectedToken], [currentToken])
+        ExitProcess(1) 
+        `
+    end
+endproc consumeToken
+
+proc unexpectedToken `
+    printf(`"Error: unexpected token %d\n"`, [currentToken])
+    ExitProcess(1)
+    `
+endproc unexpectedToken
+
+proc parseNumber
+    expectedToken = TOKEN_CONSTANT_INTEGER ;
+    consumeToken
+endproc parseNumber
+
+proc parseIdentifier
+    expectedToken = TOKEN_IDENTIFIER ;
+    consumeToken
+endproc parseIdentifier
+
+proc parseType
+    if currentToken == [TOKEN_UINT8] then
+        i = i + 1 ;
+        currentToken = tokens [ i ] ;
+    else 
+        if currentToken == [TOKEN_UINT64] then
+            i = i + 1 ;
+            currentToken = tokens [ i ] ;
+        else
+            unexpectedToken
+        end 
+    end
+endproc parseType
+
+proc parseVariableDeclaration
+    parseType
+    parseIdentifier
+
+    expectedToken = TOKEN_ASSIGNMENT ;
+    consumeToken
+
+    parseNumber
+
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken
+endproc parseVariableDeclaration
+
+while i < [tokenCount] do
+    currentToken = tokens [ i ] ;
+
+    if currentToken == [TOKEN_UINT64] then
+        parseVariableDeclaration
+    else if currentToken == [TOKEN_UINT8] then
+        parseVariableDeclaration
+    else
+        unexpectedToken
+    end end
+end
+
+`
+ExitProcess(0)
+`

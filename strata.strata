@@ -11,17 +11,45 @@ uint64 EXPECTING_SEMICOLON        = 4
 
 uint64 machineState = 0
 
+`; array of pointers to statements of any sort
+`
+array program = uint64 [ 65536 ] ; 
+uint64 programCount = 0
+
+`; preallocated memory used for internal malloc - 1MB
+`
+array memory = uint64 [ 1048576 ] ;
+uint64 nextFreePointer = 0
+uint64 allocedPointer = 0
+uint64 requiredMemory = 0
+proc alloc 
+    allocedPointer = nextFreePointer ;
+    nextFreePointer = nextFreePointer + requiredMemory ;
+endproc alloc
+
+proc free 
+    nextFreePointer = allocedPointer ;
+endproc free
+
 array tokens = uint64 [ 65536 ] ;
 uint64 tokenCount = 0
-uint64 tokenSize = 2
+uint64 tokenSize = 4
 uint64 tokenI = 0
 uint64 tokenTypeIndex = 0
 uint64 tokenTypeValue = 0
 uint64 tokenLineIndex = 0
 uint64 tokenLineValue = 0
+uint64 tokenStartIndex = 0
+uint64 tokenStartValue = 0
+uint64 tokenLengthIndex = 0
+uint64 tokenLengthValue = 0
 uint64 currentTokenType = 0
 uint64 nextBLockId = 0
 uint64 currentLine = 1
+uint64 currentTokenStart = 0
+uint64 currentTokenLength = 0
+
+array currentIdentifier = uint8 [ 256 ] ;
 
 array irStack = uint64 [ 65536 ] ;
 uint64 irStackCount = 0
@@ -52,6 +80,10 @@ endproc pushTokenToIRStack
 proc incrementCurrentLine
     currentLine = currentLine + 1 ;
 endproc incrementCurrentLine
+
+proc writeVariableDeclaration
+
+endproc writeVariableDeclaration
 
 uint64 printHumanTokenTypeArg1 = 0
 proc printHumanTokenType
@@ -344,10 +376,10 @@ struc Block
 endstruc
 
 struc Name
-    .Pointer  resq 1
-    .Type     resq 1
-    .DataSize resq 1
-    .Reserved resq 1
+    .Pointer  resq 1 ; pointer to the name
+    .Type     resq 1 ; uint64 type
+    .DataSize resq 1 ; uint64 size of the data
+    .Value    resq 1 ; uint64 value or pointer to a struct
     .size equ $ - .Pointer
 endstruc
 
@@ -818,14 +850,21 @@ end end `
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r15
 
+    mov [currentTokenStart], r8
+    mov [currentTokenLength], r9
+
     PushCallerSavedRegs()
     PushCalleeSavedRegs()
 
 `
 tokenTypeIndex = tokenCount * tokenSize + 0 ;
 tokenLineIndex = tokenCount * tokenSize + 1 ;
+tokenStartIndex = tokenCount * tokenSize + 2 ;
+tokenLengthIndex = tokenCount * tokenSize + 3 ;
 tokens [ tokenTypeIndex ] = currentTokenType ;
 tokens [ tokenLineIndex ] = currentLine ;
+tokens [ tokenStartIndex ] = currentTokenStart ;
+tokens [ tokenLengthIndex ] = currentTokenLength ;
 tokenCount = tokenCount + 1 ;
 `
     PopCalleeSavedRegs()
@@ -886,8 +925,12 @@ tokenCount = tokenCount + 1 ;
 currentTokenType = 17 ;
 tokenTypeIndex = tokenCount * tokenSize + 0 ;
 tokenLineIndex = tokenCount * tokenSize + 1 ;
+tokenStartIndex = tokenCount * tokenSize + 2 ;
+tokenLengthIndex = tokenCount * tokenSize + 3 ;
 tokens [ tokenTypeIndex ] = currentTokenType ;
 tokens [ tokenLineIndex ] = currentLine ;
+tokens [ tokenStartIndex ] = currentTokenStart ;
+tokens [ tokenLengthIndex ] = currentTokenLength ;
 tokenCount = tokenCount + 1 ;
 `
     PopCalleeSavedRegs()
@@ -936,8 +979,12 @@ tokenCount = tokenCount + 1 ;
 currentTokenType = 16 ;
 tokenTypeIndex = tokenCount * tokenSize + 0 ;
 tokenLineIndex = tokenCount * tokenSize + 1 ;
+tokenStartIndex = tokenCount * tokenSize + 2 ;
+tokenLengthIndex = tokenCount * tokenSize + 3 ;
 tokens [ tokenTypeIndex ] = currentTokenType ;
 tokens [ tokenLineIndex ] = currentLine ;
+tokens [ tokenStartIndex ] = currentTokenStart ;
+tokens [ tokenLengthIndex ] = currentTokenLength ;
 tokenCount = tokenCount + 1 ;
 `
     PopCalleeSavedRegs()
@@ -957,69 +1004,7 @@ while tokenI < [tokenCount] do
     tokenLineIndex = tokenI * tokenSize + 1 ;
     tokenTypeValue = tokens [ tokenTypeIndex ] ;
     tokenLineValue = tokens [ tokenLineIndex ] ; 
-    if tokenTypeValue == 265 then `; uint64
-        printf(`"shifting UINT64\n"`)
-        `
-        tokenTypeToPush = tokenTypeValue ;
-        tokenValueToPush = 0 ;
-        pushTokenToIRStack
-
-        machineState = EXPECTING_IDENTIFIER ;
-    else if tokenTypeValue == 18 then `; identifier`
-        if machineState == [EXPECTING_IDENTIFIER] then `
-            printf(`"shifting IDENTIFIER\n"`)
-            `
-            tokenTypeToPush = tokenTypeValue ;
-            tokenValueToPush = 0 ;
-            pushTokenToIRStack
-
-            machineState = EXPECTING_ASSIGNMENT ;
-        else 
-            printUnexpectedToken
-        end
-    else if tokenTypeValue == 7 then `; operator assignment`
-        if machineState == [EXPECTING_ASSIGNMENT] then `
-            printf(`"shifting ASSIGNMENT\n"`)
-            `
-            tokenTypeToPush = tokenTypeValue ;
-            tokenValueToPush = 0 ;
-            pushTokenToIRStack
-
-            machineState = EXPECTING_CONSTANT_INTEGER ;
-        else 
-            printUnexpectedToken
-        end
-    else if tokenTypeValue == 19 then `; constant integer`
-        if machineState == [EXPECTING_CONSTANT_INTEGER] then `
-            printf(`"shifting INTEGER\n"`)
-            `
-            tokenTypeToPush = tokenTypeValue ;
-            tokenValueToPush = 0 ;
-            pushTokenToIRStack
-
-            machineState = EXPECTING_SEMICOLON ;
-        else 
-            printUnexpectedToken
-        end
-    else if tokenTypeValue == 20 then `; semicolon`
-        if machineState == [EXPECTING_SEMICOLON] then `
-            printf(`"shifting SEMICOLON\n"`)
-            `
-            tokenTypeToPush = tokenTypeValue ;
-            tokenValueToPush = 0 ;
-            pushTokenToIRStack
-
-            machineState = EXPECTING_ANYTHING ;
-        else 
-            printUnexpectedToken
-        end   
-    else
-        printHumanTokenTypeArg1 = tokenTypeValue ;
-        printHumanTokenType
-        `
-        ExitProcess(1) ; todo - remove this
-        `
-    end end end end end
+    
 
     tokenI = tokenI + 1 ;
 end
@@ -2300,7 +2285,10 @@ get_data_type:
     ret
 
 ; this routine will save a name to the variable list, along with its type
-; rcx holds a null terminated string, rdx holds the type, r8 holds the data size
+; rcx holds a null terminated string
+; rdx holds the type
+; r8 holds the data size
+; r9 holds the value (or pointer to a structure)
 push_variable:
     PushCalleeSavedRegs()
     
@@ -2332,6 +2320,7 @@ push_variable:
 
     ; store data size
     mov [r13 + Name.DataSize], r8
+    mov [r13 + Name.Value], r9
 
     ; increment name count  
     add r13, Name.size
