@@ -1777,8 +1777,9 @@ end
             movzx r14, word [rbx + Token.TokenLength]
             mov r15, szSourceCode
             add r15, r13
-
+            mov r10, r12 ; store index type
             strcpy(ptrBuffer64, r15, r14)
+            
             inc qword [dqStatementOpCount]
             
             ; todo - verify that the next token is a ']'
@@ -1800,6 +1801,19 @@ end
             strcpy(ptr2Buffer64, r15, r14)
             inc qword [dqStatementOpCount]`
 
+            if r10w == defOperandInteger then
+                if r11 == 1 then `
+                    sprintf(ptrBuffer256, `"\tmov rdx, %s\r\n\tadd rdx, %s\r\n"`, ptr3Buffer64, ptrBuffer64)
+                    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                else if r11 == 8 then `
+                    sprintf(ptrBuffer256, `"\tmov rax, %s\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n"`, ptrBuffer64, ptr3Buffer64)
+                    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                else `
+                    printf(`"[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n"`, r11)
+                    printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                    jmp .exit`
+                end end 
+            else
             if r11 == 1 then `
                 sprintf(ptrBuffer256, `"\tmov rdx, %s\r\n\tadd rdx, [%s]\r\n"`, ptr3Buffer64, ptrBuffer64)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
@@ -1811,6 +1825,7 @@ end
                 printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, qword [rbx + Token.Line], qword [rbx + Token.Column])
                 jmp .exit`
             end end 
+            end
 
             if r12w == defOperandInteger then
                 if r11 == 1 then `
@@ -2002,11 +2017,11 @@ end
                     else  
                         if r10 != 0 then `
                             ; push to operator stack
-                            sprintf(ptrBuffer256, `"\tpush qword [rbp + %d]; comment\r\n"`, r10)
+                            sprintf(ptrBuffer256, `"\tpush qword [rbp + %d]\r\n"`, r10)
                             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
                         else `    
                             ; push to operator stack
-                            sprintf(ptrBuffer256, `"\tpush qword [%s]; comment\r\n"`, ptrBuffer64)
+                            sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptrBuffer64)
                             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
                         end
                     end 

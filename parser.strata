@@ -7,50 +7,50 @@ section .text
 _start:
     InitStandardOutput()
 `
+uint64 _ = 0 ;
 
-array tokens = uint64 [ 100 ] ;
+array globalVariables = uint64 [ 10000 ] ;
+uint64 globalVariableCount = 0 ;
+uint64 globalVariableSize = 3 ;
+
+uint64 gvType = 0 ;
+uint64 gvName = 0 ;
+uint64 gvValue = 0 ;
+
+array tokens = uint64 [ 1000 ] ;
 uint64 tokenCount = 0 ;
+uint64 tokenSize = 2 ;
 
-uint64 TOKEN_UINT8     = 1 ;
-uint64 TOKEN_UINT64     = 2 ;
-uint64 TOKEN_IDENTIFIER = 3 ;
-uint64 TOKEN_ASSIGNMENT = 4 ;
+array output = uint8 [ 1000000 ] ;
+uint64 outputCount = 0 ;
+
+uint64 TOKEN_UINT8                 = 1 ;
+uint64 TOKEN_UINT64                = 2 ;
+uint64 TOKEN_IDENTIFIER            = 3 ;
+uint64 TOKEN_ASSIGNMENT            = 4 ;
 uint64 TOKEN_CONSTANT_INTEGER      = 5 ;
-uint64 TOKEN_SEMICOLON  = 6 ;
+uint64 TOKEN_SEMICOLON             = 6 ;
+
+uint64 TYPE_UINT8                  = 1 ;
+uint64 TYPE_UINT64                 = 2 ;
 
 uint64 i = 0 ;
 
-tokens [ i ] = TOKEN_UINT8 ;
-i = i + 1 ;
-tokens [ i ] = TOKEN_IDENTIFIER ;
-i = i + 1 ;
-tokens [ i ] = TOKEN_ASSIGNMENT ;
-i = i + 1 ;
-tokens [ i ] = TOKEN_CONSTANT_INTEGER ;
-i = i + 1 ;
-tokens [ i ] = TOKEN_SEMICOLON ;
-i = i + 1 ;
+tokens [ 0 ] = TOKEN_UINT8            ; tokens [ 1 ] = 0 ;
+tokens [ 2 ] = TOKEN_IDENTIFIER       ; tokens [ 3 ] = 0 ;
+tokens [ 4 ] = TOKEN_ASSIGNMENT       ; tokens [ 5 ] = 0 ;
+tokens [ 6 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 7 ] = 123 ;
+tokens [ 8 ] = TOKEN_SEMICOLON        ; tokens [ 9 ] = 0 ;
 
-tokens [ i ] = TOKEN_UINT8 ;
-i = i + 1 ;
-tokens [ i ] = TOKEN_IDENTIFIER ;
-i = i + 1 ;
-tokens [ i ] = TOKEN_ASSIGNMENT ;
-i = i + 1 ;
-tokens [ i ] = TOKEN_CONSTANT_INTEGER ;
-i = i + 1 ;
-tokens [ i ] = TOKEN_SEMICOLON ;
-i = i + 1 ;
-tokenCount = i  ;
-
+tokenCount = 5 ;
 i = 0 ;
 
 uint64 currentToken = 0 ;
 uint64 expectedToken = 0 ;
 
-proc consumeToken
+proc consumeToken ( )
     if currentToken == [expectedToken] then
-        i = i + 1 ;
+        i = i + tokenSize ;
         currentToken = tokens [ i ] ;
     else `
         printf(`"Error: expected token %d but got %d\n"`, [expectedToken], [currentToken])
@@ -59,58 +59,58 @@ proc consumeToken
     end
 endproc consumeToken
 
-proc unexpectedToken `
+proc unexpectedToken ( ) `
     printf(`"Error: unexpected token %d\n"`, [currentToken])
     ExitProcess(1)
     `
 endproc unexpectedToken
 
-proc parseNumber
+proc parseNumber ( )
     expectedToken = TOKEN_CONSTANT_INTEGER ;
-    consumeToken
+    consumeToken ( ) ;
 endproc parseNumber
 
-proc parseIdentifier
+proc parseIdentifier ( )
     expectedToken = TOKEN_IDENTIFIER ;
-    consumeToken
+    consumeToken ( ) ;
 endproc parseIdentifier
 
-proc parseType
+proc parseUIntType ( )
     if currentToken == [TOKEN_UINT8] then
-        i = i + 1 ;
+        gvType = TYPE_UINT8 ;
+        i = i + tokenSize ;
         currentToken = tokens [ i ] ;
-    else 
-        if currentToken == [TOKEN_UINT64] then
-            i = i + 1 ;
-            currentToken = tokens [ i ] ;
-        else
-            unexpectedToken
-        end 
-    end
-endproc parseType
+    else if currentToken == [TOKEN_UINT64] then
+        gvType = TYPE_UINT8 ;
+        i = i + tokenSize ;
+        currentToken = tokens [ i ] ;
+    else
+        unexpectedToken ( ) ;
+    end end
+endproc parseUIntType
 
-proc parseVariableDeclaration
-    parseType
-    parseIdentifier
+proc parseVariableDeclaration ( a )
+    parseUIntType ( ) ;
+    parseIdentifier ( ) ;
 
     expectedToken = TOKEN_ASSIGNMENT ;
-    consumeToken
+    consumeToken ( ) ;
 
-    parseNumber
+    parseNumber ( ) ;
 
     expectedToken = TOKEN_SEMICOLON ;
-    consumeToken
+    consumeToken ( ) ;
 endproc parseVariableDeclaration
 
 while i < [tokenCount] do
     currentToken = tokens [ i ] ;
 
     if currentToken == [TOKEN_UINT64] then
-        parseVariableDeclaration
+        parseVariableDeclaration ( ) ;
     else if currentToken == [TOKEN_UINT8] then
-        parseVariableDeclaration
+        parseVariableDeclaration ( ) ;
     else
-        unexpectedToken
+        unexpectedToken ( ) ;
     end end
 end
 

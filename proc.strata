@@ -23,8 +23,6 @@ proc otherProc ( arg1 arg2 )
     _ = parameterlessProc ( arg2 ) ;
 endproc otherProc
 
-
-
 proc myProc ( arg1 arg2 ) 
     arg1 = 100 ;
     _ = otherProc ( arg1 arg2 ) ;
