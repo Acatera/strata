@@ -16,20 +16,8 @@ uint64 machineState = 0
 array program = uint64 [ 65536 ] ; 
 uint64 programCount = 0
 
-`; preallocated memory used for internal malloc - 1MB
-`
-array memory = uint64 [ 1048576 ] ;
-uint64 nextFreePointer = 0
-uint64 allocedPointer = 0
-uint64 requiredMemory = 0
-proc alloc 
-    allocedPointer = nextFreePointer ;
-    nextFreePointer = nextFreePointer + requiredMemory ;
-endproc alloc
-
-proc free 
-    nextFreePointer = allocedPointer ;
-endproc free
+uint64 currentProcArgCount = 0
+uint64 currentProcArgIndex = 0
 
 array tokens = uint64 [ 65536 ] ;
 uint64 tokenCount = 0
@@ -387,6 +375,11 @@ struc Name
     .size equ $ - .Pointer
 endstruc
 
+struc SymbolTable
+    .Pointer     resq 1
+    .SymbolCount resq 1
+    .size equ $ - .Pointer
+
 %define MAX_TOKEN_COUNT 1024 * 16
 
 %define BLOCK_ITEM_SIZE 8
@@ -414,6 +407,7 @@ section .bss
     dqStatementOpCount resq 1
     
     szNames resb 1024 * 64
+    pszNameEndPointer resq 1
     pNames resb 1024 * Name.size
     dqNameCount resq 1
 
@@ -425,6 +419,15 @@ section .bss
     szDestFile resb 256
     szFilenameWithoutExtension resb 256
     lpExitCode resq 1
+
+    memory resb 1024 * 1024
+    pFreePointer resq 1
+    symbolTables resb 256 * SymbolTable.size
+
+    dqSymbolTableCount resq 1
+    pCurrentSymbolTable resq 1
+    pCurrentProcedureSymbolTable resq 1
+    dqCurrentAssignedOperandValue resq 1 ; this is used to store the offset from rbp, in case of paramaters
 
 %define CONST_STRING_COUNT 1024
 %define CONST_STRING_CAPACITY 1024*256 
@@ -466,6 +469,62 @@ section .text
     extern CreateProcessA
     extern WaitForSingleObject
     extern GetExitCodeProcess
+
+alloc_mem:
+    mov rax, [pFreePointer]
+    add rcx, rax
+    mov [pFreePointer], rcx
+    ret
+
+free_mem:
+    mov rax, [pFreePointer]
+    sub rax, rcx
+    mov [pFreePointer], rax
+    ret
+
+push_symbol_table:
+    PushCalleeSavedRegs()
+    mov rax, [dqSymbolTableCount]
+    mov rbx, SymbolTable.size
+    xor rdx, rdx
+    mul rbx
+    mov rbx, symbolTables
+    add rbx, rax
+
+    ; point to old symbol table and save current symbol count
+    sub rbx, SymbolTable.size
+    mov rax, [dqNameCount]
+    mov [rbx + SymbolTable.SymbolCount], rax
+
+    ; point to new symbol table 
+    add rbx, SymbolTable.size
+    mov [rbx + SymbolTable.Pointer], rcx
+    mov qword [rbx + SymbolTable.SymbolCount], qword 0
+    mov [pCurrentSymbolTable], rcx
+    mov qword [dqNameCount], qword 0
+    
+    inc qword [dqSymbolTableCount]
+    PopCalleeSavedRegs()
+    ret
+
+
+pop_symbol_table:
+    PushCalleeSavedRegs()
+    dec qword [dqSymbolTableCount]
+    mov rax, [dqSymbolTableCount]
+    dec rax     ; because we start counting from 0
+    mov rbx, SymbolTable.size
+    xor rdx, rdx
+    mul rbx
+    mov rbx, symbolTables
+    add rbx, rax
+    
+    mov r15, [rbx + SymbolTable.Pointer]
+    mov [pCurrentSymbolTable], r15
+    mov r15, [rbx + SymbolTable.SymbolCount]
+    mov [dqNameCount], r15
+    PopCalleeSavedRegs()
+    ret
 
 _start:
     sub rsp, 32
@@ -615,6 +674,7 @@ end `
 
     ; initialize name list
     mov rax, szNames
+    mov [pszNameEndPointer], rax
     mov [pNames + Name.Pointer], rax
 
 ;-----------------------------------source code parsing----------------------------------
@@ -1009,6 +1069,10 @@ tokenCount = tokenCount + 1 ;
     printf(`"[\#27[92mINFO\#27[0m] Found %d tokens.\r\n"`, r15)
     mov r14, 0
     mov r13, tokenList
+    mov rcx, pNames
+    call push_symbol_table
+    mov rax, memory
+    mov qword [pFreePointer], rax
 `
 tokenI = 0 ;
 while tokenI < [tokenCount] do 
@@ -1666,7 +1730,7 @@ end
         PushCallerSavedRegs()
 
         ; look ahead for assignment operator
-        multipush rax, rbx, rdx, r11, r12, r13, r14, r15
+        multipush rax, rbx, rdx, r10, r11, r12, r13, r14, r15
         mov rax, rbx
         mov rdx, Token.size
         mul rdx
@@ -1679,17 +1743,22 @@ end
         add r13, r14
         strcpy(ptr3Buffer64, r13, r15) ; literal name
 
+        printf(`"[\#27[92mINFO\#27[0m] Processing assignment to '%s'\r\n"`, ptr3Buffer64)
+   
         ; fetch data type from names table
         multipush rax, rcx
         mov rcx, ptr3Buffer64
         call get_data_type
         mov r15, rax
         mov r11, rdx ; data type size in bytes
-        multipop rax, rcx`
+        mov [dqCurrentAssignedOperandValue], r8  ; value (or pointer to a structure)
+        multipop rax, rcx
+        printf(`"[\#27[92mINFO\#27[0m] Symbol '%s' has %d data type\r\n"`, ptr3Buffer64, r15)
+        `
         if r15 == TYPE_PROC then `
             sprintf(ptrBuffer256, `"\r\n\tcall %s\r\n"`, ptr3Buffer64)
             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-            multipop rax, rbx, rdx, r11, r12, r13, r14, r15
+            multipop rax, rbx, rdx, r10, r11, r12, r13, r14, r15
 
             PopCallerSavedRegs()
             NextToken()`
@@ -1793,20 +1862,76 @@ end
             multipush rax, rcx
             mov rcx, ptrBuffer64
             call get_data_type
-            mov r15, rax
+            mov r15, rax ; date type
             mov r11, rdx ; data type size in bytes
             multipop rax, rcx
+
             printf(`"Found operand of type %d:  %s\r\n"`, r15, ptrBuffer64)
             `
 
             if r15 == TYPE_PROC then `
                 printf(`"Found proc call\r\n"`)
+                ; look for opening parenthesis
+                add rbx, Token.size
+                mov qword [dqStatementOpCount], 3
+                
+                add rbx, Token.size
+                mov r12w, word [rbx + Token.TokenType]
+                movzx r13, word [rbx + Token.TokenStart]
+                movzx r14, word [rbx + Token.TokenLength]
+                mov r15, szSourceCode
+                add r15, r13
+                strcpy(ptr2Buffer64, r15, r14) 
+                xor r10, r10
+                `
+                while r12w != defParenClose do `
+                    ; just advance to parenthesis close
+                    ; then we walk back and process the arguments
+                    inc qword [dqStatementOpCount]
+                    add rbx, Token.size
+                    mov r12w, word [rbx + Token.TokenType]
+                    add r10, 8`
+                end `
+
+                ; go back to last argument
+                sub rbx, Token.size
+                mov r12w, word [rbx + Token.TokenType]
+                movzx r13, word [rbx + Token.TokenStart]
+                movzx r14, word [rbx + Token.TokenLength]
+                mov r15, szSourceCode
+                add r15, r13
+                strcpy(ptr2Buffer64, r15, r14)`
+                
+                while r12w != defParenOpen do 
+                    if r12w == defOperandInteger then `
+                        ; push to operator stack
+                        sprintf(ptrBuffer256, `"\tpush qword %s\r\n"`, ptr2Buffer64)
+                        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                    else `
+                        ; push to operator stack
+                        sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptr2Buffer64)
+                        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                    end `
+                    sub rbx, Token.size
+                    mov r12w, word [rbx + Token.TokenType]
+                    movzx r13, word [rbx + Token.TokenStart]
+                    movzx r14, word [rbx + Token.TokenLength]
+                    mov r15, szSourceCode
+                    add r15, r13
+                    strcpy(ptr2Buffer64, r15, r14) `
+                end `
+
+
+                inc qword [dqStatementOpCount] ; skip ')' token
+                inc qword [dqStatementOpCount] ; skip ';' token
                 sprintf(ptrBuffer256, `"\r\n\tcall %s\r\n\tmov [%s], rax\r\n"`, ptrBuffer64, ptr3Buffer64)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-                multipop rax, rbx, rdx, r11, r12, r13, r14, r15
+                sprintf(ptrBuffer256, `"\tadd rsp, %d\r\n"`, r10)
+                WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+                multipop rax, rbx, rdx, r10, r11, r12, r13, r14, r15
 
                 PopCallerSavedRegs()
-                SkipTokens(3)
+                SkipTokens([dqStatementOpCount])
                 NextToken()`
             end
 
@@ -1822,6 +1947,7 @@ end
                     call get_data_type
                     mov r15, rax
                     mov r11, rdx ; data type size in bytes
+                    mov r10, r8 ; value (or pointer to a structure)
                     multipop rax, rcx`
                     if r15 == TYPE_ARRAY then `
                         push rax
@@ -1850,10 +1976,16 @@ end
                         mov [dqStatementOpCount], rax
                         pop rax
                         add rbx, Token.size`
-                    else `    
-                        ; push to operator stack
-                        sprintf(ptrBuffer256, `"\tpush qword [%s]\r\n"`, ptrBuffer64)
-                        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                    else  
+                        if r10 != 0 then `
+                            ; push to operator stack
+                            sprintf(ptrBuffer256, `"\tpush qword [rbp + %d]; comment\r\n"`, r10)
+                            WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                        else `    
+                            ; push to operator stack
+                            sprintf(ptrBuffer256, `"\tpush qword [%s]; comment\r\n"`, ptrBuffer64)
+                            WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                        end
                     end 
                 else if r12w != defOperandInteger then `
                     multipush rax, rcx, rdx
@@ -1892,16 +2024,21 @@ end
             if r15 == TYPE_UINT8 then `
                 sprintf(ptrBuffer256, `"\tpop rax\r\n\tmov byte [%s], al\r\n"`, ptr3Buffer64)`
             else if r15 == TYPE_UINT64 then `
-                sprintf(ptrBuffer256, `"\tpop rax\r\n\tmov qword [%s], rax\r\n"`, ptr3Buffer64)`
+                mov r10, [dqCurrentAssignedOperandValue]`
+                if r10 != 0 then `
+                    sprintf(ptrBuffer256, `"\tpop rax\r\n\tmov qword [rbp + %d], rax\r\n"`, r10)`
+                else `
+                    sprintf(ptrBuffer256, `"\tpop rax\r\n\tmov qword [%s], rax\r\n"`, ptr3Buffer64)`
+                end
             else `
-                printf(`"[\#27[91mERROR\#27[0m] 5Unsupported data type of size %d\r\n"`, r11)
+                printf(`"[\#27[91mERROR\#27[0m] 5Unsupported operand %s with data type of size %d\r\n"`, ptr3Buffer64, r11)
                 printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, qword [rbx + Token.Line], qword [rbx + Token.Column])
                 jmp .exit`
             end end `
             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
         end end `
 
-        multipop rax, rbx, rdx, r11, r12, r13, r14, r15
+        multipop rax, rbx, rdx, r10, r11, r12, r13, r14, r15
 
         PopCallerSavedRegs()
         SkipTokens([dqStatementOpCount])
@@ -2071,7 +2208,7 @@ end
     if currentToken.Type == defKeywordProc then `
         PushCallerSavedRegs()
 
-        multipush rax, rbx, rdx, r11, r12, r13, r14, r15
+        multipush rax, rbx, rdx, r10, r11, r12, r13, r14, r15
         mov rax, rbx
         mov rdx, Token.size
         mul rdx
@@ -2088,7 +2225,7 @@ end
         add r13, r14
         strcpy(ptrBuffer64, r13, r15) ; name of the procedure
 
-        sprintf(ptrBuffer256, `"\r\n\tjmp %s_end\r\n%s:\r\n"`, ptrBuffer64, ptrBuffer64)
+        sprintf(ptrBuffer256, `"\r\n\tjmp %s_end\r\n%s:\r\n\tpush rbp\r\n\tmov rbp, rsp\r\n"`, ptrBuffer64, ptrBuffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
         add rbx, Token.size
@@ -2102,9 +2239,49 @@ end
 
         ; move to first argument
         add rbx, Token.size
+        push rbx ; save rbx for later. right now we only count the number of arguments
         mov r12w, word [rbx + Token.TokenType]
-        inc qword [dqStatementOpCount]`
+        inc qword [dqStatementOpCount]
+        mov qword [currentProcArgCount], 0`
 
+        while r12w != defParenClose do `
+            inc qword [currentProcArgCount]
+
+            add rbx, Token.size
+            mov r12w, word [rbx + Token.TokenType]
+            inc qword [dqStatementOpCount]`
+        end `
+
+        pop rbx ; restore rbx
+        mov r12w, word [rbx + Token.TokenType]
+        printf(`"[\#27[92mINFO\#27[0m] Procedure '%s' has %d arguments\r\n"`, ptrBuffer64, qword [currentProcArgCount])
+        
+        ; allocate symbol table for the procedure
+        mov rax, qword [currentProcArgCount] 
+        mov rdx, Name.size
+        mul rdx
+        mov rcx, rax
+        call alloc_mem
+        mov [pCurrentProcedureSymbolTable], rax
+
+        ; save current procedure and its symbol table
+        multipush rax, rcx, rdx, r8, r9
+        mov rcx, ptrBuffer64
+        mov rdx, TYPE_PROC
+        mov r8, 0
+        mov r9, rax
+        call push_variable
+        multipop rax, rcx, rdx, r8, r9
+
+        ; push arguments to proc's symbol table
+        ; all arguments should be of type uint64
+        ; and can be used inside the proc body
+        mov rcx, [pCurrentProcedureSymbolTable]
+        call push_symbol_table
+
+        ; this will be offset from rbp
+        mov qword [currentProcArgCount], 16
+        `
         while r12w != defParenClose do `
             ; get argument name
             mov r14w, word [rbx + Token.TokenStart]
@@ -2114,25 +2291,24 @@ end
             strcpy(ptr2Buffer64, r13, r15) ; name of the argument
 
             printf(`"[\#27[92mINFO\#27[0m] Argument '%s' found\r\n"`, ptr2Buffer64)
+            
+            ; push argument name to proc's symbol table
+            multipush rax, rcx, rdx, r8, r9
+            mov rcx, ptr2Buffer64
+            mov rdx, TYPE_UINT64
+            mov r8, 8
+            mov r9, [currentProcArgCount]
+            call push_variable
+            add qword [currentProcArgCount], 8
+            multipop rax, rcx, rdx, r8, r9
 
             add rbx, Token.size
-            mov r12w, word [rbx + Token.TokenType]
-            inc qword [dqStatementOpCount]`
+            mov r12w, word [rbx + Token.TokenType]`
         end `
-        
-
-        multipush rax, rcx, rdx, r8, r9
-        mov rcx, ptrBuffer64
-        mov rdx, TYPE_PROC
-        mov r8, 0
-        ; todo - get number of arguments, construct a symbol table and push it
-        mov r9, 0 
-        call push_variable
-        multipop rax, rcx, rdx, r8, r9
 
         printf(`"[\#27[92mINFO\#27[0m] Procedure '%s' found\r\n"`, ptrBuffer64)
 
-        multipop rax, rbx, rdx, r11, r12, r13, r14, r15
+        multipop rax, rbx, rdx, r10, r11, r12, r13, r14, r15
 
         PopCallerSavedRegs()
         SkipTokens([dqStatementOpCount])
@@ -2159,8 +2335,11 @@ end
         add r13, r14
         strcpy(ptrBuffer64, r13, r15) ; literal name
 
-        sprintf(ptrBuffer256, `"\r\n\tret\r\n%s_end:\r\n"`, ptrBuffer64)
+        sprintf(ptrBuffer256, `"\r\n\tmov rsp, rbp\r\n\tpop rbp\r\n\tret\r\n%s_end:\r\n"`, ptrBuffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
+
+        ; it's now safe to pop the current procedure and its symbol table
+        call pop_symbol_table
 
         multipop rax, rbx, rdx, r11, r12, r13, r14, r15
 
@@ -2345,7 +2524,7 @@ get_data_type:
     xor r11, r11
     mov r14, [dqNameCount]
     mov r13, 0
-    mov r10, pNames`
+    mov r10, [pCurrentSymbolTable]`
 
     while r13 < r14 do `
         mov r12, [r10 + Name.Pointer]
@@ -2353,7 +2532,46 @@ get_data_type:
 
         if rax == 0 then `
             mov r11, [r10 + Name.Type]
-            mov rdx, [r10 + Name.DataSize]`
+            mov rdx, [r10 + Name.DataSize]
+            mov r8, [r10 + Name.Value]`
+            break
+        end `
+        add r10, Name.size
+        inc r13`
+    end 
+    
+    if r11 == 0 then `
+        mov rcx, r15
+        call get_global_data_type
+        mov r11, rax`
+    end `
+
+.end:
+    mov rax, r11
+    PopCalleeSavedRegs()
+    ret
+
+get_global_data_type:
+    PushCalleeSavedRegs()
+
+    mov r15, symbolTables
+    add r15, SymbolTable.SymbolCount
+
+    xor r11, r11
+    mov r14, [r15]
+    mov r13, 0
+    mov r10, pNames
+    mov r15, rcx ; r15 holds pointer to name
+    `
+
+    while r13 < r14 do `
+        mov r12, [r10 + Name.Pointer]
+        strcmp(r12, r15)`
+
+        if rax == 0 then `
+            mov r11, [r10 + Name.Type]
+            mov rdx, [r10 + Name.DataSize]
+            mov r8, [r10 + Name.Value]`
             break
         end `
         add r10, Name.size
@@ -2380,12 +2598,12 @@ push_variable:
     mov rax, [dqNameCount]
     mov rdx, Name.size
     mul rdx
-    mov rdx, pNames
+    mov rdx, [pCurrentSymbolTable]
     add rax, rdx
     mov r13, rax
 
     ; store name
-    mov r12, [r13 + Name.Pointer]
+    mov r12, [pszNameEndPointer]
     mov rsi, r14
     mov rdi, r12
 
@@ -2396,6 +2614,9 @@ push_variable:
     jmp .loop
 
 .end_loop:
+    ; store pointer to name
+    mov [r13 + Name.Pointer], r12
+
     ; store type
     mov [r13 + Name.Type], r15
 
@@ -2406,12 +2627,13 @@ push_variable:
     ; increment name count  
     add r13, Name.size
     inc rdi
-    mov [r13 + Name.Pointer], rdi
+    mov [pszNameEndPointer], rdi
     
     inc qword [dqNameCount]
 
 .end:
     PopCalleeSavedRegs()
+    mov rax, r12
     ret
 
 ; this routine will save a string literal to the string list

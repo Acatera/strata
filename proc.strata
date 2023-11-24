@@ -7,15 +7,26 @@ section .text
 _start:
     InitStandardOutput()
 `
+uint64 _ = 0
+
+proc otherProc ( arg1 arg2 )
+    `
+    printf(`"otherProc\n"`)
+    `
+endproc otherProc
+
+proc myProc ( arg1 arg2 ) 
+
+
+
+endproc myProc
+
 uint64 sum = 0
 
-proc myProc ( arg1 arg2 )
-endproc myProc
-sum = 0 ;
-sum = 1 + 2 ;
-
 sum = myProc ( 1 2 ) ;
+
 `
+end_recursion:
     ; myProc(1, 2);
     ; sub rsp, 0x10
     ; mov [rsp], 1   ;arg1
