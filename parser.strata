@@ -8,6 +8,7 @@ _start:
     InitStandardOutput()
 `
 uint64 _ = 0 ;
+uint64 true = 1 ;
 
 array globalVariables = uint64 [ 10000 ] ;
 uint64 globalVariableCount = 0 ;
@@ -78,77 +79,48 @@ uint64 tokenSize = 4 ;
 array output = uint8 [ 1000000 ] ;
 uint64 outputCount = 0 ;
 
-uint64 TOKEN_UINT8                 = 1 ;
-uint64 TOKEN_UINT64                = 2 ;
-uint64 TOKEN_IDENTIFIER            = 3 ;
-uint64 TOKEN_ASSIGNMENT            = 4 ;
-uint64 TOKEN_CONSTANT_INTEGER      = 5 ;
-uint64 TOKEN_SEMICOLON             = 6 ;
+uint64 TOKEN_UINT8                 =  1 ;
+uint64 TOKEN_UINT64                =  2 ;
+uint64 TOKEN_IDENTIFIER            =  3 ;
+uint64 TOKEN_ASSIGNMENT            =  4 ;
+uint64 TOKEN_CONSTANT_INTEGER      =  5 ;
+uint64 TOKEN_SEMICOLON             =  6 ;
+uint64 TOKEN_PLUS                  =  7 ;
+uint64 TOKEN_MINUS                 =  8 ;
+uint64 TOKEN_MULTIPLY              =  9 ;
+uint64 TOKEN_DIVIDE                = 10 ;
+uint64 TOKEN_MODULO                = 11 ;
 
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
 
 uint64 i = 0 ;
 
-tokens [ 0 ] = TOKEN_UINT64 ; tokens [ 1 ] = 0 ;
-tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
-tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ;
-tokens [ 6 ] = 1 ; tokens [ 7 ] = 18 ;
-tokens [ 8 ] = TOKEN_ASSIGNMENT ; tokens [ 9 ] = 0 ;
-tokens [ 10 ] = 1 ; tokens [ 11 ] = 23 ;
-tokens [ 12 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 13 ] = 123 ;
-tokens [ 14 ] = 1 ; tokens [ 15 ] = 25 ;
-tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ;
-tokens [ 18 ] = 1 ; tokens [ 19 ] = 28 ;
-tokens [ 20 ] = TOKEN_UINT64 ; tokens [ 21 ] = 0 ;
-tokens [ 22 ] = 2 ; tokens [ 23 ] = 1 ;
-tokens [ 24 ] = TOKEN_IDENTIFIER ; tokens [ 25 ] = 1 ;
-tokens [ 26 ] = 2 ; tokens [ 27 ] = 8 ;
-tokens [ 28 ] = TOKEN_ASSIGNMENT ; tokens [ 29 ] = 0 ;
-tokens [ 30 ] = 2 ; tokens [ 31 ] = 13 ;
-tokens [ 32 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 33 ] = 456 ;
-tokens [ 34 ] = 2 ; tokens [ 35 ] = 15 ;
-tokens [ 36 ] = TOKEN_SEMICOLON ; tokens [ 37 ] = 0 ;
-tokens [ 38 ] = 2 ; tokens [ 39 ] = 18 ;
-tokens [ 40 ] = TOKEN_UINT8 ; tokens [ 41 ] = 0 ;
-tokens [ 42 ] = 3 ; tokens [ 43 ] = 1 ;
-tokens [ 44 ] = TOKEN_IDENTIFIER ; tokens [ 45 ] = 2 ;
-tokens [ 46 ] = 3 ; tokens [ 47 ] = 7 ;
-tokens [ 48 ] = TOKEN_ASSIGNMENT ; tokens [ 49 ] = 0 ;
-tokens [ 50 ] = 3 ; tokens [ 51 ] = 12 ;
-tokens [ 52 ] = TOKEN_SEMICOLON ; tokens [ 53 ] = 56 ;
-tokens [ 54 ] = 3 ; tokens [ 55 ] = 14 ;
-tokens [ 56 ] = TOKEN_SEMICOLON ; tokens [ 57 ] = 0 ;
-tokens [ 58 ] = 3 ; tokens [ 59 ] = 16 ;
-tokenCount = 60 ;
+tokens [ 0 ] = TOKEN_UINT64 ; tokens [ 1 ] = 0 ; tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
+tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 8 ;
+tokens [ 8 ] = TOKEN_ASSIGNMENT ; tokens [ 9 ] = 0 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 10 ;
+tokens [ 12 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 12 ;
+tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 13 ;
+tokens [ 20 ] = TOKEN_IDENTIFIER ; tokens [ 21 ] = 1 ; tokens [ 22 ] = 2 ; tokens [ 23 ] = 1 ;
+tokens [ 24 ] = TOKEN_ASSIGNMENT ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 3 ;
+tokens [ 28 ] = TOKEN_IDENTIFIER ; tokens [ 29 ] = 2 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 5 ;
+tokens [ 32 ] = TOKEN_MODULO ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 7 ;
+tokens [ 36 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 37 ] = 4 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 9 ;
+tokens [ 40 ] = TOKEN_SEMICOLON ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 10 ;
+tokenCount = 44 ;
 
-` ; var1
+` ; a
 `
-stringToPush [ 0 ] = 118 ;
-stringToPush [ 1 ] = 97 ;
-stringToPush [ 2 ] = 114 ;
-stringToPush [ 3 ] = 49 ;
-stringToPush [ 4 ] = 0 ;
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
 _ = pushString ( ) ;
 
-` ; var2
+` ; a
 `
-stringToPush [ 0 ] = 118 ;
-stringToPush [ 1 ] = 97 ;
-stringToPush [ 2 ] = 114 ;
-stringToPush [ 3 ] = 50 ;
-stringToPush [ 4 ] = 50 ;
-stringToPush [ 5 ] = 0 ;
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
 _ = pushString ( ) ;
 
-` ; char
-`
-stringToPush [ 0 ] = 99 ;
-stringToPush [ 1 ] = 104 ;
-stringToPush [ 2 ] = 97 ;
-stringToPush [ 3 ] = 114 ;
-stringToPush [ 4 ] = 0 ;
-_ = pushString ( ) ;
 i = 0 ;
 
 uint64 errorAtLine = 0 ;
@@ -169,8 +141,14 @@ proc consumeToken ( )
     end
 endproc consumeToken
 
-proc unexpectedToken ( ) `
-    printf(`"Error: unexpected token %d\n"`, [currentToken])
+proc unexpectedToken ( ) 
+    _ = i + 2 ;
+    errorAtLine = tokens [ _ ] ;
+    _ = i + 3 ;
+    errorAtColumn = tokens [ _ ] ;
+    `
+    printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+    printf(`"unexpected token %d\n"`, [currentToken])
     ExitProcess(1)`
 endproc unexpectedToken
 
@@ -179,6 +157,7 @@ proc parseNumber ( )
     _ = i + 1 ;
     _ = tokens [ _ ] ;
     consumeToken ( ) ; `
+    printf(`"[Trace] Number: %d\n"`, [_])
     ; set result
     mov rax, [_]`
 endproc parseNumber
@@ -188,6 +167,7 @@ proc parseIdentifier ( )
     _ = i + 1 ;
     _ = tokens [ _ ] ;
     consumeToken ( ) ; `
+    printf(`"[Trace] Identifier: #%d\n"`, [_])
     ; set result
     mov rax, [_]`
 endproc parseIdentifier
@@ -209,7 +189,7 @@ proc parseUIntType ( )
     mov rax, [_]`
 endproc parseUIntType
 
-proc parseVariableDeclaration ( a )
+proc parseVariableDeclaration ( )
     gvType = parseUIntType ( ) ;
     gvNamePointer = parseIdentifier ( ) ;
 
@@ -231,6 +211,72 @@ proc parseVariableDeclaration ( a )
     printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseVariableDeclaration
 
+proc parseFactor ( ) 
+    if currentToken == [TOKEN_CONSTANT_INTEGER] then
+        parseNumber ( ) ;
+    else if currentToken == [TOKEN_IDENTIFIER] then
+        parseIdentifier ( ) ;
+    else
+        unexpectedToken ( ) ;
+    end end
+endproc parseFactor
+
+proc parseTerm ( ) 
+    parseFactor ( ) ;
+    while true == 1 do 
+        if currentToken == [TOKEN_MULTIPLY] then
+            expectedToken = TOKEN_MULTIPLY ;
+            consumeToken ( ) ;
+            parseTerm ( ) ; `
+            printf(`"[Trace] MULTIPLY *\n"`)`
+        else if currentToken == [TOKEN_DIVIDE] then
+            expectedToken = TOKEN_DIVIDE ;
+            consumeToken ( ) ;
+            parseTerm ( ) ; `
+            printf(`"[Trace] DIVIDE /\n"`)`
+        else if currentToken == [TOKEN_MODULO] then
+            expectedToken = TOKEN_MODULO ;
+            consumeToken ( ) ;
+            parseTerm ( ) ; `
+            printf(`"[Trace] MODULO %%\n"`)`
+        else
+            break 
+        end end end
+    end
+endproc parseTerm
+
+proc parseExpression ( ) 
+    parseTerm ( ) ; 
+    while true == 1 do 
+        if currentToken == [TOKEN_PLUS] then
+            expectedToken = TOKEN_PLUS ;
+            consumeToken ( ) ;
+            parseTerm ( ) ; `
+            printf(`"[Trace] PLUS +\n"`)`
+        else if currentToken == [TOKEN_MINUS] then
+            expectedToken = TOKEN_MINUS ;
+            consumeToken ( ) ;
+            parseTerm ( ) ; `
+            printf(`"[Trace] MINUS -\n"`)`
+        else
+            break ;
+        end end
+    end
+endproc parseExpression 
+
+proc parseAssignmentStatement ( )
+    gvNamePointer = parseIdentifier ( ) ;
+
+    expectedToken = TOKEN_ASSIGNMENT ;
+    consumeToken ( ) ;
+
+    parseExpression ( ) ;
+
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] Assignment statement: %d\n"`, [gvNamePointer])`
+endproc parseAssignmentStatement
+
 i = 0 ;
 
 while i < [tokenCount] do
@@ -240,9 +286,11 @@ while i < [tokenCount] do
         parseVariableDeclaration ( ) ;
     else if currentToken == [TOKEN_UINT8] then
         parseVariableDeclaration ( ) ;
+    else if currentToken == [TOKEN_IDENTIFIER] then
+        parseAssignmentStatement ( ) ;
     else
         unexpectedToken ( ) ;
-    end end
+    end end end
 end
 
 i = 0 ;
