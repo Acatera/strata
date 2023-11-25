@@ -90,6 +90,8 @@ uint64 TOKEN_MINUS                 =  8 ;
 uint64 TOKEN_MULTIPLY              =  9 ;
 uint64 TOKEN_DIVIDE                = 10 ;
 uint64 TOKEN_MODULO                = 11 ;
+uint64 TOKEN_LEFT_PARENTHESIS      = 12 ;
+uint64 TOKEN_RIGHT_PARENTHESIS     = 13 ;
 
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
@@ -103,11 +105,15 @@ tokens [ 12 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ;
 tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 13 ;
 tokens [ 20 ] = TOKEN_IDENTIFIER ; tokens [ 21 ] = 1 ; tokens [ 22 ] = 2 ; tokens [ 23 ] = 1 ;
 tokens [ 24 ] = TOKEN_ASSIGNMENT ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 3 ;
-tokens [ 28 ] = TOKEN_IDENTIFIER ; tokens [ 29 ] = 2 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 5 ;
-tokens [ 32 ] = TOKEN_MODULO ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 7 ;
-tokens [ 36 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 37 ] = 4 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 9 ;
-tokens [ 40 ] = TOKEN_SEMICOLON ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 10 ;
-tokenCount = 44 ;
+tokens [ 28 ] = TOKEN_LEFT_PARENTHESIS ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 5 ;
+tokens [ 32 ] = TOKEN_IDENTIFIER ; tokens [ 33 ] = 2 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 7 ;
+tokens [ 36 ] = TOKEN_PLUS ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 9 ;
+tokens [ 40 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 41 ] = 4 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 11 ;
+tokens [ 44 ] = TOKEN_RIGHT_PARENTHESIS ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 2 ; tokens [ 47 ] = 13 ;
+tokens [ 48 ] = TOKEN_MULTIPLY ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 2 ; tokens [ 51 ] = 15 ;
+tokens [ 52 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 53 ] = 2 ; tokens [ 54 ] = 2 ; tokens [ 55 ] = 17 ;
+tokens [ 56 ] = TOKEN_SEMICOLON ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 2 ; tokens [ 59 ] = 18 ;
+tokenCount = 60 ;
 
 ` ; a
 `
@@ -216,9 +222,19 @@ proc parseFactor ( )
         parseNumber ( ) ;
     else if currentToken == [TOKEN_IDENTIFIER] then
         parseIdentifier ( ) ;
+    else if currentToken == [TOKEN_LEFT_PARENTHESIS] then
+        expectedToken = TOKEN_LEFT_PARENTHESIS ;
+        consumeToken ( ) ;
+`
+        ; this won't work because we don't support forward declarations
+        ; and the symbol table does not know about the type of the identifier
+        ;parseExpression ( ) ;
+`
+        expectedToken = TOKEN_RIGHT_PARENTHESIS ;
+        consumeToken ( ) ;
     else
         unexpectedToken ( ) ;
-    end end
+    end end end
 endproc parseFactor
 
 proc parseTerm ( ) 
