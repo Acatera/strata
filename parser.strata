@@ -217,6 +217,8 @@ proc parseVariableDeclaration ( )
     printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseVariableDeclaration
 
+proc forward parseExpression
+
 proc parseFactor ( ) 
     if currentToken == [TOKEN_CONSTANT_INTEGER] then
         parseNumber ( ) ;
@@ -225,11 +227,9 @@ proc parseFactor ( )
     else if currentToken == [TOKEN_LEFT_PARENTHESIS] then
         expectedToken = TOKEN_LEFT_PARENTHESIS ;
         consumeToken ( ) ;
-`
-        ; this won't work because we don't support forward declarations
-        ; and the symbol table does not know about the type of the identifier
-        ;parseExpression ( ) ;
-`
+
+        parseExpression ( ) ;
+ 
         expectedToken = TOKEN_RIGHT_PARENTHESIS ;
         consumeToken ( ) ;
     else

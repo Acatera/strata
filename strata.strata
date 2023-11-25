@@ -300,6 +300,7 @@ endproc printUnexpectedToken
 %define KeywordArray            11 + (1 << (4 + 4))
 %define KeywordProc             12 + (1 << (4 + 4))
 %define KeywordEndProc          13 + (1 << (4 + 4))
+%define KeywordForward          14 + (1 << (4 + 4))
 
 ; todo - revisit this
 %define defOperatorEquals         word OperatorEquals
@@ -339,6 +340,7 @@ endproc printUnexpectedToken
 %define defKeywordArray           word KeywordArray
 %define defKeywordProc            word KeywordProc
 %define defKeywordEndProc         word KeywordEndProc
+%define defKeywordForward         word KeywordForward
 
 
 %define TYPE_UINT8     1
@@ -796,6 +798,10 @@ else if CompareTokenWith(szKeywordProc) then `
     mov [rbp], word KeywordProc
     `
     currentTokenType = 269 ;    
+else if CompareTokenWith(szKeywordForward) then `
+    mov [rbp], word KeywordForward
+    `
+    currentTokenType = 269 ;   
 else if CompareTokenWith(szOperatorEquals) then `
     mov [rbp], word OperatorEquals
     `
@@ -884,7 +890,7 @@ else `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
 end end end end end end end end end end end end end end 
-end end end `
+end end end end `
     ; test if token type is 0
     push rax
     mov ax, word [rbp]
@@ -2185,14 +2191,38 @@ end
 
         ; look ahead for identifier
         add rbx, Token.size
-        mov qword [dqStatementOpCount], 1
+        mov r12w, word [rbx + Token.TokenType]
+        mov qword [dqStatementOpCount], 1 `
+
+        if r12w == defKeywordForward then `
+            ; skip 'forward'
+            add rbx, Token.size
+            inc qword [dqStatementOpCount]`
+        end `
 
         mov r14w, word [rbx + Token.TokenStart]
         mov r15w, word [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
-        strcpy(ptrBuffer64, r13, r15) ; name of the procedure
+        strcpy(ptrBuffer64, r13, r15) ; name of the procedure`
 
+        if r12w == defKeywordForward then `
+            ; save current procedure and its symbol table
+            multipush rax, rcx, rdx, r8, r9
+            mov rcx, ptrBuffer64
+            mov rdx, TYPE_PROC
+            mov r8, 0
+            mov r9, 0
+            call push_variable
+            multipop rax, rcx, rdx, r8, r9
+            
+            multipop rax, rbx, rdx, r10, r11, r12, r13, r14, r15
+
+            PopCallerSavedRegs()
+            SkipTokens([dqStatementOpCount])
+            NextToken()`
+        end
+`
         sprintf(ptrBuffer256, `"\r\n\tjmp %s_end\r\n%s:\r\n\tpush rbp\r\n\tmov rbp, rsp\r\n"`, ptrBuffer64, ptrBuffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
@@ -3147,6 +3177,8 @@ section .data
     szKeywordProc.length equ $ - szKeywordProc
     szKeywordEndProc db "endproc"
     szKeywordEndProc.length equ $ - szKeywordEndProc
+    szKeywordForward db "forward"
+    szKeywordForward.length equ $ - szKeywordForward
     szOperatorEquals db "=="
     szOperatorEquals.length equ $ - szOperatorEquals
     szOperatorNotEquals db "!="
