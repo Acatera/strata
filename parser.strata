@@ -13,13 +13,67 @@ array globalVariables = uint64 [ 10000 ] ;
 uint64 globalVariableCount = 0 ;
 uint64 globalVariableSize = 3 ;
 
-uint64 gvType = 0 ;
-uint64 gvName = 0 ;
-uint64 gvValue = 0 ;
+uint64 gvTypeOffset  = 0 ;
+uint64 gvNameOffset  = 1 ;
+uint64 gvValueOffset = 2 ;
+
+uint64 gvType        = 0 ;
+uint64 gvNamePointer = 0 ;
+uint64 gvValue       = 0 ;
+
+uint64 currentToken = 0 ;
+uint64 expectedToken = 0 ;
+
+array stringBuffer = uint8 [ 100000 ] ;
+uint64 sbIndex = 0 ;
+uint64 stringBufferTop = 0 ;
+array stringPointers = uint64 [ 5000 ] ;
+uint64 stringPointersTop = 0 ;
+
+array stringToPush = uint8 [ 256 ] ;
+uint64 freeStringIndex = 0 ;
+uint8 freeChar = 0 ;
+proc pushString ( ) 
+    freeStringIndex = 0 ;
+    freeChar = stringToPush [ freeStringIndex ] ;
+    stringPointers [ stringPointersTop ] = stringBufferTop ;
+
+    while freeChar != 0 do 
+        stringBuffer [ stringBufferTop ] = freeChar ;
+        stringBufferTop = stringBufferTop + 1 ;
+        freeStringIndex = freeStringIndex + 1 ;
+        freeChar = stringToPush [ freeStringIndex ] ;
+    end
+    
+    stringBuffer [ stringBufferTop ] = 0 ;
+    stringBufferTop = stringBufferTop + 1 ; 
+    `
+    printf(`"[Trace] Pushed string: #%d with length %d.\n"`, [stringPointersTop], [freeStringIndex])
+    `
+    stringPointersTop = stringPointersTop + 1 ; 
+endproc pushString 
+
+array stringAtPointer = uint8 [ 256 ] ;
+proc readString ( index )
+    freeStringIndex = 0 ;
+    _ = index ;
+    sbIndex = stringPointers [ _ ] ;
+    freeChar = stringBuffer [ sbIndex ] ;
+
+    while freeChar != 0 do 
+        stringAtPointer [ freeStringIndex ] = freeChar ;
+        freeStringIndex = freeStringIndex + 1 ;
+        sbIndex = sbIndex + 1 ;
+        freeChar = stringBuffer [ sbIndex ] ;
+    end 
+    stringAtPointer [ freeStringIndex ] = 0 ; `
+    printf(`"[Trace] Read string: #%d with length %d.\n"`, [rbp + 16], [freeStringIndex])
+    `
+endproc readString
 
 array tokens = uint64 [ 1000 ] ;
 uint64 tokenCount = 0 ;
-uint64 tokenSize = 2 ;
+uint64 tokenSize = 4 ;
 
 array output = uint8 [ 1000000 ] ;
 uint64 outputCount = 0 ;
@@ -36,75 +90,152 @@ uint64 TYPE_UINT64                 = 2 ;
 
 uint64 i = 0 ;
 
-tokens [ 0 ] = TOKEN_UINT8            ; tokens [ 1 ] = 0 ;
-tokens [ 2 ] = TOKEN_IDENTIFIER       ; tokens [ 3 ] = 0 ;
-tokens [ 4 ] = TOKEN_ASSIGNMENT       ; tokens [ 5 ] = 0 ;
-tokens [ 6 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 7 ] = 123 ;
-tokens [ 8 ] = TOKEN_SEMICOLON        ; tokens [ 9 ] = 0 ;
+tokens [ 0 ] = TOKEN_UINT64 ; tokens [ 1 ] = 0 ;
+tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
+tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ;
+tokens [ 6 ] = 1 ; tokens [ 7 ] = 18 ;
+tokens [ 8 ] = TOKEN_ASSIGNMENT ; tokens [ 9 ] = 0 ;
+tokens [ 10 ] = 1 ; tokens [ 11 ] = 23 ;
+tokens [ 12 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 13 ] = 123 ;
+tokens [ 14 ] = 1 ; tokens [ 15 ] = 25 ;
+tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ;
+tokens [ 18 ] = 1 ; tokens [ 19 ] = 28 ;
+tokens [ 20 ] = TOKEN_UINT64 ; tokens [ 21 ] = 0 ;
+tokens [ 22 ] = 2 ; tokens [ 23 ] = 1 ;
+tokens [ 24 ] = TOKEN_IDENTIFIER ; tokens [ 25 ] = 1 ;
+tokens [ 26 ] = 2 ; tokens [ 27 ] = 8 ;
+tokens [ 28 ] = TOKEN_ASSIGNMENT ; tokens [ 29 ] = 0 ;
+tokens [ 30 ] = 2 ; tokens [ 31 ] = 13 ;
+tokens [ 32 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 33 ] = 456 ;
+tokens [ 34 ] = 2 ; tokens [ 35 ] = 15 ;
+tokens [ 36 ] = TOKEN_SEMICOLON ; tokens [ 37 ] = 0 ;
+tokens [ 38 ] = 2 ; tokens [ 39 ] = 18 ;
+tokens [ 40 ] = TOKEN_UINT8 ; tokens [ 41 ] = 0 ;
+tokens [ 42 ] = 3 ; tokens [ 43 ] = 1 ;
+tokens [ 44 ] = TOKEN_IDENTIFIER ; tokens [ 45 ] = 2 ;
+tokens [ 46 ] = 3 ; tokens [ 47 ] = 7 ;
+tokens [ 48 ] = TOKEN_ASSIGNMENT ; tokens [ 49 ] = 0 ;
+tokens [ 50 ] = 3 ; tokens [ 51 ] = 12 ;
+tokens [ 52 ] = TOKEN_SEMICOLON ; tokens [ 53 ] = 56 ;
+tokens [ 54 ] = 3 ; tokens [ 55 ] = 14 ;
+tokens [ 56 ] = TOKEN_SEMICOLON ; tokens [ 57 ] = 0 ;
+tokens [ 58 ] = 3 ; tokens [ 59 ] = 16 ;
+tokenCount = 60 ;
 
-tokenCount = 5 ;
+` ; var1
+`
+stringToPush [ 0 ] = 118 ;
+stringToPush [ 1 ] = 97 ;
+stringToPush [ 2 ] = 114 ;
+stringToPush [ 3 ] = 49 ;
+stringToPush [ 4 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; var2
+`
+stringToPush [ 0 ] = 118 ;
+stringToPush [ 1 ] = 97 ;
+stringToPush [ 2 ] = 114 ;
+stringToPush [ 3 ] = 50 ;
+stringToPush [ 4 ] = 50 ;
+stringToPush [ 5 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; char
+`
+stringToPush [ 0 ] = 99 ;
+stringToPush [ 1 ] = 104 ;
+stringToPush [ 2 ] = 97 ;
+stringToPush [ 3 ] = 114 ;
+stringToPush [ 4 ] = 0 ;
+_ = pushString ( ) ;
 i = 0 ;
 
-uint64 currentToken = 0 ;
-uint64 expectedToken = 0 ;
-
+uint64 errorAtLine = 0 ;
+uint64 errorAtColumn = 0 ;
 proc consumeToken ( )
     if currentToken == [expectedToken] then
         i = i + tokenSize ;
         currentToken = tokens [ i ] ;
-    else `
-        printf(`"Error: expected token %d but got %d\n"`, [expectedToken], [currentToken])
-        ExitProcess(1) 
+    else 
+        _ = i + 2 ;
+        errorAtLine = tokens [ _ ] ;
+        _ = i + 3 ;
+        errorAtColumn = tokens [ _ ] ;
         `
+        printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+        printf(`"expected token %d but got %d\n"`, [expectedToken], [currentToken])
+        ExitProcess(1) `
     end
 endproc consumeToken
 
 proc unexpectedToken ( ) `
     printf(`"Error: unexpected token %d\n"`, [currentToken])
-    ExitProcess(1)
-    `
+    ExitProcess(1)`
 endproc unexpectedToken
 
 proc parseNumber ( )
     expectedToken = TOKEN_CONSTANT_INTEGER ;
-    consumeToken ( ) ;
+    _ = i + 1 ;
+    _ = tokens [ _ ] ;
+    consumeToken ( ) ; `
+    ; set result
+    mov rax, [_]`
 endproc parseNumber
 
 proc parseIdentifier ( )
     expectedToken = TOKEN_IDENTIFIER ;
-    consumeToken ( ) ;
+    _ = i + 1 ;
+    _ = tokens [ _ ] ;
+    consumeToken ( ) ; `
+    ; set result
+    mov rax, [_]`
 endproc parseIdentifier
 
 proc parseUIntType ( )
     if currentToken == [TOKEN_UINT8] then
-        gvType = TYPE_UINT8 ;
+        _ = TYPE_UINT8 ;
         i = i + tokenSize ;
         currentToken = tokens [ i ] ;
     else if currentToken == [TOKEN_UINT64] then
-        gvType = TYPE_UINT8 ;
+        _ = TYPE_UINT64 ;
         i = i + tokenSize ;
         currentToken = tokens [ i ] ;
     else
         unexpectedToken ( ) ;
-    end end
+    end end 
+    `
+    ; set result
+    mov rax, [_]`
 endproc parseUIntType
 
 proc parseVariableDeclaration ( a )
-    parseUIntType ( ) ;
-    parseIdentifier ( ) ;
+    gvType = parseUIntType ( ) ;
+    gvNamePointer = parseIdentifier ( ) ;
 
     expectedToken = TOKEN_ASSIGNMENT ;
     consumeToken ( ) ;
 
-    parseNumber ( ) ;
+    gvValue = parseNumber ( ) ;
 
     expectedToken = TOKEN_SEMICOLON ;
-    consumeToken ( ) ;
+    consumeToken ( ) ; 
+    
+    _ = gvTypeOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = gvType ;
+    _ = gvNameOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = gvNamePointer ;
+    _ = gvValueOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = gvValue ; 
+    globalVariableCount = globalVariableCount + 1 ; `
+    printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseVariableDeclaration
+
+i = 0 ;
 
 while i < [tokenCount] do
     currentToken = tokens [ i ] ;
-
+    
     if currentToken == [TOKEN_UINT64] then
         parseVariableDeclaration ( ) ;
     else if currentToken == [TOKEN_UINT8] then
@@ -112,6 +243,29 @@ while i < [tokenCount] do
     else
         unexpectedToken ( ) ;
     end end
+end
+
+i = 0 ;
+
+while i < [globalVariableCount] do
+    _ = gvTypeOffset + i * globalVariableSize ;
+    gvType = globalVariables [ _ ] ;
+    _ = gvNameOffset + i * globalVariableSize ;
+    gvNamePointer = globalVariables [ _ ] ;
+    _ = gvValueOffset + i * globalVariableSize ;
+    gvValue = globalVariables [ _ ] ;
+    _ = readString ( gvNamePointer ) ; 
+    
+    if gvType == [TYPE_UINT8] then `
+        printf(`"\t%s db %d\n"`, stringAtPointer, [gvValue])`
+    else if gvType == [TYPE_UINT64] then `
+        printf(`"\t%s dq %d\n"`, stringAtPointer, [gvValue])`
+    else `
+        printf(`"Error: unknown type %d\n"`, [gvType])
+        ExitProcess(1)`
+    end end
+
+    i = i + 1 ;
 end
 
 `

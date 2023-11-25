@@ -296,11 +296,10 @@ endproc printUnexpectedToken
 %define KeywordBreak             7 + (1 << (4 + 4))
 %define KeywordDefineUInt8       8 + (1 << (4 + 4))
 %define KeywordDefineUInt64      9 + (1 << (4 + 4))
-%define KeywordDefineStringVar  10 + (1 << (4 + 4))
-%define KeywordEval             11 + (1 << (4 + 4))
-%define KeywordArray            12 + (1 << (4 + 4))
-%define KeywordProc             13 + (1 << (4 + 4))
-%define KeywordEndProc          14 + (1 << (4 + 4))
+%define KeywordEval             10 + (1 << (4 + 4))
+%define KeywordArray            11 + (1 << (4 + 4))
+%define KeywordProc             12 + (1 << (4 + 4))
+%define KeywordEndProc          13 + (1 << (4 + 4))
 
 ; todo - revisit this
 %define defOperatorEquals         word OperatorEquals
@@ -336,7 +335,6 @@ endproc printUnexpectedToken
 %define defKeywordBreak           word KeywordBreak
 %define defKeywordDefineUInt8     word KeywordDefineUInt8
 %define defKeywordDefineUInt64    word KeywordDefineUInt64
-%define defKeywordDefineStringVar word KeywordDefineStringVar
 %define defKeywordEval            word KeywordEval
 %define defKeywordArray           word KeywordArray
 %define defKeywordProc            word KeywordProc
@@ -786,10 +784,6 @@ else if CompareTokenWith(szKeywordUInt64) then `
     mov [rbp], word KeywordDefineUInt64
     `
     currentTokenType = 265 ;
-else if CompareTokenWith(szKeywordString) then `
-    mov [rbp], word KeywordDefineStringVar
-    `    
-    currentTokenType = 266 ;
 else if CompareTokenWith(szKeywordEval) then `
     mov [rbp], word KeywordEval
     `
@@ -890,7 +884,7 @@ else `
     PopCallerSavedRegs()`
 end end end end end end end end end end end end end end
 end end end end end end end end end end end end end end 
-end end end end `
+end end end `
     ; test if token type is 0
     push rax
     mov ax, word [rbp]
@@ -1655,70 +1649,6 @@ end
         ; todo - write them at the top of asm file
         ; write variable declaration
         sprintf(ptrBuffer256, `"\r\nsection .data\r\n\t%s db %s\r\nsection .text\r\n"`, ptrBuffer64, ptr2Buffer64)
-        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-
-        PopCallerSavedRegs()
-        SkipTokens(3)
-        NextToken()`
-    end 
-
-     ` ; keyword 'string'`
-    if currentToken.Type == defKeywordDefineStringVar then `
-        PushCallerSavedRegs()
-
-        ; look ahead for identifier
-        multipush rax, rbx, r13, r14, r15
-        mov rax, rbx
-        inc rax
-        mov rdx, Token.size
-        mul rdx
-        mov rbx, tokenList
-        add rbx, rax
-        
-        ; get identifier
-        mov r12w, word [rbx + Token.TokenType]
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
-        mov r13, szSourceCode
-        add r13, r14`
-
-        if r12w != defOperandLiteral then `
-            printf(`"[\#27[91mERROR\#27[0m] Expected identifier after 'string'\r\n"`)
-            jmp .exit`
-        end `
-
-        strcpy(ptrBuffer64, r13, r15)
-
-        multipush rax, rcx, rdx
-        mov rcx, ptrBuffer64
-        mov rdx, TYPE_STRING
-        call push_variable
-        multipop rax, rcx, rdx
-        
-        ; check if assignment operator is next
-        add rbx, Token.size
-        mov r12w, word [rbx + Token.TokenType]`
-        
-        if r12w != defOperatorAssignment then `
-            printf(`"[\#27[91mERROR\#27[0m] Expected assignment operator after 'string'\r\n"`)
-            jmp .exit`
-        end `
-
-        ; get value
-        add rbx, Token.size
-
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
-        mov r13, szSourceCode
-        add r13, r14
-        strcpy(ptr2Buffer64, r13, r15)
-
-        multipop rax, rbx, r13, r14, r15
-        sub rbx, Token.size
-
-        ; todo - write them at the top of asm file
-        ; write variable declaration
-        sprintf(ptrBuffer256, `"\r\nsection .bss\r\n\t%s resb %s\r\nsection .text\r\n"`, ptrBuffer64, ptr2Buffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
         PopCallerSavedRegs()
@@ -3209,8 +3139,6 @@ section .data
     szKeywordUInt8.length equ $ - szKeywordUInt8
     szKeywordUInt64 db "uint64"
     szKeywordUInt64.length equ $ - szKeywordUInt64
-    szKeywordString db "string"
-    szKeywordString.length equ $ - szKeywordString
     szKeywordEval db "eval"
     szKeywordEval.length equ $ - szKeywordEval
     szKeywordArray db "array"
