@@ -126,23 +126,64 @@ tokens [ 28 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 29 ] = 1 ; tokens [ 30 ] = 2 ;
 tokens [ 32 ] = TOKEN_SEMICOLON ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 6 ;
 tokens [ 36 ] = TOKEN_IF ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 3 ; tokens [ 39 ] = 1 ;
 tokens [ 40 ] = TOKEN_IDENTIFIER ; tokens [ 41 ] = 2 ; tokens [ 42 ] = 3 ; tokens [ 43 ] = 4 ;
-tokens [ 44 ] = TOKEN_MODULO ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 3 ; tokens [ 47 ] = 6 ;
-tokens [ 48 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 49 ] = 2 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 8 ;
-tokens [ 52 ] = TOKEN_EQUALS ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 10 ;
-tokens [ 56 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 3 ; tokens [ 59 ] = 13 ;
-tokens [ 60 ] = TOKEN_THEN ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 3 ; tokens [ 63 ] = 15 ;
-tokens [ 64 ] = TOKEN_IF ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 5 ;
-tokens [ 68 ] = TOKEN_IDENTIFIER ; tokens [ 69 ] = 3 ; tokens [ 70 ] = 4 ; tokens [ 71 ] = 8 ;
-tokens [ 72 ] = TOKEN_LESS_THAN ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 4 ; tokens [ 75 ] = 10 ;
-tokens [ 76 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 4 ; tokens [ 79 ] = 12 ;
-tokens [ 80 ] = TOKEN_THEN ; tokens [ 81 ] = 0 ; tokens [ 82 ] = 4 ; tokens [ 83 ] = 14 ;
-tokens [ 84 ] = TOKEN_IDENTIFIER ; tokens [ 85 ] = 4 ; tokens [ 86 ] = 5 ; tokens [ 87 ] = 9 ;
-tokens [ 88 ] = TOKEN_ASSIGNMENT ; tokens [ 89 ] = 0 ; tokens [ 90 ] = 5 ; tokens [ 91 ] = 11 ;
-tokens [ 92 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 93 ] = 2 ; tokens [ 94 ] = 5 ; tokens [ 95 ] = 13 ;
-tokens [ 96 ] = TOKEN_SEMICOLON ; tokens [ 97 ] = 0 ; tokens [ 98 ] = 5 ; tokens [ 99 ] = 14 ;
-tokens [ 100 ] = TOKEN_END ; tokens [ 101 ] = 0 ; tokens [ 102 ] = 6 ; tokens [ 103 ] = 5 ;
-tokens [ 104 ] = TOKEN_END ; tokens [ 105 ] = 0 ; tokens [ 106 ] = 7 ; tokens [ 107 ] = 1 ;
-tokenCount = 108 ;
+tokens [ 44 ] = TOKEN_LESS_THAN ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 3 ; tokens [ 47 ] = 6 ;
+tokens [ 48 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 8 ;
+tokens [ 52 ] = TOKEN_THEN ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 10 ;
+tokens [ 56 ] = TOKEN_IDENTIFIER ; tokens [ 57 ] = 3 ; tokens [ 58 ] = 4 ; tokens [ 59 ] = 5 ;
+tokens [ 60 ] = TOKEN_ASSIGNMENT ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 4 ; tokens [ 63 ] = 7 ;
+tokens [ 64 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 65 ] = 2 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 9 ;
+tokens [ 68 ] = TOKEN_SEMICOLON ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 4 ; tokens [ 71 ] = 10 ;
+tokens [ 72 ] = TOKEN_ELSE ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 5 ; tokens [ 75 ] = 1 ;
+tokens [ 76 ] = TOKEN_IF ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 5 ; tokens [ 79 ] = 6 ;
+tokens [ 80 ] = TOKEN_IDENTIFIER ; tokens [ 81 ] = 4 ; tokens [ 82 ] = 5 ; tokens [ 83 ] = 9 ;
+tokens [ 84 ] = TOKEN_LESS_THAN ; tokens [ 85 ] = 0 ; tokens [ 86 ] = 5 ; tokens [ 87 ] = 11 ;
+tokens [ 88 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 89 ] = 2 ; tokens [ 90 ] = 5 ; tokens [ 91 ] = 13 ;
+tokens [ 92 ] = TOKEN_THEN ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 5 ; tokens [ 95 ] = 15 ;
+tokens [ 96 ] = TOKEN_IDENTIFIER ; tokens [ 97 ] = 5 ; tokens [ 98 ] = 6 ; tokens [ 99 ] = 5 ;
+tokens [ 100 ] = TOKEN_ASSIGNMENT ; tokens [ 101 ] = 0 ; tokens [ 102 ] = 6 ; tokens [ 103 ] = 7 ;
+tokens [ 104 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 105 ] = 3 ; tokens [ 106 ] = 6 ; tokens [ 107 ] = 9 ;
+tokens [ 108 ] = TOKEN_SEMICOLON ; tokens [ 109 ] = 0 ; tokens [ 110 ] = 6 ; tokens [ 111 ] = 10 ;
+tokens [ 112 ] = TOKEN_ELSE ; tokens [ 113 ] = 0 ; tokens [ 114 ] = 7 ; tokens [ 115 ] = 1 ;
+tokens [ 116 ] = TOKEN_IF ; tokens [ 117 ] = 0 ; tokens [ 118 ] = 7 ; tokens [ 119 ] = 6 ;
+tokens [ 120 ] = TOKEN_IDENTIFIER ; tokens [ 121 ] = 6 ; tokens [ 122 ] = 7 ; tokens [ 123 ] = 9 ;
+tokens [ 124 ] = TOKEN_LESS_THAN ; tokens [ 125 ] = 0 ; tokens [ 126 ] = 7 ; tokens [ 127 ] = 11 ;
+tokens [ 128 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 129 ] = 3 ; tokens [ 130 ] = 7 ; tokens [ 131 ] = 13 ;
+tokens [ 132 ] = TOKEN_THEN ; tokens [ 133 ] = 0 ; tokens [ 134 ] = 7 ; tokens [ 135 ] = 15 ;
+tokens [ 136 ] = TOKEN_IDENTIFIER ; tokens [ 137 ] = 7 ; tokens [ 138 ] = 8 ; tokens [ 139 ] = 5 ;
+tokens [ 140 ] = TOKEN_ASSIGNMENT ; tokens [ 141 ] = 0 ; tokens [ 142 ] = 8 ; tokens [ 143 ] = 7 ;
+tokens [ 144 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 145 ] = 4 ; tokens [ 146 ] = 8 ; tokens [ 147 ] = 9 ;
+tokens [ 148 ] = TOKEN_SEMICOLON ; tokens [ 149 ] = 0 ; tokens [ 150 ] = 8 ; tokens [ 151 ] = 10 ;
+tokens [ 152 ] = TOKEN_ELSE ; tokens [ 153 ] = 0 ; tokens [ 154 ] = 9 ; tokens [ 155 ] = 1 ;
+tokens [ 156 ] = TOKEN_IDENTIFIER ; tokens [ 157 ] = 8 ; tokens [ 158 ] = 10 ; tokens [ 159 ] = 5 ;
+tokens [ 160 ] = TOKEN_ASSIGNMENT ; tokens [ 161 ] = 0 ; tokens [ 162 ] = 10 ; tokens [ 163 ] = 7 ;
+tokens [ 164 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 165 ] = 5 ; tokens [ 166 ] = 10 ; tokens [ 167 ] = 9 ;
+tokens [ 168 ] = TOKEN_SEMICOLON ; tokens [ 169 ] = 0 ; tokens [ 170 ] = 10 ; tokens [ 171 ] = 10 ;
+tokens [ 172 ] = TOKEN_END ; tokens [ 173 ] = 0 ; tokens [ 174 ] = 11 ; tokens [ 175 ] = 1 ;
+tokenCount = 176 ;
+
+` ; a
+`
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; a
+`
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; a
+`
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; a
+`
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
 
 ` ; a
 `
@@ -422,9 +463,11 @@ proc parseStatements ( )
     while true == 1 do 
         if currentToken == [TOKEN_END] then
             break ;
+        else if currentToken == [TOKEN_ELSE] then
+            break ;
         else
             parseStatement ( ) ;
-        end
+        end end
     end
 endproc parseStatements
 
@@ -438,19 +481,39 @@ proc parseIfStatement ( )
 
     expectedToken = TOKEN_THEN ;
     consumeToken ( ) ;
-
     `
     printf(`"[Trace] If statement: THEN\n"`)
     `
-
     parseStatements ( ) ;
 
-    expectedToken = TOKEN_END ;
-    consumeToken ( ) ;
+    while true == 1 do
+        if currentToken == [TOKEN_ELSE] then 
+            expectedToken = TOKEN_ELSE ;
+            consumeToken ( ) ; 
+            `
+            printf(`"[Trace] If statement: ELSE\n"`)
+            `
+            if currentToken == [TOKEN_IF] then
+                expectedToken = TOKEN_IF ;
+                consumeToken ( ) ; `
+                printf(`"[Trace] If statement: IF\n"`)
+                `
+                parseLogicalOrExpression ( ) ;
 
-    `
-    printf(`"[Trace] If statement: END\n"`)
-    `
+                expectedToken = TOKEN_THEN ;
+                consumeToken ( ) ; `
+                printf(`"[Trace] If statement: THEN\n"`)
+                `
+            end
+            parseStatements ( ) ; 
+        else 
+            break ;
+        end 
+    end
+
+    expectedToken = TOKEN_END ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] If statement: END\n"`)`
 endproc parseIfStatement
 
 
