@@ -94,13 +94,16 @@ uint64 TOKEN_MODULO                   = 11 ;
 
 uint64 TOKEN_LEFT_PARENTHESIS         = 12 ;
 uint64 TOKEN_RIGHT_PARENTHESIS        = 13 ;
+
 uint64 TOKEN_LESS_THAN                = 14 ;
 uint64 TOKEN_LESS_THAN_OR_EQUAL_TO    = 15 ;
 uint64 TOKEN_GREATER_THAN             = 16 ;
 uint64 TOKEN_GREATER_THAN_OR_EQUAL_TO = 17 ;
-
 uint64 TOKEN_EQUALS                   = 18 ;
 uint64 TOKEN_NOT_EQUALS               = 19 ;
+
+uint64 TOKEN_LOGICAL_AND              = 20 ;
+uint64 TOKEN_LOGICAL_OR               = 21 ;
 
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
@@ -117,8 +120,16 @@ tokens [ 24 ] = TOKEN_ASSIGNMENT ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 2 ; token
 tokens [ 28 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 29 ] = 1 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 5 ;
 tokens [ 32 ] = TOKEN_NOT_EQUALS ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 7 ;
 tokens [ 36 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 37 ] = 2 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 10 ;
-tokens [ 40 ] = TOKEN_SEMICOLON ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 11 ;
-tokenCount = 44 ;
+tokens [ 40 ] = TOKEN_LOGICAL_AND ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 12 ;
+tokens [ 44 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 45 ] = 3 ; tokens [ 46 ] = 2 ; tokens [ 47 ] = 16 ;
+tokens [ 48 ] = TOKEN_EQUALS ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 2 ; tokens [ 51 ] = 18 ;
+tokens [ 52 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 53 ] = 3 ; tokens [ 54 ] = 2 ; tokens [ 55 ] = 21 ;
+tokens [ 56 ] = TOKEN_LOGICAL_OR ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 2 ; tokens [ 59 ] = 23 ;
+tokens [ 60 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 61 ] = 4 ; tokens [ 62 ] = 2 ; tokens [ 63 ] = 26 ;
+tokens [ 64 ] = TOKEN_LESS_THAN ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 2 ; tokens [ 67 ] = 28 ;
+tokens [ 68 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 69 ] = 5 ; tokens [ 70 ] = 2 ; tokens [ 71 ] = 30 ;
+tokens [ 72 ] = TOKEN_SEMICOLON ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 2 ; tokens [ 75 ] = 31 ;
+tokenCount = 76 ;
 
 ` ; a
 `
@@ -320,13 +331,41 @@ proc parseRelationalExpression ( )
     end end end end end end
 endproc parseRelationalExpression
 
+proc parseLogicalAndExpression ( )
+    parseRelationalExpression ( ) ;
+    while true == 1 do 
+        if currentToken == [TOKEN_LOGICAL_AND] then
+            expectedToken = TOKEN_LOGICAL_AND ;
+            consumeToken ( ) ;
+            parseRelationalExpression ( ) ; `
+            printf(`"[Trace] LOGICAL_AND &&\n"`)`
+        else
+            break ;
+        end
+    end
+endproc parseLogicalAndExpression
+
+proc parseLogicalOrExpression ( )
+    parseLogicalAndExpression ( ) ;
+    while true == 1 do 
+        if currentToken == [TOKEN_LOGICAL_OR] then
+            expectedToken = TOKEN_LOGICAL_OR ;
+            consumeToken ( ) ;
+            parseLogicalAndExpression ( ) ; `
+            printf(`"[Trace] LOGICAL_OR ||\n"`)`
+        else
+            break ;
+        end
+    end
+endproc parseLogicalOrExpression
+
 proc parseAssignmentStatement ( )
     gvNamePointer = parseIdentifier ( ) ;
 
     expectedToken = TOKEN_ASSIGNMENT ;
     consumeToken ( ) ;
 
-    parseRelationalExpression ( ) ;
+    parseLogicalOrExpression ( ) ;
 
     expectedToken = TOKEN_SEMICOLON ;
     consumeToken ( ) ; `
