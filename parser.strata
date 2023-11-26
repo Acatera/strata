@@ -79,20 +79,28 @@ uint64 tokenSize = 4 ;
 array output = uint8 [ 1000000 ] ;
 uint64 outputCount = 0 ;
 
-uint64 TOKEN_UINT8                 =  1 ;
-uint64 TOKEN_UINT64                =  2 ;
-uint64 TOKEN_IDENTIFIER            =  3 ;
-uint64 TOKEN_ASSIGNMENT            =  4 ;
-uint64 TOKEN_CONSTANT_INTEGER      =  5 ;
-uint64 TOKEN_SEMICOLON             =  6 ;
-uint64 TOKEN_PLUS                  =  7 ;
-uint64 TOKEN_MINUS                 =  8 ;
-uint64 TOKEN_MULTIPLY              =  9 ;
-uint64 TOKEN_DIVIDE                = 10 ;
-uint64 TOKEN_MODULO                = 11 ;
-uint64 TOKEN_LEFT_PARENTHESIS      = 12 ;
-uint64 TOKEN_RIGHT_PARENTHESIS     = 13 ;
-uint64 TOKEN_LESS_THAN             = 14 ;
+uint64 TOKEN_UINT8                    =  1 ;
+uint64 TOKEN_UINT64                   =  2 ;
+uint64 TOKEN_IDENTIFIER               =  3 ;
+uint64 TOKEN_ASSIGNMENT               =  4 ;
+uint64 TOKEN_CONSTANT_INTEGER         =  5 ;
+uint64 TOKEN_SEMICOLON                =  6 ;
+
+uint64 TOKEN_PLUS                     =  7 ;
+uint64 TOKEN_MINUS                    =  8 ;
+uint64 TOKEN_MULTIPLY                 =  9 ;
+uint64 TOKEN_DIVIDE                   = 10 ;
+uint64 TOKEN_MODULO                   = 11 ;
+
+uint64 TOKEN_LEFT_PARENTHESIS         = 12 ;
+uint64 TOKEN_RIGHT_PARENTHESIS        = 13 ;
+uint64 TOKEN_LESS_THAN                = 14 ;
+uint64 TOKEN_LESS_THAN_OR_EQUAL_TO    = 15 ;
+uint64 TOKEN_GREATER_THAN             = 16 ;
+uint64 TOKEN_GREATER_THAN_OR_EQUAL_TO = 17 ;
+
+uint64 TOKEN_EQUALS                   = 18 ;
+uint64 TOKEN_NOT_EQUALS               = 19 ;
 
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
@@ -106,17 +114,11 @@ tokens [ 12 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ;
 tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 13 ;
 tokens [ 20 ] = TOKEN_IDENTIFIER ; tokens [ 21 ] = 1 ; tokens [ 22 ] = 2 ; tokens [ 23 ] = 1 ;
 tokens [ 24 ] = TOKEN_ASSIGNMENT ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 3 ;
-tokens [ 28 ] = TOKEN_IDENTIFIER ; tokens [ 29 ] = 2 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 5 ;
-tokens [ 32 ] = TOKEN_LESS_THAN ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 7 ;
-tokens [ 36 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 37 ] = 2 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 9 ;
-tokens [ 40 ] = TOKEN_SEMICOLON ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 10 ;
+tokens [ 28 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 29 ] = 1 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 5 ;
+tokens [ 32 ] = TOKEN_NOT_EQUALS ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 7 ;
+tokens [ 36 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 37 ] = 2 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 10 ;
+tokens [ 40 ] = TOKEN_SEMICOLON ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 11 ;
 tokenCount = 44 ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
 
 ` ; a
 `
@@ -290,7 +292,32 @@ proc parseRelationalExpression ( )
         consumeToken ( ) ;
         parseAdditiveExpression ( ) ; `
         printf(`"[Trace] LESS_THAN <\n"`)`
-    end 
+    else if currentToken == [TOKEN_LESS_THAN_OR_EQUAL_TO] then
+        expectedToken = TOKEN_LESS_THAN_OR_EQUAL_TO ;
+        consumeToken ( ) ;
+        parseAdditiveExpression ( ) ; `
+        printf(`"[Trace] LESS_THAN_OR_EQUAL_TO <=\n"`)`
+    else if currentToken == [TOKEN_GREATER_THAN] then
+        expectedToken = TOKEN_GREATER_THAN ;
+        consumeToken ( ) ;
+        parseAdditiveExpression ( ) ; `
+        printf(`"[Trace] GREATER_THAN >\n"`)`
+    else if currentToken == [TOKEN_GREATER_THAN_OR_EQUAL_TO] then
+        expectedToken = TOKEN_GREATER_THAN_OR_EQUAL_TO ;
+        consumeToken ( ) ;
+        parseAdditiveExpression ( ) ; `
+        printf(`"[Trace] GREATER_THAN_OR_EQUAL_TO >=\n"`)`
+    else if currentToken == [TOKEN_EQUALS] then 
+        expectedToken = TOKEN_EQUALS ;
+        consumeToken ( ) ;
+        parseAdditiveExpression ( ) ; `
+        printf(`"[Trace] EQUALS ==\n"`)`
+    else if currentToken == [TOKEN_NOT_EQUALS] then
+        expectedToken = TOKEN_NOT_EQUALS ;
+        consumeToken ( ) ;
+        parseAdditiveExpression ( ) ; `
+        printf(`"[Trace] NOT_EQUALS !=\n"`)`
+    end end end end end end
 endproc parseRelationalExpression
 
 proc parseAssignmentStatement ( )
