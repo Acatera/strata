@@ -110,6 +110,11 @@ uint64 TOKEN_THEN                     = 23 ;
 uint64 TOKEN_ELSE                     = 24 ;
 uint64 TOKEN_END                      = 25 ;
 
+uint64 TOKEN_WHILE                    = 26 ;
+uint64 TOKEN_DO                       = 27 ;
+uint64 TOKEN_BREAK                    = 28 ;
+uint64 TOKEN_CONTINUE                 = 29 ;
+
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
 
@@ -120,70 +125,30 @@ tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [
 tokens [ 8 ] = TOKEN_ASSIGNMENT ; tokens [ 9 ] = 0 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 10 ;
 tokens [ 12 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 12 ;
 tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 13 ;
-tokens [ 20 ] = TOKEN_IDENTIFIER ; tokens [ 21 ] = 1 ; tokens [ 22 ] = 2 ; tokens [ 23 ] = 1 ;
-tokens [ 24 ] = TOKEN_ASSIGNMENT ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 3 ;
-tokens [ 28 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 29 ] = 1 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 5 ;
-tokens [ 32 ] = TOKEN_SEMICOLON ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 6 ;
-tokens [ 36 ] = TOKEN_IF ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 3 ; tokens [ 39 ] = 1 ;
-tokens [ 40 ] = TOKEN_IDENTIFIER ; tokens [ 41 ] = 2 ; tokens [ 42 ] = 3 ; tokens [ 43 ] = 4 ;
-tokens [ 44 ] = TOKEN_LESS_THAN ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 3 ; tokens [ 47 ] = 6 ;
-tokens [ 48 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 8 ;
-tokens [ 52 ] = TOKEN_THEN ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 10 ;
-tokens [ 56 ] = TOKEN_IDENTIFIER ; tokens [ 57 ] = 3 ; tokens [ 58 ] = 4 ; tokens [ 59 ] = 5 ;
-tokens [ 60 ] = TOKEN_ASSIGNMENT ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 4 ; tokens [ 63 ] = 7 ;
-tokens [ 64 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 65 ] = 2 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 9 ;
-tokens [ 68 ] = TOKEN_SEMICOLON ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 4 ; tokens [ 71 ] = 10 ;
-tokens [ 72 ] = TOKEN_ELSE ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 5 ; tokens [ 75 ] = 1 ;
-tokens [ 76 ] = TOKEN_IF ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 5 ; tokens [ 79 ] = 6 ;
-tokens [ 80 ] = TOKEN_IDENTIFIER ; tokens [ 81 ] = 4 ; tokens [ 82 ] = 5 ; tokens [ 83 ] = 9 ;
-tokens [ 84 ] = TOKEN_LESS_THAN ; tokens [ 85 ] = 0 ; tokens [ 86 ] = 5 ; tokens [ 87 ] = 11 ;
-tokens [ 88 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 89 ] = 2 ; tokens [ 90 ] = 5 ; tokens [ 91 ] = 13 ;
-tokens [ 92 ] = TOKEN_THEN ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 5 ; tokens [ 95 ] = 15 ;
-tokens [ 96 ] = TOKEN_IDENTIFIER ; tokens [ 97 ] = 5 ; tokens [ 98 ] = 6 ; tokens [ 99 ] = 5 ;
-tokens [ 100 ] = TOKEN_ASSIGNMENT ; tokens [ 101 ] = 0 ; tokens [ 102 ] = 6 ; tokens [ 103 ] = 7 ;
-tokens [ 104 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 105 ] = 3 ; tokens [ 106 ] = 6 ; tokens [ 107 ] = 9 ;
-tokens [ 108 ] = TOKEN_SEMICOLON ; tokens [ 109 ] = 0 ; tokens [ 110 ] = 6 ; tokens [ 111 ] = 10 ;
-tokens [ 112 ] = TOKEN_ELSE ; tokens [ 113 ] = 0 ; tokens [ 114 ] = 7 ; tokens [ 115 ] = 1 ;
-tokens [ 116 ] = TOKEN_IF ; tokens [ 117 ] = 0 ; tokens [ 118 ] = 7 ; tokens [ 119 ] = 6 ;
-tokens [ 120 ] = TOKEN_IDENTIFIER ; tokens [ 121 ] = 6 ; tokens [ 122 ] = 7 ; tokens [ 123 ] = 9 ;
-tokens [ 124 ] = TOKEN_LESS_THAN ; tokens [ 125 ] = 0 ; tokens [ 126 ] = 7 ; tokens [ 127 ] = 11 ;
-tokens [ 128 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 129 ] = 3 ; tokens [ 130 ] = 7 ; tokens [ 131 ] = 13 ;
-tokens [ 132 ] = TOKEN_THEN ; tokens [ 133 ] = 0 ; tokens [ 134 ] = 7 ; tokens [ 135 ] = 15 ;
-tokens [ 136 ] = TOKEN_IDENTIFIER ; tokens [ 137 ] = 7 ; tokens [ 138 ] = 8 ; tokens [ 139 ] = 5 ;
-tokens [ 140 ] = TOKEN_ASSIGNMENT ; tokens [ 141 ] = 0 ; tokens [ 142 ] = 8 ; tokens [ 143 ] = 7 ;
-tokens [ 144 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 145 ] = 4 ; tokens [ 146 ] = 8 ; tokens [ 147 ] = 9 ;
-tokens [ 148 ] = TOKEN_SEMICOLON ; tokens [ 149 ] = 0 ; tokens [ 150 ] = 8 ; tokens [ 151 ] = 10 ;
-tokens [ 152 ] = TOKEN_ELSE ; tokens [ 153 ] = 0 ; tokens [ 154 ] = 9 ; tokens [ 155 ] = 1 ;
-tokens [ 156 ] = TOKEN_IDENTIFIER ; tokens [ 157 ] = 8 ; tokens [ 158 ] = 10 ; tokens [ 159 ] = 5 ;
-tokens [ 160 ] = TOKEN_ASSIGNMENT ; tokens [ 161 ] = 0 ; tokens [ 162 ] = 10 ; tokens [ 163 ] = 7 ;
-tokens [ 164 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 165 ] = 5 ; tokens [ 166 ] = 10 ; tokens [ 167 ] = 9 ;
-tokens [ 168 ] = TOKEN_SEMICOLON ; tokens [ 169 ] = 0 ; tokens [ 170 ] = 10 ; tokens [ 171 ] = 10 ;
-tokens [ 172 ] = TOKEN_END ; tokens [ 173 ] = 0 ; tokens [ 174 ] = 11 ; tokens [ 175 ] = 1 ;
-tokenCount = 176 ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
+tokens [ 20 ] = TOKEN_WHILE ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 3 ; tokens [ 23 ] = 1 ;
+tokens [ 24 ] = TOKEN_IDENTIFIER ; tokens [ 25 ] = 1 ; tokens [ 26 ] = 3 ; tokens [ 27 ] = 7 ;
+tokens [ 28 ] = TOKEN_LESS_THAN ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 3 ; tokens [ 31 ] = 9 ;
+tokens [ 32 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 33 ] = 10 ; tokens [ 34 ] = 3 ; tokens [ 35 ] = 11 ;
+tokens [ 36 ] = TOKEN_DO ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 3 ; tokens [ 39 ] = 14 ;
+tokens [ 40 ] = TOKEN_IF ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 4 ; tokens [ 43 ] = 5 ;
+tokens [ 44 ] = TOKEN_IDENTIFIER ; tokens [ 45 ] = 2 ; tokens [ 46 ] = 4 ; tokens [ 47 ] = 8 ;
+tokens [ 48 ] = TOKEN_EQUALS ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 4 ; tokens [ 51 ] = 10 ;
+tokens [ 52 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 53 ] = 5 ; tokens [ 54 ] = 4 ; tokens [ 55 ] = 13 ;
+tokens [ 56 ] = TOKEN_THEN ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 4 ; tokens [ 59 ] = 15 ;
+tokens [ 60 ] = TOKEN_BREAK ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 5 ; tokens [ 63 ] = 9 ;
+tokens [ 64 ] = TOKEN_SEMICOLON ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 5 ; tokens [ 67 ] = 14 ;
+tokens [ 68 ] = TOKEN_ELSE ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 6 ; tokens [ 71 ] = 5 ;
+tokens [ 72 ] = TOKEN_CONTINUE ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 7 ; tokens [ 75 ] = 9 ;
+tokens [ 76 ] = TOKEN_SEMICOLON ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 7 ; tokens [ 79 ] = 17 ;
+tokens [ 80 ] = TOKEN_END ; tokens [ 81 ] = 0 ; tokens [ 82 ] = 8 ; tokens [ 83 ] = 5 ;
+tokens [ 84 ] = TOKEN_IDENTIFIER ; tokens [ 85 ] = 3 ; tokens [ 86 ] = 9 ; tokens [ 87 ] = 5 ;
+tokens [ 88 ] = TOKEN_ASSIGNMENT ; tokens [ 89 ] = 0 ; tokens [ 90 ] = 9 ; tokens [ 91 ] = 7 ;
+tokens [ 92 ] = TOKEN_IDENTIFIER ; tokens [ 93 ] = 4 ; tokens [ 94 ] = 9 ; tokens [ 95 ] = 9 ;
+tokens [ 96 ] = TOKEN_PLUS ; tokens [ 97 ] = 0 ; tokens [ 98 ] = 9 ; tokens [ 99 ] = 11 ;
+tokens [ 100 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 101 ] = 1 ; tokens [ 102 ] = 9 ; tokens [ 103 ] = 13 ;
+tokens [ 104 ] = TOKEN_SEMICOLON ; tokens [ 105 ] = 0 ; tokens [ 106 ] = 9 ; tokens [ 107 ] = 14 ;
+tokens [ 108 ] = TOKEN_END ; tokens [ 109 ] = 0 ; tokens [ 110 ] = 10 ; tokens [ 111 ] = 1 ;
+tokenCount = 112 ;
 
 ` ; a
 `
@@ -306,7 +271,7 @@ proc parseVariableDeclaration ( )
 endproc parseVariableDeclaration
 
 proc forward parseAdditiveExpression
-proc forward parseIfStatement
+proc forward parseStatements
 
 proc parseFactor ( ) 
     if currentToken == [TOKEN_CONSTANT_INTEGER] then
@@ -445,32 +410,6 @@ proc parseAssignmentStatement ( )
     printf(`"[Trace] Assignment statement: %d\n"`, [gvNamePointer])`
 endproc parseAssignmentStatement
 
-proc parseStatement ( )
-    if currentToken == [TOKEN_UINT64] then
-        parseVariableDeclaration ( ) ;
-    else if currentToken == [TOKEN_UINT8] then
-        parseVariableDeclaration ( ) ;
-    else if currentToken == [TOKEN_IDENTIFIER] then
-        parseAssignmentStatement ( ) ;
-    else if currentToken == [TOKEN_IF] then
-        parseIfStatement ( ) ;
-    else
-        unexpectedToken ( ) ;
-    end end end end
-endproc parseStatement
-
-proc parseStatements ( )
-    while true == 1 do 
-        if currentToken == [TOKEN_END] then
-            break ;
-        else if currentToken == [TOKEN_ELSE] then
-            break ;
-        else
-            parseStatement ( ) ;
-        end end
-    end
-endproc parseStatements
-
 proc parseIfStatement ( )
     expectedToken = TOKEN_IF ;
     consumeToken ( ) ; `
@@ -516,7 +455,71 @@ proc parseIfStatement ( )
     printf(`"[Trace] If statement: END\n"`)`
 endproc parseIfStatement
 
+proc parseWhileStatement ( )
+    expectedToken = TOKEN_WHILE ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] While statement: WHILE\n"`)
+    `
+    parseLogicalOrExpression ( ) ;
 
+    expectedToken = TOKEN_DO ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] While statement: DO\n"`)
+    `
+    parseStatements ( ) ;
+
+    expectedToken = TOKEN_END ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] While statement: END\n"`)`
+endproc parseWhileStatement
+
+proc parseBreakStatement ( )
+    expectedToken = TOKEN_BREAK ;
+    consumeToken ( ) ; 
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] Break statement: BREAK\n"`)`
+endproc parseBreakStatement
+
+proc parseContinueStatement ( )
+    expectedToken = TOKEN_CONTINUE ;
+    consumeToken ( ) ;
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] Continue statement: CONTINUE\n"`)`
+endproc parseContinueStatement
+
+proc parseStatement ( )
+    if currentToken == [TOKEN_UINT64] then
+        parseVariableDeclaration ( ) ;
+    else if currentToken == [TOKEN_UINT8] then
+        parseVariableDeclaration ( ) ;
+    else if currentToken == [TOKEN_IDENTIFIER] then
+        parseAssignmentStatement ( ) ;
+    else if currentToken == [TOKEN_IF] then
+        parseIfStatement ( ) ;
+    else if currentToken == [TOKEN_WHILE] then
+        parseWhileStatement ( ) ;
+    else if currentToken == [TOKEN_BREAK] then
+        parseBreakStatement ( ) ;
+    else if currentToken == [TOKEN_CONTINUE] then
+        parseContinueStatement ( ) ;
+    else
+        unexpectedToken ( ) ;
+    end end end end end end end
+endproc parseStatement
+
+proc parseStatements ( )
+    while true == 1 do 
+        if currentToken == [TOKEN_END] then
+            break ;
+        else if currentToken == [TOKEN_ELSE] then
+            break ;
+        else
+            parseStatement ( ) ;
+        end end
+    end
+endproc parseStatements
 
 i = 0 ;
 
