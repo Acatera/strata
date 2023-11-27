@@ -1775,18 +1775,29 @@ end
                     printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, qword [rbx + Token.Line], qword [rbx + Token.Column])
                     jmp .exit`
                 end end 
-            else 
-                if r11 == 1 then `
-                    sprintf(ptrBuffer256, `"\tmovzx rax, byte [%s]\r\n\tmov byte [rdx], al\r\n"`, ptr2Buffer64)
+            else `
+                multipush rax, rcx
+                mov rcx, ptr2Buffer64
+                call get_data_type
+                mov r15, rax
+                mov r11, rdx ; data type size in bytes
+                multipop rax, rcx `
+                if r8 != 0 then `
+                    sprintf(ptrBuffer256, `"\tmov rax, qword [rbp + %d]\r\n\tmov byte [rdx], al\r\n"`, r8)
                     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-                else if r11 == 8 then `
-                    sprintf(ptrBuffer256, `"\tmov rax, [%s]\r\n\tmov [rdx], rax\r\n"`, ptr2Buffer64)
-                    WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
-                else `
-                    printf(`"[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n"`, r11)
-                    printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, qword [rbx + Token.Line], qword [rbx + Token.Column])
-                    jmp .exit`
-                end end
+               else 
+                    if r11 == 1 then `
+                        sprintf(ptrBuffer256, `"\tmovzx rax, byte [%s]\r\n\tmov byte [rdx], al\r\n"`, ptr2Buffer64)
+                        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                    else if r11 == 8 then `
+                        sprintf(ptrBuffer256, `"\tmov rax, [%s]\r\n\tmov [rdx], rax\r\n"`, ptr2Buffer64)
+                        WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)`
+                    else `
+                        printf(`"[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n"`, r11)
+                        printf(`"[\#27[91mERROR\#27[0m] Line %d, column %d\r\n"`, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                        jmp .exit`
+                    end end
+                end
             end `
             ; todo - verify that the next token is a ';'
             add rbx, Token.size`

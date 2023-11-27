@@ -22,6 +22,108 @@ uint64 gvType        = 0 ;
 uint64 gvNamePointer = 0 ;
 uint64 gvValue       = 0 ;
 
+proc forward readString
+
+proc addGlobalVariable ( type namePointer value )
+    _ = gvTypeOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = type ;
+    _ = gvNameOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = namePointer ;
+    _ = gvValueOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = value ; 
+    globalVariableCount = globalVariableCount + 1 ;
+endproc addGlobalVariable
+
+array globalSymbolTable = uint64 [ 10000 ] ;
+uint64 globalSymbolsCount = 0 ;
+uint64 globalSymbolSize = 3 ;
+
+proc addGlobalSymbol ( type namePointer value )
+    _ = gvTypeOffset + globalSymbolsCount * globalSymbolSize ;
+    globalSymbolTable [ _ ] = type ;
+    _ = gvNameOffset + globalSymbolsCount * globalSymbolSize ;
+    globalSymbolTable [ _ ] = namePointer ;
+    _ = gvValueOffset + globalSymbolsCount * globalSymbolSize ;
+    globalSymbolTable [ _ ] = value ; 
+    globalSymbolsCount = globalSymbolsCount + 1 ;
+endproc addGlobalSymbol
+
+
+proc stringsEqual ( a b ) 
+    _ = readString ( a ) ; `
+    mov rsi, rax
+    mov rax, stringBuffer
+    add rsi, rax
+    `
+    _ = readString ( b ) ; `
+    mov rdi, rax
+    mov rax, stringBuffer
+    add rdi, rax
+.t:
+    printf(`"[Trace] Comparing strings: %s and %s\n"`, rsi, rdi)
+.loop:
+    mov al, byte [rdi]
+    mov bl, byte [rsi]
+    cmp al, bl
+    jne .str_neq
+    cmp al, 0
+    je .str1_null
+    cmp bl, 0
+    je .str2_null
+    inc rdi
+    inc rsi
+    jmp .loop
+
+.str1_null:
+    cmp bl, 0
+    je .str_eq
+    jmp .str_neq
+
+.str2_null:
+    cmp al, 0
+    je .str_eq
+    jmp .str_neq    
+
+.str_neq:
+    xor rax, rax
+    jmp .end
+
+.str_eq:
+    mov rax, 1
+.end: `
+endproc stringsEqual
+
+uint64 fgsIndex = 0 ;
+uint64 fgsNamePointer = 0 ;
+uint64 fgsEqual = 0 ;
+proc findGlobalSymbol ( namePointer )
+    fgsIndex = 0 ;
+    while fgsIndex < [globalSymbolsCount] do
+        _ = gvNameOffset + fgsIndex * globalSymbolSize ;
+        fgsNamePointer = globalSymbolTable [ _ ] ;
+        fgsEqual = stringsEqual ( namePointer fgsNamePointer ) ;
+
+        if fgsEqual != 0 then
+            break ;
+        end
+
+        fgsIndex = fgsIndex + 1 ;
+    end
+
+    if fgsEqual == [true] then
+        _ = gvValueOffset + fgsIndex * globalSymbolSize ;
+        ` ; a
+        printf(`"[Trace] Found global symbol: #%d with value %d.\n"`, [fgsIndex], [_])
+         ; b
+        mov rax, [_] `
+    else
+        ` ; a
+        printf(`"[Trace] Did not find global symbol.\n"`)
+         ; b
+        mov rax, -1 `
+    end
+endproc findGlobalSymbol
+
 uint64 currentToken = 0 ;
 uint64 expectedToken = 0 ;
 uint64 nextToken = 0 ;
@@ -60,6 +162,7 @@ proc readString ( index )
     freeStringIndex = 0 ;
     _ = index ;
     sbIndex = stringPointers [ _ ] ;
+    _ = sbIndex ;
     freeChar = stringBuffer [ sbIndex ] ;
 
     while freeChar != 0 do 
@@ -70,7 +173,7 @@ proc readString ( index )
     end 
     stringAtPointer [ freeStringIndex ] = 0 ; `
     printf(`"[Trace] Read string: #%d with length %d.\n"`, [rbp + 16], [freeStringIndex])
-    `
+    mov rax, [_]`
 endproc readString
 
 array tokens = uint64 [ 1000 ] ;
@@ -124,36 +227,18 @@ uint64 TYPE_UINT64                 = 2 ;
 uint64 i = 0 ;
 
 tokens [ 0 ] = TOKEN_UINT64 ; tokens [ 1 ] = 0 ; tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
-tokens [ 4 ] = TOKEN_LEFT_BRACKET ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 8 ;
-tokens [ 8 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 9 ] = 10 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 10 ;
-tokens [ 12 ] = TOKEN_RIGHT_BRACKET ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 13 ;
-tokens [ 16 ] = TOKEN_IDENTIFIER ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 15 ;
-tokens [ 20 ] = TOKEN_SEMICOLON ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 1 ; tokens [ 23 ] = 16 ;
-tokens [ 24 ] = TOKEN_UINT64 ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 1 ;
-tokens [ 28 ] = TOKEN_IDENTIFIER ; tokens [ 29 ] = 1 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 8 ;
-tokens [ 32 ] = TOKEN_ASSIGNMENT ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 10 ;
-tokens [ 36 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 37 ] = 1 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 12 ;
-tokens [ 40 ] = TOKEN_SEMICOLON ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 13 ;
-tokens [ 44 ] = TOKEN_IDENTIFIER ; tokens [ 45 ] = 2 ; tokens [ 46 ] = 4 ; tokens [ 47 ] = 1 ;
-tokens [ 48 ] = TOKEN_LEFT_BRACKET ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 4 ; tokens [ 51 ] = 3 ;
-tokens [ 52 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 4 ; tokens [ 55 ] = 5 ;
-tokens [ 56 ] = TOKEN_RIGHT_BRACKET ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 4 ; tokens [ 59 ] = 7 ;
-tokens [ 60 ] = TOKEN_ASSIGNMENT ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 4 ; tokens [ 63 ] = 9 ;
-tokens [ 64 ] = TOKEN_IDENTIFIER ; tokens [ 65 ] = 3 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 11 ;
-tokens [ 68 ] = TOKEN_LEFT_BRACKET ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 4 ; tokens [ 71 ] = 13 ;
-tokens [ 72 ] = TOKEN_IDENTIFIER ; tokens [ 73 ] = 4 ; tokens [ 74 ] = 4 ; tokens [ 75 ] = 15 ;
-tokens [ 76 ] = TOKEN_LEFT_BRACKET ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 4 ; tokens [ 79 ] = 17 ;
-tokens [ 80 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 81 ] = 1 ; tokens [ 82 ] = 4 ; tokens [ 83 ] = 19 ;
-tokens [ 84 ] = TOKEN_RIGHT_BRACKET ; tokens [ 85 ] = 0 ; tokens [ 86 ] = 4 ; tokens [ 87 ] = 21 ;
-tokens [ 88 ] = TOKEN_RIGHT_BRACKET ; tokens [ 89 ] = 0 ; tokens [ 90 ] = 4 ; tokens [ 91 ] = 23 ;
-tokens [ 92 ] = TOKEN_SEMICOLON ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 4 ; tokens [ 95 ] = 24 ;
-tokenCount = 96 ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
+tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 8 ;
+tokens [ 8 ] = TOKEN_ASSIGNMENT ; tokens [ 9 ] = 0 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 10 ;
+tokens [ 12 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 12 ;
+tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 13 ;
+tokens [ 20 ] = TOKEN_IDENTIFIER ; tokens [ 21 ] = 1 ; tokens [ 22 ] = 2 ; tokens [ 23 ] = 1 ;
+tokens [ 24 ] = TOKEN_ASSIGNMENT ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 3 ;
+tokens [ 28 ] = TOKEN_IDENTIFIER ; tokens [ 29 ] = 2 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 5 ;
+tokens [ 32 ] = TOKEN_LEFT_BRACKET ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 7 ;
+tokens [ 36 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 37 ] = 1 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 9 ;
+tokens [ 40 ] = TOKEN_RIGHT_BRACKET ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 11 ;
+tokens [ 44 ] = TOKEN_SEMICOLON ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 2 ; tokens [ 47 ] = 12 ;
+tokenCount = 48 ;
 
 ` ; b
 `
@@ -170,12 +255,6 @@ _ = pushString ( ) ;
 ` ; a
 `
 stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; b
-`
-stringToPush [ 0 ] = 98 ;
 stringToPush [ 1 ] = 0 ;
 _ = pushString ( ) ;
 
@@ -201,6 +280,32 @@ proc consumeToken ( )
         ExitProcess(1) `
     end
 endproc consumeToken
+
+proc indentifierRedeclared ( namePointer )
+    _ = i - tokenSize ;
+    _ = _ + 2 ;
+    errorAtLine = tokens [ _ ] ;
+    _ = i - tokenSize ;
+    _ = _ + 3 ;
+    errorAtColumn = tokens [ _ ] ;
+    _ = readString ( namePointer ) ; ` 
+    printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+    printf(`"identifier redeclared: %s\n"`, stringAtPointer) ;
+    ExitProcess(1)`
+endproc indentifierRedeclared
+
+proc indentifierUnknown ( namePointer )
+    _ = i - tokenSize ;
+    _ = _ + 2 ;
+    errorAtLine = tokens [ _ ] ;
+    _ = i - tokenSize ;
+    _ = _ + 3 ;
+    errorAtColumn = tokens [ _ ] ;
+    _ = readString ( namePointer ) ; ` 
+    printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+    printf(`"unknown identifier: %s\n"`, stringAtPointer) ;
+    ExitProcess(1)`
+endproc indentifierUnknown
 
 proc unexpectedToken ( ) 
     _ = i + 2 ;
@@ -236,7 +341,7 @@ endproc parseIdentifier
 proc parseType ( )
     if currentToken == [TOKEN_UINT8] then
         _ = TYPE_UINT8 ;
-        i = i + tokenSize ;
+         i = i + tokenSize ;
         currentToken = tokens [ i ] ;
     else if currentToken == [TOKEN_UINT64] then
         _ = TYPE_UINT64 ;
@@ -254,31 +359,33 @@ proc parseArrayDeclaration ( )
     expectedToken = TOKEN_LEFT_BRACKET ;
     consumeToken ( ) ;
 
-    parseNumber ( ) ;
+    gvValue = parseNumber ( ) ;
 
     expectedToken = TOKEN_RIGHT_BRACKET ;
     consumeToken ( ) ;
 
-     gvNamePointer = parseIdentifier ( ) ;
-     `
+    gvNamePointer = parseIdentifier ( ) ;
+
+    _ = addGlobalSymbol ( gvType gvNamePointer gvValue ) ; `
     printf(`"[Trace] Array declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseArrayDeclaration
 
 proc parseIntegerDeclaration ( )
     gvNamePointer = parseIdentifier ( ) ;
 
+    fgsIndex = findGlobalSymbol ( gvNamePointer ) ;
+
+    if fgsIndex != -1 then
+        _ = indentifierRedeclared ( gvNamePointer ) ;
+    end
+
     expectedToken = TOKEN_ASSIGNMENT ;
     consumeToken ( ) ;
 
     gvValue = parseNumber ( ) ;
     
-    _ = gvTypeOffset + globalVariableCount * globalVariableSize ;
-    globalVariables [ _ ] = gvType ;
-    _ = gvNameOffset + globalVariableCount * globalVariableSize ;
-    globalVariables [ _ ] = gvNamePointer ;
-    _ = gvValueOffset + globalVariableCount * globalVariableSize ;
-    globalVariables [ _ ] = gvValue ; 
-    globalVariableCount = globalVariableCount + 1 ; `
+    _ = addGlobalVariable ( gvType gvNamePointer gvValue ) ;
+    _ = addGlobalSymbol ( gvType gvNamePointer 0 ) ; `
     printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseIntegerDeclaration 
     
@@ -302,6 +409,7 @@ proc forward parseAdditiveExpression
 proc forward parseStatements
 proc forward parseArrayAccess
 
+uint64 fpIdentifier = 0 ;
 proc parseFactor ( ) 
     if currentToken == [TOKEN_CONSTANT_INTEGER] then
         parseNumber ( ) ;
@@ -315,10 +423,28 @@ proc parseFactor ( )
         consumeToken ( ) ;
     else if currentToken == [TOKEN_IDENTIFIER] then
         if nextToken == [TOKEN_LEFT_BRACKET] then 
-            parseArrayAccess ( ) ; `
+            fpIdentifier = parseArrayAccess ( ) ; 
+            
+            fgsIndex = findGlobalSymbol ( fpIdentifier ) ;
+
+            if fgsIndex == -1 then
+                _ = indentifierUnknown ( fpIdentifier ) ;
+            end `
             printf(`"[Trace] Factor: array\n"`)`
         else
-            parseIdentifier ( ) ;
+            _ = i + 1 ;
+            _ = tokens [ _ ] ;
+            `
+            printf(`"[Trace] Factor: variable #%d\n"`, [_])
+            `
+
+            fpIdentifier = parseIdentifier ( ) ;
+
+            fgsIndex = findGlobalSymbol ( fpIdentifier ) ;
+
+            if fgsIndex == -1 then
+                _ = indentifierUnknown ( fpIdentifier ) ;
+            end 
         end
     else
         unexpectedToken ( ) ;
@@ -431,22 +557,36 @@ proc parseLogicalOrExpression ( )
     end
 endproc parseLogicalOrExpression
 
+uint64 paIdentifier = 0 ;
 proc parseArrayAccess ( ) 
-    _ = parseIdentifier ( ) ; 
+    paIdentifier = parseIdentifier ( ) ; 
     expectedToken = TOKEN_LEFT_BRACKET ;
     consumeToken ( ) ;
     parseAdditiveExpression ( ) ;
     expectedToken = TOKEN_RIGHT_BRACKET ;
     consumeToken ( ) ; `
-    mov rax, [_]`
+    mov rax, [paIdentifier]`
 endproc parseArrayAccess
 
 proc parseAssignable ( )
-    if nextToken == [TOKEN_LEFT_BRACKET] then
-        _ = parseArrayAccess ( ) ; `
-        printf(`"[Trace] Assignable: array\n"`)`
+    if nextToken == [TOKEN_LEFT_BRACKET] then 
+        gvNamePointer = parseArrayAccess ( ) ; 
+
+        fgsIndex = findGlobalSymbol ( gvNamePointer ) ;
+
+        if fgsIndex == -1 then
+            _ = indentifierUnknown ( gvNamePointer ) ;
+        end `
+        printf(`"[Trace] Assignable: array, ct %d\n"`, [currentToken])`
     else
-        _ = parseIdentifier ( ) ; `
+        gvNamePointer = parseIdentifier ( ) ; 
+        
+        fgsIndex = findGlobalSymbol ( gvNamePointer ) ;
+
+        if fgsIndex == -1 then
+            _ = indentifierUnknown ( gvNamePointer ) ;
+        end
+        `
         printf(`"[Trace] Assignable: variable\n"`)`
     end `
     mov rax, [_]`
@@ -461,8 +601,9 @@ proc parseAssignmentStatement ( )
     parseLogicalOrExpression ( ) ;
 
     expectedToken = TOKEN_SEMICOLON ;
-    consumeToken ( ) ; `
-    printf(`"[Trace] Assignment statement: %d\n"`, [gvNamePointer])`
+    consumeToken ( ) ; 
+    _ = readString ( gvNamePointer ) ; `
+    printf(`"[Trace] Assignment statement for: '%s'\n"`, stringAtPointer)`
 endproc parseAssignmentStatement
 
 proc parseIfStatement ( )
