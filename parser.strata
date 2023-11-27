@@ -257,15 +257,15 @@ tokens [ 32 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ;
 tokens [ 36 ] = TOKEN_SEMICOLON ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 13 ;
 tokens [ 40 ] = TOKEN_IDENTIFIER ; tokens [ 41 ] = 2 ; tokens [ 42 ] = 3 ; tokens [ 43 ] = 1 ;
 tokens [ 44 ] = TOKEN_ASSIGNMENT ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 3 ; tokens [ 47 ] = 3 ;
-tokens [ 48 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 49 ] = 1 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 5 ;
-tokens [ 52 ] = TOKEN_PLUS ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 7 ;
-tokens [ 56 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 57 ] = 1 ; tokens [ 58 ] = 3 ; tokens [ 59 ] = 9 ;
+tokens [ 48 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 49 ] = 2 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 5 ;
+tokens [ 52 ] = TOKEN_MULTIPLY ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 7 ;
+tokens [ 56 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 57 ] = 2 ; tokens [ 58 ] = 3 ; tokens [ 59 ] = 9 ;
 tokens [ 60 ] = TOKEN_SEMICOLON ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 3 ; tokens [ 63 ] = 10 ;
 tokens [ 64 ] = TOKEN_IDENTIFIER ; tokens [ 65 ] = 3 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 1 ;
 tokens [ 68 ] = TOKEN_ASSIGNMENT ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 4 ; tokens [ 71 ] = 3 ;
-tokens [ 72 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 73 ] = 1 ; tokens [ 74 ] = 4 ; tokens [ 75 ] = 5 ;
-tokens [ 76 ] = TOKEN_MINUS ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 4 ; tokens [ 79 ] = 7 ;
-tokens [ 80 ] = TOKEN_IDENTIFIER ; tokens [ 81 ] = 4 ; tokens [ 82 ] = 4 ; tokens [ 83 ] = 9 ;
+tokens [ 72 ] = TOKEN_IDENTIFIER ; tokens [ 73 ] = 4 ; tokens [ 74 ] = 4 ; tokens [ 75 ] = 5 ;
+tokens [ 76 ] = TOKEN_DIVIDE ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 4 ; tokens [ 79 ] = 7 ;
+tokens [ 80 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 81 ] = 4 ; tokens [ 82 ] = 4 ; tokens [ 83 ] = 9 ;
 tokens [ 84 ] = TOKEN_SEMICOLON ; tokens [ 85 ] = 0 ; tokens [ 86 ] = 4 ; tokens [ 87 ] = 10 ;
 tokenCount = 88 ;
 
@@ -511,17 +511,20 @@ proc parseMultiplicativeExpression ( )
             expectedToken = TOKEN_MULTIPLY ;
             consumeToken ( ) ;
             parseFactor ( ) ; `
-            printf(`"[Trace] MULTIPLY *\n"`)`
+            printf(`"[Trace] MULTIPLY *\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tmul rbx\n\tpush rax\n"`)`
         else if currentToken == [TOKEN_DIVIDE] then
             expectedToken = TOKEN_DIVIDE ;
             consumeToken ( ) ;
             parseFactor ( ) ; `
-            printf(`"[Trace] DIVIDE /\n"`)`
+            printf(`"[Trace] DIVIDE /\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tdiv rbx\n\tpush rax\n"`)`
         else if currentToken == [TOKEN_MODULO] then
             expectedToken = TOKEN_MODULO ;
             consumeToken ( ) ;
             parseFactor ( ) ; `
-            printf(`"[Trace] MODULO %%\n"`)`
+            printf(`"[Trace] MODULO %%\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tdiv rbx\n\tpush rdx\n"`)`
         else
             break 
         end end end
