@@ -95,25 +95,27 @@ uint64 TOKEN_MODULO                   = 11 ;
 uint64 TOKEN_LEFT_PARENTHESIS         = 12 ;
 uint64 TOKEN_RIGHT_PARENTHESIS        = 13 ;
 
-uint64 TOKEN_LESS_THAN                = 14 ;
-uint64 TOKEN_LESS_THAN_OR_EQUAL_TO    = 15 ;
-uint64 TOKEN_GREATER_THAN             = 16 ;
-uint64 TOKEN_GREATER_THAN_OR_EQUAL_TO = 17 ;
-uint64 TOKEN_EQUALS                   = 18 ;
-uint64 TOKEN_NOT_EQUALS               = 19 ;
+uint64 TOKEN_LEFT_BRACKET             = 14 ;
+uint64 TOKEN_RIGHT_BRACKET            = 15 ;
+uint64 TOKEN_LESS_THAN                = 16 ;
+uint64 TOKEN_LESS_THAN_OR_EQUAL_TO    = 17 ;
+uint64 TOKEN_GREATER_THAN             = 18 ;
+uint64 TOKEN_GREATER_THAN_OR_EQUAL_TO = 19 ;
+uint64 TOKEN_EQUALS                   = 20 ;
+uint64 TOKEN_NOT_EQUALS               = 21 ;
 
-uint64 TOKEN_LOGICAL_AND              = 20 ;
-uint64 TOKEN_LOGICAL_OR               = 21 ;
+uint64 TOKEN_LOGICAL_AND              = 22 ;
+uint64 TOKEN_LOGICAL_OR               = 23 ;
 
-uint64 TOKEN_IF                       = 22 ;
-uint64 TOKEN_THEN                     = 23 ;
-uint64 TOKEN_ELSE                     = 24 ;
-uint64 TOKEN_END                      = 25 ;
+uint64 TOKEN_IF                       = 24 ;
+uint64 TOKEN_THEN                     = 25 ;
+uint64 TOKEN_ELSE                     = 26 ;
+uint64 TOKEN_END                      = 27 ;
 
-uint64 TOKEN_WHILE                    = 26 ;
-uint64 TOKEN_DO                       = 27 ;
-uint64 TOKEN_BREAK                    = 28 ;
-uint64 TOKEN_CONTINUE                 = 29 ;
+uint64 TOKEN_WHILE                    = 28 ;
+uint64 TOKEN_DO                       = 29 ;
+uint64 TOKEN_BREAK                    = 30 ;
+uint64 TOKEN_CONTINUE                 = 31 ;
 
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
@@ -121,38 +123,42 @@ uint64 TYPE_UINT64                 = 2 ;
 uint64 i = 0 ;
 
 tokens [ 0 ] = TOKEN_UINT64 ; tokens [ 1 ] = 0 ; tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
-tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 8 ;
-tokens [ 8 ] = TOKEN_ASSIGNMENT ; tokens [ 9 ] = 0 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 10 ;
-tokens [ 12 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 12 ;
-tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 13 ;
-tokens [ 20 ] = TOKEN_WHILE ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 3 ; tokens [ 23 ] = 1 ;
-tokens [ 24 ] = TOKEN_IDENTIFIER ; tokens [ 25 ] = 1 ; tokens [ 26 ] = 3 ; tokens [ 27 ] = 7 ;
-tokens [ 28 ] = TOKEN_LESS_THAN ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 3 ; tokens [ 31 ] = 9 ;
-tokens [ 32 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 33 ] = 10 ; tokens [ 34 ] = 3 ; tokens [ 35 ] = 11 ;
-tokens [ 36 ] = TOKEN_DO ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 3 ; tokens [ 39 ] = 14 ;
-tokens [ 40 ] = TOKEN_IF ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 4 ; tokens [ 43 ] = 5 ;
-tokens [ 44 ] = TOKEN_IDENTIFIER ; tokens [ 45 ] = 2 ; tokens [ 46 ] = 4 ; tokens [ 47 ] = 8 ;
-tokens [ 48 ] = TOKEN_EQUALS ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 4 ; tokens [ 51 ] = 10 ;
-tokens [ 52 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 53 ] = 5 ; tokens [ 54 ] = 4 ; tokens [ 55 ] = 13 ;
-tokens [ 56 ] = TOKEN_THEN ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 4 ; tokens [ 59 ] = 15 ;
-tokens [ 60 ] = TOKEN_BREAK ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 5 ; tokens [ 63 ] = 9 ;
-tokens [ 64 ] = TOKEN_SEMICOLON ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 5 ; tokens [ 67 ] = 14 ;
-tokens [ 68 ] = TOKEN_ELSE ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 6 ; tokens [ 71 ] = 5 ;
-tokens [ 72 ] = TOKEN_CONTINUE ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 7 ; tokens [ 75 ] = 9 ;
-tokens [ 76 ] = TOKEN_SEMICOLON ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 7 ; tokens [ 79 ] = 17 ;
-tokens [ 80 ] = TOKEN_END ; tokens [ 81 ] = 0 ; tokens [ 82 ] = 8 ; tokens [ 83 ] = 5 ;
-tokens [ 84 ] = TOKEN_IDENTIFIER ; tokens [ 85 ] = 3 ; tokens [ 86 ] = 9 ; tokens [ 87 ] = 5 ;
-tokens [ 88 ] = TOKEN_ASSIGNMENT ; tokens [ 89 ] = 0 ; tokens [ 90 ] = 9 ; tokens [ 91 ] = 7 ;
-tokens [ 92 ] = TOKEN_IDENTIFIER ; tokens [ 93 ] = 4 ; tokens [ 94 ] = 9 ; tokens [ 95 ] = 9 ;
-tokens [ 96 ] = TOKEN_PLUS ; tokens [ 97 ] = 0 ; tokens [ 98 ] = 9 ; tokens [ 99 ] = 11 ;
-tokens [ 100 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 101 ] = 1 ; tokens [ 102 ] = 9 ; tokens [ 103 ] = 13 ;
-tokens [ 104 ] = TOKEN_SEMICOLON ; tokens [ 105 ] = 0 ; tokens [ 106 ] = 9 ; tokens [ 107 ] = 14 ;
-tokens [ 108 ] = TOKEN_END ; tokens [ 109 ] = 0 ; tokens [ 110 ] = 10 ; tokens [ 111 ] = 1 ;
-tokenCount = 112 ;
+tokens [ 4 ] = TOKEN_LEFT_BRACKET ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 8 ;
+tokens [ 8 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 9 ] = 10 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 10 ;
+tokens [ 12 ] = TOKEN_RIGHT_BRACKET ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 13 ;
+tokens [ 16 ] = TOKEN_IDENTIFIER ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 15 ;
+tokens [ 20 ] = TOKEN_SEMICOLON ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 1 ; tokens [ 23 ] = 16 ;
+tokens [ 24 ] = TOKEN_UINT64 ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 1 ;
+tokens [ 28 ] = TOKEN_IDENTIFIER ; tokens [ 29 ] = 1 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 8 ;
+tokens [ 32 ] = TOKEN_ASSIGNMENT ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 10 ;
+tokens [ 36 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 37 ] = 1 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 12 ;
+tokens [ 40 ] = TOKEN_SEMICOLON ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 13 ;
+tokens [ 44 ] = TOKEN_IDENTIFIER ; tokens [ 45 ] = 2 ; tokens [ 46 ] = 4 ; tokens [ 47 ] = 1 ;
+tokens [ 48 ] = TOKEN_ASSIGNMENT ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 4 ; tokens [ 51 ] = 3 ;
+tokens [ 52 ] = TOKEN_IDENTIFIER ; tokens [ 53 ] = 3 ; tokens [ 54 ] = 4 ; tokens [ 55 ] = 5 ;
+tokens [ 56 ] = TOKEN_LEFT_BRACKET ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 4 ; tokens [ 59 ] = 7 ;
+tokens [ 60 ] = TOKEN_IDENTIFIER ; tokens [ 61 ] = 4 ; tokens [ 62 ] = 4 ; tokens [ 63 ] = 9 ;
+tokens [ 64 ] = TOKEN_PLUS ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 11 ;
+tokens [ 68 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 69 ] = 1 ; tokens [ 70 ] = 4 ; tokens [ 71 ] = 13 ;
+tokens [ 72 ] = TOKEN_RIGHT_BRACKET ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 4 ; tokens [ 75 ] = 15 ;
+tokens [ 76 ] = TOKEN_SEMICOLON ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 4 ; tokens [ 79 ] = 16 ;
+tokenCount = 80 ;
 
 ` ; a
 `
 stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; b
+`
+stringToPush [ 0 ] = 98 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; b
+`
+stringToPush [ 0 ] = 98 ;
 stringToPush [ 1 ] = 0 ;
 _ = pushString ( ) ;
 
@@ -162,21 +168,9 @@ stringToPush [ 0 ] = 97 ;
 stringToPush [ 1 ] = 0 ;
 _ = pushString ( ) ;
 
-` ; a
+` ; b
 `
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
+stringToPush [ 0 ] = 98 ;
 stringToPush [ 1 ] = 0 ;
 _ = pushString ( ) ;
 
@@ -231,7 +225,7 @@ proc parseIdentifier ( )
     mov rax, [_]`
 endproc parseIdentifier
 
-proc parseUIntType ( )
+proc parseType ( )
     if currentToken == [TOKEN_UINT8] then
         _ = TYPE_UINT8 ;
         i = i + tokenSize ;
@@ -246,19 +240,29 @@ proc parseUIntType ( )
     `
     ; set result
     mov rax, [_]`
-endproc parseUIntType
+endproc parseType
 
-proc parseVariableDeclaration ( )
-    gvType = parseUIntType ( ) ;
+proc parseArrayDeclaration ( )
+    expectedToken = TOKEN_LEFT_BRACKET ;
+    consumeToken ( ) ;
+
+    parseNumber ( ) ;
+
+    expectedToken = TOKEN_RIGHT_BRACKET ;
+    consumeToken ( ) ;
+
+     gvNamePointer = parseIdentifier ( ) ;
+     `
+    printf(`"[Trace] Array declaration: type %d, value %d\n"`, [gvType], [gvValue])`
+endproc parseArrayDeclaration
+
+proc parseIntegerDeclaration ( )
     gvNamePointer = parseIdentifier ( ) ;
 
     expectedToken = TOKEN_ASSIGNMENT ;
     consumeToken ( ) ;
 
     gvValue = parseNumber ( ) ;
-
-    expectedToken = TOKEN_SEMICOLON ;
-    consumeToken ( ) ; 
     
     _ = gvTypeOffset + globalVariableCount * globalVariableSize ;
     globalVariables [ _ ] = gvType ;
@@ -268,6 +272,22 @@ proc parseVariableDeclaration ( )
     globalVariables [ _ ] = gvValue ; 
     globalVariableCount = globalVariableCount + 1 ; `
     printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
+endproc parseIntegerDeclaration 
+    
+
+proc parseVariableDeclaration ( )
+    gvType = parseType ( ) ;
+
+    if currentToken == [TOKEN_LEFT_BRACKET] then
+        parseArrayDeclaration ( ) ;
+    else if currentToken == [TOKEN_IDENTIFIER] then
+        parseIntegerDeclaration ( ) ;
+    else
+        unexpectedToken ( ) ;
+    end end
+
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ; 
 endproc parseVariableDeclaration
 
 proc forward parseAdditiveExpression
@@ -276,8 +296,6 @@ proc forward parseStatements
 proc parseFactor ( ) 
     if currentToken == [TOKEN_CONSTANT_INTEGER] then
         parseNumber ( ) ;
-    else if currentToken == [TOKEN_IDENTIFIER] then
-        parseIdentifier ( ) ;
     else if currentToken == [TOKEN_LEFT_PARENTHESIS] then
         expectedToken = TOKEN_LEFT_PARENTHESIS ;
         consumeToken ( ) ;
@@ -286,6 +304,8 @@ proc parseFactor ( )
  
         expectedToken = TOKEN_RIGHT_PARENTHESIS ;
         consumeToken ( ) ;
+    else if currentToken == [TOKEN_IDENTIFIER] then
+        parseIdentifier ( ) ;
     else
         unexpectedToken ( ) ;
     end end end
@@ -397,8 +417,23 @@ proc parseLogicalOrExpression ( )
     end
 endproc parseLogicalOrExpression
 
+proc parseAssignable ( )
+    _ = parseIdentifier ( ) ;
+    if currentToken == [TOKEN_LEFT_BRACKET] then
+        expectedToken = TOKEN_LEFT_BRACKET ;
+        consumeToken ( ) ;
+        parseAdditiveExpression ( ) ;
+        expectedToken = TOKEN_RIGHT_BRACKET ;
+        consumeToken ( ) ; `
+        printf(`"[Trace] Assignable: array\n"`)`
+    else
+        `
+        printf(`"[Trace] Assignable: variable\n"`)`
+    end
+endproc parseAssignable
+
 proc parseAssignmentStatement ( )
-    gvNamePointer = parseIdentifier ( ) ;
+    gvNamePointer = parseAssignable ( ) ;
 
     expectedToken = TOKEN_ASSIGNMENT ;
     consumeToken ( ) ;
