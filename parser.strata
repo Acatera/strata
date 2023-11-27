@@ -9,6 +9,7 @@ _start:
 `
 uint64 _ = 0 ;
 uint64 true = 1 ;
+uint64 globalBlockId = 0 ;
 
 array globalVariables = uint64 [ 10000 ] ;
 uint64 globalVariableCount = 0 ;
@@ -257,84 +258,37 @@ uint64 TYPE_ARRAY                  = 3 ;
 
 uint64 i = 0 ;
 
-tokens [ 0 ] = TOKEN_UINT8 ; tokens [ 1 ] = 0 ; tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
-tokens [ 4 ] = TOKEN_LEFT_BRACKET ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 7 ;
-tokens [ 8 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 9 ] = 100 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 9 ;
-tokens [ 12 ] = TOKEN_RIGHT_BRACKET ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 13 ;
-tokens [ 16 ] = TOKEN_IDENTIFIER ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 15 ;
-tokens [ 20 ] = TOKEN_SEMICOLON ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 1 ; tokens [ 23 ] = 16 ;
-tokens [ 24 ] = TOKEN_UINT64 ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 1 ;
-tokens [ 28 ] = TOKEN_LEFT_BRACKET ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 8 ;
-tokens [ 32 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 33 ] = 50 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 10 ;
-tokens [ 36 ] = TOKEN_RIGHT_BRACKET ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 13 ;
-tokens [ 40 ] = TOKEN_IDENTIFIER ; tokens [ 41 ] = 1 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 15 ;
-tokens [ 44 ] = TOKEN_SEMICOLON ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 2 ; tokens [ 47 ] = 16 ;
-tokens [ 48 ] = TOKEN_UINT64 ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 1 ;
-tokens [ 52 ] = TOKEN_IDENTIFIER ; tokens [ 53 ] = 2 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 8 ;
-tokens [ 56 ] = TOKEN_ASSIGNMENT ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 3 ; tokens [ 59 ] = 10 ;
-tokens [ 60 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 3 ; tokens [ 63 ] = 12 ;
-tokens [ 64 ] = TOKEN_SEMICOLON ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 3 ; tokens [ 67 ] = 13 ;
-tokens [ 68 ] = TOKEN_IDENTIFIER ; tokens [ 69 ] = 3 ; tokens [ 70 ] = 4 ; tokens [ 71 ] = 1 ;
-tokens [ 72 ] = TOKEN_LEFT_BRACKET ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 4 ; tokens [ 75 ] = 3 ;
-tokens [ 76 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 4 ; tokens [ 79 ] = 5 ;
-tokens [ 80 ] = TOKEN_RIGHT_BRACKET ; tokens [ 81 ] = 0 ; tokens [ 82 ] = 4 ; tokens [ 83 ] = 7 ;
-tokens [ 84 ] = TOKEN_ASSIGNMENT ; tokens [ 85 ] = 0 ; tokens [ 86 ] = 4 ; tokens [ 87 ] = 9 ;
-tokens [ 88 ] = TOKEN_IDENTIFIER ; tokens [ 89 ] = 4 ; tokens [ 90 ] = 4 ; tokens [ 91 ] = 11 ;
-tokens [ 92 ] = TOKEN_LEFT_BRACKET ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 4 ; tokens [ 95 ] = 13 ;
-tokens [ 96 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 97 ] = 1 ; tokens [ 98 ] = 4 ; tokens [ 99 ] = 15 ;
-tokens [ 100 ] = TOKEN_RIGHT_BRACKET ; tokens [ 101 ] = 0 ; tokens [ 102 ] = 4 ; tokens [ 103 ] = 17 ;
-tokens [ 104 ] = TOKEN_PLUS ; tokens [ 105 ] = 0 ; tokens [ 106 ] = 4 ; tokens [ 107 ] = 19 ;
-tokens [ 108 ] = TOKEN_IDENTIFIER ; tokens [ 109 ] = 5 ; tokens [ 110 ] = 4 ; tokens [ 111 ] = 21 ;
-tokens [ 112 ] = TOKEN_LEFT_BRACKET ; tokens [ 113 ] = 0 ; tokens [ 114 ] = 4 ; tokens [ 115 ] = 23 ;
-tokens [ 116 ] = TOKEN_IDENTIFIER ; tokens [ 117 ] = 6 ; tokens [ 118 ] = 4 ; tokens [ 119 ] = 25 ;
-tokens [ 120 ] = TOKEN_RIGHT_BRACKET ; tokens [ 121 ] = 0 ; tokens [ 122 ] = 4 ; tokens [ 123 ] = 27 ;
-tokens [ 124 ] = TOKEN_PLUS ; tokens [ 125 ] = 0 ; tokens [ 126 ] = 4 ; tokens [ 127 ] = 29 ;
-tokens [ 128 ] = TOKEN_IDENTIFIER ; tokens [ 129 ] = 7 ; tokens [ 130 ] = 4 ; tokens [ 131 ] = 31 ;
-tokens [ 132 ] = TOKEN_LEFT_BRACKET ; tokens [ 133 ] = 0 ; tokens [ 134 ] = 4 ; tokens [ 135 ] = 33 ;
-tokens [ 136 ] = TOKEN_IDENTIFIER ; tokens [ 137 ] = 8 ; tokens [ 138 ] = 4 ; tokens [ 139 ] = 35 ;
-tokens [ 140 ] = TOKEN_PLUS ; tokens [ 141 ] = 0 ; tokens [ 142 ] = 4 ; tokens [ 143 ] = 37 ;
-tokens [ 144 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 145 ] = 1 ; tokens [ 146 ] = 4 ; tokens [ 147 ] = 39 ;
-tokens [ 148 ] = TOKEN_RIGHT_BRACKET ; tokens [ 149 ] = 0 ; tokens [ 150 ] = 4 ; tokens [ 151 ] = 41 ;
-tokens [ 152 ] = TOKEN_SEMICOLON ; tokens [ 153 ] = 0 ; tokens [ 154 ] = 4 ; tokens [ 155 ] = 42 ;
-tokens [ 156 ] = TOKEN_IDENTIFIER ; tokens [ 157 ] = 9 ; tokens [ 158 ] = 5 ; tokens [ 159 ] = 1 ;
-tokens [ 160 ] = TOKEN_LEFT_BRACKET ; tokens [ 161 ] = 0 ; tokens [ 162 ] = 5 ; tokens [ 163 ] = 3 ;
-tokens [ 164 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 165 ] = 0 ; tokens [ 166 ] = 5 ; tokens [ 167 ] = 5 ;
-tokens [ 168 ] = TOKEN_RIGHT_BRACKET ; tokens [ 169 ] = 0 ; tokens [ 170 ] = 5 ; tokens [ 171 ] = 7 ;
-tokens [ 172 ] = TOKEN_ASSIGNMENT ; tokens [ 173 ] = 0 ; tokens [ 174 ] = 5 ; tokens [ 175 ] = 9 ;
-tokens [ 176 ] = TOKEN_IDENTIFIER ; tokens [ 177 ] = 10 ; tokens [ 178 ] = 5 ; tokens [ 179 ] = 11 ;
-tokens [ 180 ] = TOKEN_LEFT_BRACKET ; tokens [ 181 ] = 0 ; tokens [ 182 ] = 5 ; tokens [ 183 ] = 13 ;
-tokens [ 184 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 185 ] = 1 ; tokens [ 186 ] = 5 ; tokens [ 187 ] = 15 ;
-tokens [ 188 ] = TOKEN_RIGHT_BRACKET ; tokens [ 189 ] = 0 ; tokens [ 190 ] = 5 ; tokens [ 191 ] = 17 ;
-tokens [ 192 ] = TOKEN_PLUS ; tokens [ 193 ] = 0 ; tokens [ 194 ] = 5 ; tokens [ 195 ] = 19 ;
-tokens [ 196 ] = TOKEN_IDENTIFIER ; tokens [ 197 ] = 11 ; tokens [ 198 ] = 5 ; tokens [ 199 ] = 21 ;
-tokens [ 200 ] = TOKEN_LEFT_BRACKET ; tokens [ 201 ] = 0 ; tokens [ 202 ] = 5 ; tokens [ 203 ] = 23 ;
-tokens [ 204 ] = TOKEN_IDENTIFIER ; tokens [ 205 ] = 12 ; tokens [ 206 ] = 5 ; tokens [ 207 ] = 25 ;
-tokens [ 208 ] = TOKEN_RIGHT_BRACKET ; tokens [ 209 ] = 0 ; tokens [ 210 ] = 5 ; tokens [ 211 ] = 27 ;
-tokens [ 212 ] = TOKEN_PLUS ; tokens [ 213 ] = 0 ; tokens [ 214 ] = 5 ; tokens [ 215 ] = 29 ;
-tokens [ 216 ] = TOKEN_IDENTIFIER ; tokens [ 217 ] = 13 ; tokens [ 218 ] = 5 ; tokens [ 219 ] = 31 ;
-tokens [ 220 ] = TOKEN_LEFT_BRACKET ; tokens [ 221 ] = 0 ; tokens [ 222 ] = 5 ; tokens [ 223 ] = 33 ;
-tokens [ 224 ] = TOKEN_IDENTIFIER ; tokens [ 225 ] = 14 ; tokens [ 226 ] = 5 ; tokens [ 227 ] = 35 ;
-tokens [ 228 ] = TOKEN_PLUS ; tokens [ 229 ] = 0 ; tokens [ 230 ] = 5 ; tokens [ 231 ] = 37 ;
-tokens [ 232 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 233 ] = 1 ; tokens [ 234 ] = 5 ; tokens [ 235 ] = 39 ;
-tokens [ 236 ] = TOKEN_RIGHT_BRACKET ; tokens [ 237 ] = 0 ; tokens [ 238 ] = 5 ; tokens [ 239 ] = 41 ;
-tokens [ 240 ] = TOKEN_SEMICOLON ; tokens [ 241 ] = 0 ; tokens [ 242 ] = 5 ; tokens [ 243 ] = 42 ;
-tokenCount = 244 ;
+tokens [ 0 ] = TOKEN_UINT64 ; tokens [ 1 ] = 0 ; tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
+tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 8 ;
+tokens [ 8 ] = TOKEN_ASSIGNMENT ; tokens [ 9 ] = 0 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 10 ;
+tokens [ 12 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 12 ;
+tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 13 ;
+tokens [ 20 ] = TOKEN_IF ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 2 ; tokens [ 23 ] = 1 ;
+tokens [ 24 ] = TOKEN_IDENTIFIER ; tokens [ 25 ] = 1 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 4 ;
+tokens [ 28 ] = TOKEN_EQUALS ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 6 ;
+tokens [ 32 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 9 ;
+tokens [ 36 ] = TOKEN_THEN ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 11 ;
+tokens [ 40 ] = TOKEN_IF ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 3 ; tokens [ 43 ] = 5 ;
+tokens [ 44 ] = TOKEN_IDENTIFIER ; tokens [ 45 ] = 2 ; tokens [ 46 ] = 3 ; tokens [ 47 ] = 8 ;
+tokens [ 48 ] = TOKEN_NOT_EQUALS ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 10 ;
+tokens [ 52 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 13 ;
+tokens [ 56 ] = TOKEN_THEN ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 3 ; tokens [ 59 ] = 15 ;
+tokens [ 60 ] = TOKEN_IDENTIFIER ; tokens [ 61 ] = 3 ; tokens [ 62 ] = 4 ; tokens [ 63 ] = 9 ;
+tokens [ 64 ] = TOKEN_ASSIGNMENT ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 11 ;
+tokens [ 68 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 69 ] = 1 ; tokens [ 70 ] = 4 ; tokens [ 71 ] = 13 ;
+tokens [ 72 ] = TOKEN_SEMICOLON ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 4 ; tokens [ 75 ] = 14 ;
+tokens [ 76 ] = TOKEN_END ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 5 ; tokens [ 79 ] = 5 ;
+tokens [ 80 ] = TOKEN_ELSE ; tokens [ 81 ] = 0 ; tokens [ 82 ] = 6 ; tokens [ 83 ] = 1 ;
+tokens [ 84 ] = TOKEN_IDENTIFIER ; tokens [ 85 ] = 4 ; tokens [ 86 ] = 7 ; tokens [ 87 ] = 5 ;
+tokens [ 88 ] = TOKEN_ASSIGNMENT ; tokens [ 89 ] = 0 ; tokens [ 90 ] = 7 ; tokens [ 91 ] = 7 ;
+tokens [ 92 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 93 ] = 2 ; tokens [ 94 ] = 7 ; tokens [ 95 ] = 9 ;
+tokens [ 96 ] = TOKEN_SEMICOLON ; tokens [ 97 ] = 0 ; tokens [ 98 ] = 7 ; tokens [ 99 ] = 10 ;
+tokens [ 100 ] = TOKEN_END ; tokens [ 101 ] = 0 ; tokens [ 102 ] = 8 ; tokens [ 103 ] = 1 ;
+tokenCount = 104 ;
 
 ` ; a
 `
 stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; b
-`
-stringToPush [ 0 ] = 98 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; c
-`
-stringToPush [ 0 ] = 99 ;
 stringToPush [ 1 ] = 0 ;
 _ = pushString ( ) ;
 
@@ -356,57 +310,9 @@ stringToPush [ 0 ] = 97 ;
 stringToPush [ 1 ] = 0 ;
 _ = pushString ( ) ;
 
-` ; c
-`
-stringToPush [ 0 ] = 99 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
 ` ; a
 `
 stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; c
-`
-stringToPush [ 0 ] = 99 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; b
-`
-stringToPush [ 0 ] = 98 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; b
-`
-stringToPush [ 0 ] = 98 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; b
-`
-stringToPush [ 0 ] = 98 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; c
-`
-stringToPush [ 0 ] = 99 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; b
-`
-stringToPush [ 0 ] = 98 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; c
-`
-stringToPush [ 0 ] = 99 ;
 stringToPush [ 1 ] = 0 ;
 _ = pushString ( ) ;
 
@@ -859,10 +765,12 @@ proc parseAssignmentStatement ( )
     printf(`"[Trace] Assignment statement for: '%s'\n"`, stringAtPointer)`
 endproc parseAssignmentStatement
 
-proc parseIfStatement ( )
+proc parseIfStatement ( blockId hasElse )
+    globalBlockId = globalBlockId + 1 ;
     expectedToken = TOKEN_IF ;
     consumeToken ( ) ; `
     printf(`"[Trace] If statement: IF\n"`)
+    printf(`"; if statement block id: %d\n"`, [rbp + 16])
     `
 
     parseLogicalOrExpression ( ) ;
@@ -871,14 +779,18 @@ proc parseIfStatement ( )
     consumeToken ( ) ;
     `
     printf(`"[Trace] If statement: THEN\n"`)
+    printf(`"\tpop rax\n\tcmp rax, 0\n\tjz .condition_false_%d\n; then statement block id %d\n"`, [rbp + 16], [rbp + 16])
     `
     parseStatements ( ) ;
 
     while true == 1 do
         if currentToken == [TOKEN_ELSE] then 
+            hasElse = 1 ;
             expectedToken = TOKEN_ELSE ;
             consumeToken ( ) ; 
             `
+            printf(`"\tjmp .endif_%d:\n"`, [rbp + 16])
+            printf(`".condition_false_%d:\n; else statement block id %d"`, [rbp + 16], [rbp + 16])
             printf(`"[Trace] If statement: ELSE\n"`)
             `
             if currentToken == [TOKEN_IF] then
@@ -900,7 +812,13 @@ proc parseIfStatement ( )
     end
 
     expectedToken = TOKEN_END ;
-    consumeToken ( ) ; `
+    consumeToken ( ) ; 
+    _ = hasElse ;
+    if _ == 1 then `
+        printf(`".endif_%d:\n"`, [rbp + 16])`
+    else `
+        printf(`".condition_false_%d:\n"`, [rbp + 16])`
+    end `
     printf(`"[Trace] If statement: END\n"`)`
 endproc parseIfStatement
 
@@ -946,7 +864,7 @@ proc parseStatement ( )
     else if currentToken == [TOKEN_IDENTIFIER] then
         parseAssignmentStatement ( ) ;
     else if currentToken == [TOKEN_IF] then
-        parseIfStatement ( ) ;
+        _ = parseIfStatement ( globalBlockId 0 ) ;
     else if currentToken == [TOKEN_WHILE] then
         parseWhileStatement ( ) ;
     else if currentToken == [TOKEN_BREAK] then
