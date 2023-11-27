@@ -245,13 +245,12 @@ uint64 TOKEN_LOGICAL_OR               = 23 ;
 uint64 TOKEN_IF                       = 24 ;
 uint64 TOKEN_THEN                     = 25 ;
 uint64 TOKEN_ELSE                     = 26 ;
-uint64 TOKEN_ELIF                     = 27 ;
-uint64 TOKEN_END                      = 28 ;
+uint64 TOKEN_END                      = 27 ;
 
-uint64 TOKEN_WHILE                    = 29 ;
-uint64 TOKEN_DO                       = 30 ;
-uint64 TOKEN_BREAK                    = 31 ;
-uint64 TOKEN_CONTINUE                 = 32 ;
+uint64 TOKEN_WHILE                    = 28 ;
+uint64 TOKEN_DO                       = 29 ;
+uint64 TOKEN_BREAK                    = 30 ;
+uint64 TOKEN_CONTINUE                 = 31 ;
 
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
@@ -289,31 +288,35 @@ tokens [ 104 ] = TOKEN_ASSIGNMENT ; tokens [ 105 ] = 0 ; tokens [ 106 ] = 7 ; to
 tokens [ 108 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 109 ] = 5 ; tokens [ 110 ] = 7 ; tokens [ 111 ] = 13 ;
 tokens [ 112 ] = TOKEN_SEMICOLON ; tokens [ 113 ] = 0 ; tokens [ 114 ] = 7 ; tokens [ 115 ] = 14 ;
 tokens [ 116 ] = TOKEN_END ; tokens [ 117 ] = 0 ; tokens [ 118 ] = 8 ; tokens [ 119 ] = 5 ;
-tokens [ 120 ] = TOKEN_ELIF ; tokens [ 121 ] = 0 ; tokens [ 122 ] = 9 ; tokens [ 123 ] = 1 ;
-tokens [ 124 ] = TOKEN_IDENTIFIER ; tokens [ 125 ] = 6 ; tokens [ 126 ] = 9 ; tokens [ 127 ] = 6 ;
-tokens [ 128 ] = TOKEN_NOT_EQUALS ; tokens [ 129 ] = 0 ; tokens [ 130 ] = 9 ; tokens [ 131 ] = 8 ;
-tokens [ 132 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 133 ] = 0 ; tokens [ 134 ] = 9 ; tokens [ 135 ] = 11 ;
-tokens [ 136 ] = TOKEN_THEN ; tokens [ 137 ] = 0 ; tokens [ 138 ] = 9 ; tokens [ 139 ] = 13 ;
-tokens [ 140 ] = TOKEN_IDENTIFIER ; tokens [ 141 ] = 7 ; tokens [ 142 ] = 10 ; tokens [ 143 ] = 5 ;
-tokens [ 144 ] = TOKEN_ASSIGNMENT ; tokens [ 145 ] = 0 ; tokens [ 146 ] = 10 ; tokens [ 147 ] = 7 ;
-tokens [ 148 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 149 ] = 2 ; tokens [ 150 ] = 10 ; tokens [ 151 ] = 9 ;
-tokens [ 152 ] = TOKEN_SEMICOLON ; tokens [ 153 ] = 0 ; tokens [ 154 ] = 10 ; tokens [ 155 ] = 10 ;
-tokens [ 156 ] = TOKEN_ELIF ; tokens [ 157 ] = 0 ; tokens [ 158 ] = 11 ; tokens [ 159 ] = 1 ;
-tokens [ 160 ] = TOKEN_IDENTIFIER ; tokens [ 161 ] = 8 ; tokens [ 162 ] = 11 ; tokens [ 163 ] = 6 ;
-tokens [ 164 ] = TOKEN_LESS_THAN_OR_EQUAL_TO ; tokens [ 165 ] = 0 ; tokens [ 166 ] = 11 ; tokens [ 167 ] = 8 ;
-tokens [ 168 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 169 ] = 0 ; tokens [ 170 ] = 11 ; tokens [ 171 ] = 11 ;
-tokens [ 172 ] = TOKEN_THEN ; tokens [ 173 ] = 0 ; tokens [ 174 ] = 11 ; tokens [ 175 ] = 13 ;
-tokens [ 176 ] = TOKEN_IDENTIFIER ; tokens [ 177 ] = 9 ; tokens [ 178 ] = 12 ; tokens [ 179 ] = 5 ;
-tokens [ 180 ] = TOKEN_ASSIGNMENT ; tokens [ 181 ] = 0 ; tokens [ 182 ] = 12 ; tokens [ 183 ] = 7 ;
-tokens [ 184 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 185 ] = 3 ; tokens [ 186 ] = 12 ; tokens [ 187 ] = 9 ;
-tokens [ 188 ] = TOKEN_SEMICOLON ; tokens [ 189 ] = 0 ; tokens [ 190 ] = 12 ; tokens [ 191 ] = 10 ;
-tokens [ 192 ] = TOKEN_ELSE ; tokens [ 193 ] = 0 ; tokens [ 194 ] = 13 ; tokens [ 195 ] = 1 ;
-tokens [ 196 ] = TOKEN_IDENTIFIER ; tokens [ 197 ] = 10 ; tokens [ 198 ] = 14 ; tokens [ 199 ] = 5 ;
-tokens [ 200 ] = TOKEN_ASSIGNMENT ; tokens [ 201 ] = 0 ; tokens [ 202 ] = 14 ; tokens [ 203 ] = 7 ;
-tokens [ 204 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 205 ] = 4 ; tokens [ 206 ] = 14 ; tokens [ 207 ] = 9 ;
-tokens [ 208 ] = TOKEN_SEMICOLON ; tokens [ 209 ] = 0 ; tokens [ 210 ] = 14 ; tokens [ 211 ] = 10 ;
-tokens [ 212 ] = TOKEN_END ; tokens [ 213 ] = 0 ; tokens [ 214 ] = 15 ; tokens [ 215 ] = 1 ;
-tokenCount = 216 ;
+tokens [ 120 ] = TOKEN_ELSE ; tokens [ 121 ] = 0 ; tokens [ 122 ] = 9 ; tokens [ 123 ] = 1 ;
+tokens [ 124 ] = TOKEN_IF ; tokens [ 125 ] = 0 ; tokens [ 126 ] = 9 ; tokens [ 127 ] = 6 ;
+tokens [ 128 ] = TOKEN_IDENTIFIER ; tokens [ 129 ] = 6 ; tokens [ 130 ] = 9 ; tokens [ 131 ] = 9 ;
+tokens [ 132 ] = TOKEN_NOT_EQUALS ; tokens [ 133 ] = 0 ; tokens [ 134 ] = 9 ; tokens [ 135 ] = 11 ;
+tokens [ 136 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 137 ] = 0 ; tokens [ 138 ] = 9 ; tokens [ 139 ] = 14 ;
+tokens [ 140 ] = TOKEN_THEN ; tokens [ 141 ] = 0 ; tokens [ 142 ] = 9 ; tokens [ 143 ] = 16 ;
+tokens [ 144 ] = TOKEN_IDENTIFIER ; tokens [ 145 ] = 7 ; tokens [ 146 ] = 10 ; tokens [ 147 ] = 5 ;
+tokens [ 148 ] = TOKEN_ASSIGNMENT ; tokens [ 149 ] = 0 ; tokens [ 150 ] = 10 ; tokens [ 151 ] = 7 ;
+tokens [ 152 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 153 ] = 2 ; tokens [ 154 ] = 10 ; tokens [ 155 ] = 9 ;
+tokens [ 156 ] = TOKEN_SEMICOLON ; tokens [ 157 ] = 0 ; tokens [ 158 ] = 10 ; tokens [ 159 ] = 10 ;
+tokens [ 160 ] = TOKEN_ELSE ; tokens [ 161 ] = 0 ; tokens [ 162 ] = 11 ; tokens [ 163 ] = 1 ;
+tokens [ 164 ] = TOKEN_IF ; tokens [ 165 ] = 0 ; tokens [ 166 ] = 11 ; tokens [ 167 ] = 6 ;
+tokens [ 168 ] = TOKEN_IDENTIFIER ; tokens [ 169 ] = 8 ; tokens [ 170 ] = 11 ; tokens [ 171 ] = 9 ;
+tokens [ 172 ] = TOKEN_LESS_THAN_OR_EQUAL_TO ; tokens [ 173 ] = 0 ; tokens [ 174 ] = 11 ; tokens [ 175 ] = 11 ;
+tokens [ 176 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 177 ] = 0 ; tokens [ 178 ] = 11 ; tokens [ 179 ] = 14 ;
+tokens [ 180 ] = TOKEN_THEN ; tokens [ 181 ] = 0 ; tokens [ 182 ] = 11 ; tokens [ 183 ] = 16 ;
+tokens [ 184 ] = TOKEN_IDENTIFIER ; tokens [ 185 ] = 9 ; tokens [ 186 ] = 12 ; tokens [ 187 ] = 5 ;
+tokens [ 188 ] = TOKEN_ASSIGNMENT ; tokens [ 189 ] = 0 ; tokens [ 190 ] = 12 ; tokens [ 191 ] = 7 ;
+tokens [ 192 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 193 ] = 3 ; tokens [ 194 ] = 12 ; tokens [ 195 ] = 9 ;
+tokens [ 196 ] = TOKEN_SEMICOLON ; tokens [ 197 ] = 0 ; tokens [ 198 ] = 12 ; tokens [ 199 ] = 10 ;
+tokens [ 200 ] = TOKEN_ELSE ; tokens [ 201 ] = 0 ; tokens [ 202 ] = 13 ; tokens [ 203 ] = 1 ;
+tokens [ 204 ] = TOKEN_IDENTIFIER ; tokens [ 205 ] = 10 ; tokens [ 206 ] = 14 ; tokens [ 207 ] = 5 ;
+tokens [ 208 ] = TOKEN_ASSIGNMENT ; tokens [ 209 ] = 0 ; tokens [ 210 ] = 14 ; tokens [ 211 ] = 7 ;
+tokens [ 212 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 213 ] = 4 ; tokens [ 214 ] = 14 ; tokens [ 215 ] = 9 ;
+tokens [ 216 ] = TOKEN_SEMICOLON ; tokens [ 217 ] = 0 ; tokens [ 218 ] = 14 ; tokens [ 219 ] = 10 ;
+tokens [ 220 ] = TOKEN_END ; tokens [ 221 ] = 0 ; tokens [ 222 ] = 15 ; tokens [ 223 ] = 1 ;
+tokens [ 224 ] = TOKEN_END ; tokens [ 225 ] = 0 ; tokens [ 226 ] = 15 ; tokens [ 227 ] = 5 ;
+tokens [ 228 ] = TOKEN_END ; tokens [ 229 ] = 0 ; tokens [ 230 ] = 15 ; tokens [ 231 ] = 9 ;
+tokenCount = 232 ;
 
 ` ; a
 `
@@ -830,27 +833,7 @@ proc parseAssignmentStatement ( )
     printf(`"[Trace] Assignment statement for: '%s'\n"`, stringAtPointer)`
 endproc parseAssignmentStatement
 
-proc parseInnerIfStatement ( rootBlockId blockId hasElse )
-    globalBlockId = globalBlockId + 1 ;
-    expectedToken = TOKEN_ELIF ;
-    consumeToken ( ) ; 
-    _ = blockId - 1 ; `
-    ;printf(`"[Trace] Else-If statement: IF\n"`)
-    printf(`"\tjmp .endif_%d:\n"`, [rbp + 16])
-    printf(`".condition_false_%d:\n; elif if statement block id: %d\n"`, [_], [rbp + 24])
-    `
-    parseLogicalOrExpression ( ) ;
-
-    expectedToken = TOKEN_THEN ;
-    consumeToken ( ) ; `
-    ;printf(`"[Trace] Else-If statement: THEN\n"`)
-    printf(`"\tpop rax\n\tcmp rax, 0\n\tjz .condition_false_%d\n; elif then statement block id %d\n"`, [rbp + 24], [rbp + 24])
-    `
-    parseStatements ( ) ; 
-    _ = rootBlockId ; 
-endproc parseInnerIfStatement
-
-proc parseIfStatement ( blockId hasElse hasElif )
+proc parseIfStatement ( blockId hasElse )
     globalBlockId = globalBlockId + 1 ;
     expectedToken = TOKEN_IF ;
     consumeToken ( ) ; `
@@ -867,32 +850,12 @@ proc parseIfStatement ( blockId hasElse hasElif )
     `
     parseStatements ( ) ;
 
-    while true == 1 do 
-        if currentToken == [TOKEN_ELIF] then
-            _ = blockId ;
-            _ = parseInnerIfStatement ( _ globalBlockId 0 ) ;
-            hasElif = 1 ; 
-        else
-            break ;
-        end
-    end
-
     if currentToken == [TOKEN_ELSE] then 
         hasElse = 1 ;
         expectedToken = TOKEN_ELSE ;
-        consumeToken ( ) ; 
-
-        _ = hasElif ;
-        if _ == 0 then `
-            printf(`"\tjmp .endif_%d:\n"`, [rbp + 16])
-            printf(`".condition_false_%d:\n; else statement block id %d\n"`, [rbp + 16], [rbp + 16])`
-        else 
-            globalBlockId = globalBlockId - 1 ; `
-            printf(`"\tjmp .endif_%d:\n"`, [rbp + 16])
-            printf(`".condition_false_%d:\n; else statement block id %d\n"`, [globalBlockId], [globalBlockId])
-            `
-            globalBlockId = globalBlockId + 1 ; 
-        end `
+        consumeToken ( ) ; `
+        printf(`"\tjmp .endif_%d:\n"`, [rbp + 16])
+        printf(`".condition_false_%d:\n; else statement block id %d\n"`, [rbp + 16], [rbp + 16])
         ;printf(`"[Trace] If statement: ELSE\n"`)
         `
         parseStatements ( ) ; 
@@ -903,13 +866,8 @@ proc parseIfStatement ( blockId hasElse hasElif )
     _ = hasElse ;
     if _ == 1 then `
         printf(`".endif_%d:\n"`, [rbp + 16])`
-    else 
-        _ = hasElif ;
-        if _ == 0 then `
-            printf(`".condition_false_%d:\n"`, [rbp + 16])`
-        else `
-            printf(`".condition_false_%d:\n"`, [globalBlockId])`
-        end
+    else `
+        printf(`".condition_false_%d:\n"`, [rbp + 16])`
     end `
     ;printf(`"[Trace] If statement: END\n"`)`
 endproc parseIfStatement
