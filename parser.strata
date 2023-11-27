@@ -12,21 +12,25 @@ uint64 true = 1 ;
 
 array globalVariables = uint64 [ 10000 ] ;
 uint64 globalVariableCount = 0 ;
-uint64 globalVariableSize = 3 ;
+uint64 globalVariableSize = 4 ;
 
-uint64 gvTypeOffset  = 0 ;
-uint64 gvNameOffset  = 1 ;
-uint64 gvValueOffset = 2 ;
+uint64 gvTypeOffset     = 0 ;
+uint64 gvSubTypeOffset  = 1 ;
+uint64 gvNameOffset     = 2 ;
+uint64 gvValueOffset    = 3 ;
 
 uint64 gvType        = 0 ;
+uint64 gvSubType     = 0 ;
 uint64 gvNamePointer = 0 ;
 uint64 gvValue       = 0 ;
 
 proc forward readString
 
-proc addGlobalVariable ( type namePointer value )
+proc addGlobalVariable ( type subType namePointer value )
     _ = gvTypeOffset + globalVariableCount * globalVariableSize ;
     globalVariables [ _ ] = type ;
+    _ = gvSubTypeOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = subType ;
     _ = gvNameOffset + globalVariableCount * globalVariableSize ;
     globalVariables [ _ ] = namePointer ;
     _ = gvValueOffset + globalVariableCount * globalVariableSize ;
@@ -242,46 +246,23 @@ uint64 TOKEN_CONTINUE                 = 31 ;
 
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
+uint64 TYPE_ARRAY                  = 3 ;
 
 uint64 i = 0 ;
 
 tokens [ 0 ] = TOKEN_UINT8 ; tokens [ 1 ] = 0 ; tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
-tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 7 ;
-tokens [ 8 ] = TOKEN_ASSIGNMENT ; tokens [ 9 ] = 0 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 9 ;
-tokens [ 12 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 11 ;
-tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 12 ;
-tokens [ 20 ] = TOKEN_UINT64 ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 2 ; tokens [ 23 ] = 1 ;
-tokens [ 24 ] = TOKEN_IDENTIFIER ; tokens [ 25 ] = 1 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 8 ;
-tokens [ 28 ] = TOKEN_ASSIGNMENT ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 10 ;
-tokens [ 32 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 12 ;
-tokens [ 36 ] = TOKEN_SEMICOLON ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 13 ;
-tokens [ 40 ] = TOKEN_IDENTIFIER ; tokens [ 41 ] = 2 ; tokens [ 42 ] = 3 ; tokens [ 43 ] = 1 ;
-tokens [ 44 ] = TOKEN_ASSIGNMENT ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 3 ; tokens [ 47 ] = 3 ;
-tokens [ 48 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 49 ] = 3 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 5 ;
-tokens [ 52 ] = TOKEN_LESS_THAN ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 7 ;
-tokens [ 56 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 57 ] = 4 ; tokens [ 58 ] = 3 ; tokens [ 59 ] = 9 ;
-tokens [ 60 ] = TOKEN_LOGICAL_AND ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 3 ; tokens [ 63 ] = 11 ;
-tokens [ 64 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 65 ] = 4 ; tokens [ 66 ] = 3 ; tokens [ 67 ] = 15 ;
-tokens [ 68 ] = TOKEN_GREATER_THAN ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 3 ; tokens [ 71 ] = 17 ;
-tokens [ 72 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 73 ] = 3 ; tokens [ 74 ] = 3 ; tokens [ 75 ] = 19 ;
-tokens [ 76 ] = TOKEN_LOGICAL_OR ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 3 ; tokens [ 79 ] = 21 ;
-tokens [ 80 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 81 ] = 4 ; tokens [ 82 ] = 3 ; tokens [ 83 ] = 24 ;
-tokens [ 84 ] = TOKEN_LESS_THAN_OR_EQUAL_TO ; tokens [ 85 ] = 0 ; tokens [ 86 ] = 3 ; tokens [ 87 ] = 26 ;
-tokens [ 88 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 89 ] = 4 ; tokens [ 90 ] = 3 ; tokens [ 91 ] = 29 ;
-tokens [ 92 ] = TOKEN_LOGICAL_OR ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 3 ; tokens [ 95 ] = 31 ;
-tokens [ 96 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 97 ] = 4 ; tokens [ 98 ] = 3 ; tokens [ 99 ] = 34 ;
-tokens [ 100 ] = TOKEN_GREATER_THAN_OR_EQUAL_TO ; tokens [ 101 ] = 0 ; tokens [ 102 ] = 3 ; tokens [ 103 ] = 36 ;
-tokens [ 104 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 105 ] = 4 ; tokens [ 106 ] = 3 ; tokens [ 107 ] = 39 ;
-tokens [ 108 ] = TOKEN_LOGICAL_OR ; tokens [ 109 ] = 0 ; tokens [ 110 ] = 3 ; tokens [ 111 ] = 41 ;
-tokens [ 112 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 113 ] = 4 ; tokens [ 114 ] = 3 ; tokens [ 115 ] = 44 ;
-tokens [ 116 ] = TOKEN_EQUALS ; tokens [ 117 ] = 0 ; tokens [ 118 ] = 3 ; tokens [ 119 ] = 46 ;
-tokens [ 120 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 121 ] = 4 ; tokens [ 122 ] = 3 ; tokens [ 123 ] = 49 ;
-tokens [ 124 ] = TOKEN_LOGICAL_OR ; tokens [ 125 ] = 0 ; tokens [ 126 ] = 3 ; tokens [ 127 ] = 51 ;
-tokens [ 128 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 129 ] = 4 ; tokens [ 130 ] = 3 ; tokens [ 131 ] = 54 ;
-tokens [ 132 ] = TOKEN_NOT_EQUALS ; tokens [ 133 ] = 0 ; tokens [ 134 ] = 3 ; tokens [ 135 ] = 56 ;
-tokens [ 136 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 137 ] = 4 ; tokens [ 138 ] = 3 ; tokens [ 139 ] = 59 ;
-tokens [ 140 ] = TOKEN_SEMICOLON ; tokens [ 141 ] = 0 ; tokens [ 142 ] = 3 ; tokens [ 143 ] = 60 ;
-tokenCount = 144 ;
+tokens [ 4 ] = TOKEN_LEFT_BRACKET ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 7 ;
+tokens [ 8 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 9 ] = 100 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 9 ;
+tokens [ 12 ] = TOKEN_RIGHT_BRACKET ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 13 ;
+tokens [ 16 ] = TOKEN_IDENTIFIER ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 15 ;
+tokens [ 20 ] = TOKEN_SEMICOLON ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 1 ; tokens [ 23 ] = 16 ;
+tokens [ 24 ] = TOKEN_UINT64 ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 1 ;
+tokens [ 28 ] = TOKEN_LEFT_BRACKET ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 8 ;
+tokens [ 32 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 33 ] = 50 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 10 ;
+tokens [ 36 ] = TOKEN_RIGHT_BRACKET ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 13 ;
+tokens [ 40 ] = TOKEN_IDENTIFIER ; tokens [ 41 ] = 1 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 15 ;
+tokens [ 44 ] = TOKEN_SEMICOLON ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 2 ; tokens [ 47 ] = 16 ;
+tokenCount = 48 ;
 
 ` ; a
 `
@@ -292,12 +273,6 @@ _ = pushString ( ) ;
 ` ; b
 `
 stringToPush [ 0 ] = 98 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
 stringToPush [ 1 ] = 0 ;
 _ = pushString ( ) ;
 
@@ -409,6 +384,10 @@ proc parseArrayDeclaration ( )
 
     gvNamePointer = parseIdentifier ( ) ;
 
+    gvSubType = gvType ;
+    gvType = TYPE_ARRAY ;
+
+    _ = addGlobalVariable ( gvType gvSubType gvNamePointer gvValue ) ;
     _ = addGlobalSymbol ( gvType gvNamePointer gvValue ) ; `
     printf(`"[Trace] Array declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseArrayDeclaration
@@ -427,7 +406,7 @@ proc parseIntegerDeclaration ( )
 
     gvValue = parseNumber ( ) ;
     
-    _ = addGlobalVariable ( gvType gvNamePointer gvValue ) ;
+    _ = addGlobalVariable ( gvType 0 gvNamePointer gvValue ) ;
     _ = addGlobalSymbol ( gvType gvNamePointer 0 ) ; `
     printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseIntegerDeclaration 
@@ -834,6 +813,8 @@ i = 0 ;
 while i < [globalVariableCount] do
     _ = gvTypeOffset + i * globalVariableSize ;
     gvType = globalVariables [ _ ] ;
+    _ = gvSubTypeOffset + i * globalVariableSize ;
+    gvSubType = globalVariables [ _ ] ;
     _ = gvNameOffset + i * globalVariableSize ;
     gvNamePointer = globalVariables [ _ ] ;
     _ = gvValueOffset + i * globalVariableSize ;
@@ -844,10 +825,19 @@ while i < [globalVariableCount] do
         printf(`"section .data\r\n\t%s db %d\n"`, stringAtPointer, [gvValue])`
     else if gvType == [TYPE_UINT64] then `
         printf(`"section .data\r\n\t%s dq %d\n"`, stringAtPointer, [gvValue])`
+    else if gvType == [TYPE_ARRAY] then 
+        if gvSubType == [TYPE_UINT8] then `
+            printf(`"section .bss\r\n\t%s resb %d\n"`, stringAtPointer, [gvValue])`
+        else if gvSubType == [TYPE_UINT64] then `
+            printf(`"section .bss\r\n\t%s resq %d\n"`, stringAtPointer, [gvValue])`
+        else `
+            printf(`"Error: unknown array type %d\n"`, [gvType])
+            ExitProcess(1)`
+        end end
     else `
         printf(`"Error: unknown type %d\n"`, [gvType])
         ExitProcess(1)`
-    end end
+    end end end
 
     i = i + 1 ;
 end
