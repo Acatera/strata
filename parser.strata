@@ -40,19 +40,23 @@ endproc addGlobalVariable
 
 array globalSymbolTable = uint64 [ 10000 ] ;
 uint64 globalSymbolsCount = 0 ;
-uint64 globalSymbolSize = 3 ;
+uint64 globalSymbolSize = 4 ;
 
 uint64 gsType        = 0 ;
+uint64 gsSubType     = 0 ;
 uint64 gsNamePointer = 0 ;
 uint64 gsValue       = 0 ;
 
-uint64 gsTypeOffset  = 0 ;
-uint64 gsNameOffset  = 1 ;
-uint64 gsValueOffset = 2 ;
+uint64 gsTypeOffset     = 0 ;
+uint64 gsSubTypeOffset  = 1 ;
+uint64 gsNameOffset     = 2 ;
+uint64 gsValueOffset    = 3 ;
 
-proc addGlobalSymbol ( type namePointer value )
+proc addGlobalSymbol ( type subType namePointer value )
     _ = gvTypeOffset + globalSymbolsCount * globalSymbolSize ;
     globalSymbolTable [ _ ] = type ;
+    _ = gvSubTypeOffset + globalSymbolsCount * globalSymbolSize ;
+    globalSymbolTable [ _ ] = subType ;
     _ = gvNameOffset + globalSymbolsCount * globalSymbolSize ;
     globalSymbolTable [ _ ] = namePointer ;
     _ = gvValueOffset + globalSymbolsCount * globalSymbolSize ;
@@ -125,6 +129,8 @@ proc findGlobalSymbol ( namePointer )
     if fgsEqual == [true] then
         _ = gsTypeOffset + fgsIndex * globalSymbolSize ;
         gsType = globalSymbolTable [ _ ] ;
+        _ = gsSubTypeOffset + fgsIndex * globalSymbolSize ;
+        gsSubType = globalSymbolTable [ _ ] ;
         _ = gsNameOffset + fgsIndex * globalSymbolSize ;
         gsNamePointer = globalSymbolTable [ _ ] ;
         _ = gsValueOffset + fgsIndex * globalSymbolSize ;
@@ -137,6 +143,7 @@ proc findGlobalSymbol ( namePointer )
         mov rax, [_] `
     else
         gsType = 0 ;
+        gsSubType = 0 ;
         gsNamePointer = 0 ;
         gsValue = 0 ;
 
@@ -262,7 +269,56 @@ tokens [ 32 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 33 ] = 50 ; tokens [ 34 ] = 2 
 tokens [ 36 ] = TOKEN_RIGHT_BRACKET ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 13 ;
 tokens [ 40 ] = TOKEN_IDENTIFIER ; tokens [ 41 ] = 1 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 15 ;
 tokens [ 44 ] = TOKEN_SEMICOLON ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 2 ; tokens [ 47 ] = 16 ;
-tokenCount = 48 ;
+tokens [ 48 ] = TOKEN_UINT64 ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 1 ;
+tokens [ 52 ] = TOKEN_IDENTIFIER ; tokens [ 53 ] = 2 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 8 ;
+tokens [ 56 ] = TOKEN_ASSIGNMENT ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 3 ; tokens [ 59 ] = 10 ;
+tokens [ 60 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 3 ; tokens [ 63 ] = 12 ;
+tokens [ 64 ] = TOKEN_SEMICOLON ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 3 ; tokens [ 67 ] = 13 ;
+tokens [ 68 ] = TOKEN_IDENTIFIER ; tokens [ 69 ] = 3 ; tokens [ 70 ] = 4 ; tokens [ 71 ] = 1 ;
+tokens [ 72 ] = TOKEN_LEFT_BRACKET ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 4 ; tokens [ 75 ] = 3 ;
+tokens [ 76 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 4 ; tokens [ 79 ] = 5 ;
+tokens [ 80 ] = TOKEN_RIGHT_BRACKET ; tokens [ 81 ] = 0 ; tokens [ 82 ] = 4 ; tokens [ 83 ] = 7 ;
+tokens [ 84 ] = TOKEN_ASSIGNMENT ; tokens [ 85 ] = 0 ; tokens [ 86 ] = 4 ; tokens [ 87 ] = 9 ;
+tokens [ 88 ] = TOKEN_IDENTIFIER ; tokens [ 89 ] = 4 ; tokens [ 90 ] = 4 ; tokens [ 91 ] = 11 ;
+tokens [ 92 ] = TOKEN_LEFT_BRACKET ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 4 ; tokens [ 95 ] = 13 ;
+tokens [ 96 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 97 ] = 1 ; tokens [ 98 ] = 4 ; tokens [ 99 ] = 15 ;
+tokens [ 100 ] = TOKEN_RIGHT_BRACKET ; tokens [ 101 ] = 0 ; tokens [ 102 ] = 4 ; tokens [ 103 ] = 17 ;
+tokens [ 104 ] = TOKEN_PLUS ; tokens [ 105 ] = 0 ; tokens [ 106 ] = 4 ; tokens [ 107 ] = 19 ;
+tokens [ 108 ] = TOKEN_IDENTIFIER ; tokens [ 109 ] = 5 ; tokens [ 110 ] = 4 ; tokens [ 111 ] = 21 ;
+tokens [ 112 ] = TOKEN_LEFT_BRACKET ; tokens [ 113 ] = 0 ; tokens [ 114 ] = 4 ; tokens [ 115 ] = 23 ;
+tokens [ 116 ] = TOKEN_IDENTIFIER ; tokens [ 117 ] = 6 ; tokens [ 118 ] = 4 ; tokens [ 119 ] = 25 ;
+tokens [ 120 ] = TOKEN_RIGHT_BRACKET ; tokens [ 121 ] = 0 ; tokens [ 122 ] = 4 ; tokens [ 123 ] = 27 ;
+tokens [ 124 ] = TOKEN_PLUS ; tokens [ 125 ] = 0 ; tokens [ 126 ] = 4 ; tokens [ 127 ] = 29 ;
+tokens [ 128 ] = TOKEN_IDENTIFIER ; tokens [ 129 ] = 7 ; tokens [ 130 ] = 4 ; tokens [ 131 ] = 31 ;
+tokens [ 132 ] = TOKEN_LEFT_BRACKET ; tokens [ 133 ] = 0 ; tokens [ 134 ] = 4 ; tokens [ 135 ] = 33 ;
+tokens [ 136 ] = TOKEN_IDENTIFIER ; tokens [ 137 ] = 8 ; tokens [ 138 ] = 4 ; tokens [ 139 ] = 35 ;
+tokens [ 140 ] = TOKEN_PLUS ; tokens [ 141 ] = 0 ; tokens [ 142 ] = 4 ; tokens [ 143 ] = 37 ;
+tokens [ 144 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 145 ] = 1 ; tokens [ 146 ] = 4 ; tokens [ 147 ] = 39 ;
+tokens [ 148 ] = TOKEN_RIGHT_BRACKET ; tokens [ 149 ] = 0 ; tokens [ 150 ] = 4 ; tokens [ 151 ] = 41 ;
+tokens [ 152 ] = TOKEN_SEMICOLON ; tokens [ 153 ] = 0 ; tokens [ 154 ] = 4 ; tokens [ 155 ] = 42 ;
+tokens [ 156 ] = TOKEN_IDENTIFIER ; tokens [ 157 ] = 9 ; tokens [ 158 ] = 5 ; tokens [ 159 ] = 1 ;
+tokens [ 160 ] = TOKEN_LEFT_BRACKET ; tokens [ 161 ] = 0 ; tokens [ 162 ] = 5 ; tokens [ 163 ] = 3 ;
+tokens [ 164 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 165 ] = 0 ; tokens [ 166 ] = 5 ; tokens [ 167 ] = 5 ;
+tokens [ 168 ] = TOKEN_RIGHT_BRACKET ; tokens [ 169 ] = 0 ; tokens [ 170 ] = 5 ; tokens [ 171 ] = 7 ;
+tokens [ 172 ] = TOKEN_ASSIGNMENT ; tokens [ 173 ] = 0 ; tokens [ 174 ] = 5 ; tokens [ 175 ] = 9 ;
+tokens [ 176 ] = TOKEN_IDENTIFIER ; tokens [ 177 ] = 10 ; tokens [ 178 ] = 5 ; tokens [ 179 ] = 11 ;
+tokens [ 180 ] = TOKEN_LEFT_BRACKET ; tokens [ 181 ] = 0 ; tokens [ 182 ] = 5 ; tokens [ 183 ] = 13 ;
+tokens [ 184 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 185 ] = 1 ; tokens [ 186 ] = 5 ; tokens [ 187 ] = 15 ;
+tokens [ 188 ] = TOKEN_RIGHT_BRACKET ; tokens [ 189 ] = 0 ; tokens [ 190 ] = 5 ; tokens [ 191 ] = 17 ;
+tokens [ 192 ] = TOKEN_PLUS ; tokens [ 193 ] = 0 ; tokens [ 194 ] = 5 ; tokens [ 195 ] = 19 ;
+tokens [ 196 ] = TOKEN_IDENTIFIER ; tokens [ 197 ] = 11 ; tokens [ 198 ] = 5 ; tokens [ 199 ] = 21 ;
+tokens [ 200 ] = TOKEN_LEFT_BRACKET ; tokens [ 201 ] = 0 ; tokens [ 202 ] = 5 ; tokens [ 203 ] = 23 ;
+tokens [ 204 ] = TOKEN_IDENTIFIER ; tokens [ 205 ] = 12 ; tokens [ 206 ] = 5 ; tokens [ 207 ] = 25 ;
+tokens [ 208 ] = TOKEN_RIGHT_BRACKET ; tokens [ 209 ] = 0 ; tokens [ 210 ] = 5 ; tokens [ 211 ] = 27 ;
+tokens [ 212 ] = TOKEN_PLUS ; tokens [ 213 ] = 0 ; tokens [ 214 ] = 5 ; tokens [ 215 ] = 29 ;
+tokens [ 216 ] = TOKEN_IDENTIFIER ; tokens [ 217 ] = 13 ; tokens [ 218 ] = 5 ; tokens [ 219 ] = 31 ;
+tokens [ 220 ] = TOKEN_LEFT_BRACKET ; tokens [ 221 ] = 0 ; tokens [ 222 ] = 5 ; tokens [ 223 ] = 33 ;
+tokens [ 224 ] = TOKEN_IDENTIFIER ; tokens [ 225 ] = 14 ; tokens [ 226 ] = 5 ; tokens [ 227 ] = 35 ;
+tokens [ 228 ] = TOKEN_PLUS ; tokens [ 229 ] = 0 ; tokens [ 230 ] = 5 ; tokens [ 231 ] = 37 ;
+tokens [ 232 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 233 ] = 1 ; tokens [ 234 ] = 5 ; tokens [ 235 ] = 39 ;
+tokens [ 236 ] = TOKEN_RIGHT_BRACKET ; tokens [ 237 ] = 0 ; tokens [ 238 ] = 5 ; tokens [ 239 ] = 41 ;
+tokens [ 240 ] = TOKEN_SEMICOLON ; tokens [ 241 ] = 0 ; tokens [ 242 ] = 5 ; tokens [ 243 ] = 42 ;
+tokenCount = 244 ;
 
 ` ; a
 `
@@ -273,6 +329,84 @@ _ = pushString ( ) ;
 ` ; b
 `
 stringToPush [ 0 ] = 98 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; c
+`
+stringToPush [ 0 ] = 99 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; a
+`
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; a
+`
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; a
+`
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; c
+`
+stringToPush [ 0 ] = 99 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; a
+`
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; c
+`
+stringToPush [ 0 ] = 99 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; b
+`
+stringToPush [ 0 ] = 98 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; b
+`
+stringToPush [ 0 ] = 98 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; b
+`
+stringToPush [ 0 ] = 98 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; c
+`
+stringToPush [ 0 ] = 99 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; b
+`
+stringToPush [ 0 ] = 98 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; c
+`
+stringToPush [ 0 ] = 99 ;
 stringToPush [ 1 ] = 0 ;
 _ = pushString ( ) ;
 
@@ -312,7 +446,7 @@ proc indentifierRedeclared ( namePointer )
     ExitProcess(1)`
 endproc indentifierRedeclared
 
-proc indentifierUnknown ( namePointer )
+proc identifierUnknown ( namePointer )
     _ = i - tokenSize ;
     _ = _ + 2 ;
     errorAtLine = tokens [ _ ] ;
@@ -323,7 +457,7 @@ proc indentifierUnknown ( namePointer )
     printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
     printf(`"unknown identifier: %s\n"`, stringAtPointer) ;
     ExitProcess(1)`
-endproc indentifierUnknown
+endproc identifierUnknown
 
 proc unexpectedToken ( ) 
     _ = i + 2 ;
@@ -387,8 +521,11 @@ proc parseArrayDeclaration ( )
     gvSubType = gvType ;
     gvType = TYPE_ARRAY ;
 
+    `
+    printf(`"[Trace] Array declaration: type %d, subtype %d\n"`, [gvType], [gvSubType])
+    `
     _ = addGlobalVariable ( gvType gvSubType gvNamePointer gvValue ) ;
-    _ = addGlobalSymbol ( gvType gvNamePointer gvValue ) ; `
+    _ = addGlobalSymbol ( gvType gvSubType gvNamePointer gvValue ) ; `
     printf(`"[Trace] Array declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseArrayDeclaration
 
@@ -407,7 +544,7 @@ proc parseIntegerDeclaration ( )
     gvValue = parseNumber ( ) ;
     
     _ = addGlobalVariable ( gvType 0 gvNamePointer gvValue ) ;
-    _ = addGlobalSymbol ( gvType gvNamePointer 0 ) ; `
+    _ = addGlobalSymbol ( gvType 0 gvNamePointer 0 ) ; `
     printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseIntegerDeclaration 
     
@@ -451,8 +588,19 @@ proc parseFactor ( )
             fgsIndex = findGlobalSymbol ( fpIdentifier ) ;
 
             if fgsIndex == -1 then
-                _ = indentifierUnknown ( fpIdentifier ) ;
-            end `
+                _ = identifierUnknown ( fpIdentifier ) ;
+            end 
+           
+            _ = readString ( fpIdentifier ) ; 
+
+            if gsSubType == [TYPE_UINT8] then `
+                printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
+            else if gsSubType == [TYPE_UINT64] then `
+                printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
+            else ` 
+                printf(`"[Error] Error: unknown array type %d\n"`, [gsSubType])
+                ExitProcess(1)`
+            end end `
             printf(`"[Trace] Factor: array\n"`)`
         else
             _ = i + 1 ;
@@ -466,7 +614,7 @@ proc parseFactor ( )
             fgsIndex = findGlobalSymbol ( fpIdentifier ) ;
 
             if fgsIndex == -1 then
-                _ = indentifierUnknown ( fpIdentifier ) ;
+                _ = identifierUnknown ( fpIdentifier ) ;
             end 
 
             _ = readString ( fpIdentifier ) ; 
@@ -642,8 +790,18 @@ proc parseAssignable ( )
         fgsIndex = findGlobalSymbol ( paIdentifier ) ;
 
         if fgsIndex == -1 then
-            _ = indentifierUnknown ( paIdentifier ) ;
-        end `
+            _ = identifierUnknown ( paIdentifier ) ;
+        end 
+        _ = readString ( paIdentifier ) ; 
+
+        if gsSubType == [TYPE_UINT8] then `
+            printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush rax\n"`, stringAtPointer)`
+        else if gsSubType == [TYPE_UINT64] then `
+            printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush rax\n"`, stringAtPointer)`
+        else ` 
+            printf(`"[Error] Error: unknown array type %d\n"`, [gsSubType])
+            ExitProcess(1)`
+        end end `
         printf(`"[Trace] Assignable: array, ct %d\n"`, [currentToken])`
     else
         paIdentifier = parseIdentifier ( ) ; 
@@ -651,7 +809,7 @@ proc parseAssignable ( )
         fgsIndex = findGlobalSymbol ( paIdentifier ) ;
 
         if fgsIndex == -1 then
-            _ = indentifierUnknown ( paIdentifier ) ;
+            _ = identifierUnknown ( paIdentifier ) ;
         end `
         printf(`"[Trace] Assignable: variable\n"`)`
     end `
@@ -673,7 +831,7 @@ proc parseAssignmentStatement ( )
     fgsIndex = findGlobalSymbol ( pasIdentifier ) ;
 
     if fgsIndex == -1 then
-        _ = indentifierUnknown ( pasIdentifier ) ;
+        _ = identifierUnknown ( pasIdentifier ) ;
     end
     _ = readString ( pasIdentifier ) ;
     
@@ -683,10 +841,21 @@ proc parseAssignmentStatement ( )
     else if gsType == [TYPE_UINT64] then `
         printf(`"[Debug] Assigning value to a uint64\n"`)
         printf(`"\tpop rax\n\tmov qword [%s], rax\n"`, stringAtPointer)`
+    else if gsType == [TYPE_ARRAY] then
+        if gsSubType == [TYPE_UINT8] then `
+            printf(`"[Debug] Assigning value to an array of uint8\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tmov byte [rax], bl\n"`, stringAtPointer)`
+        else if gsSubType == [TYPE_UINT64] then `
+            printf(`"[Debug] Assigning value to an array of uint64\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`, stringAtPointer)`
+        else ` 
+            printf(`"[Error] Error: unknown array type %d\n"`, [gsType])
+            ExitProcess(1)`
+        end end
     else `
         printf(`"[Error] Error: unknown type %d\n"`, [gsType])
         ExitProcess(1)`
-    end end `
+    end end end `
     printf(`"[Trace] Assignment statement for: '%s'\n"`, stringAtPointer)`
 endproc parseAssignmentStatement
 
