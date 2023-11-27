@@ -24,6 +24,7 @@ uint64 gvValue       = 0 ;
 
 uint64 currentToken = 0 ;
 uint64 expectedToken = 0 ;
+uint64 nextToken = 0 ;
 
 array stringBuffer = uint8 [ 100000 ] ;
 uint64 sbIndex = 0 ;
@@ -134,15 +135,19 @@ tokens [ 32 ] = TOKEN_ASSIGNMENT ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; token
 tokens [ 36 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 37 ] = 1 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 12 ;
 tokens [ 40 ] = TOKEN_SEMICOLON ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 13 ;
 tokens [ 44 ] = TOKEN_IDENTIFIER ; tokens [ 45 ] = 2 ; tokens [ 46 ] = 4 ; tokens [ 47 ] = 1 ;
-tokens [ 48 ] = TOKEN_ASSIGNMENT ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 4 ; tokens [ 51 ] = 3 ;
-tokens [ 52 ] = TOKEN_IDENTIFIER ; tokens [ 53 ] = 3 ; tokens [ 54 ] = 4 ; tokens [ 55 ] = 5 ;
-tokens [ 56 ] = TOKEN_LEFT_BRACKET ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 4 ; tokens [ 59 ] = 7 ;
-tokens [ 60 ] = TOKEN_IDENTIFIER ; tokens [ 61 ] = 4 ; tokens [ 62 ] = 4 ; tokens [ 63 ] = 9 ;
-tokens [ 64 ] = TOKEN_PLUS ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 11 ;
-tokens [ 68 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 69 ] = 1 ; tokens [ 70 ] = 4 ; tokens [ 71 ] = 13 ;
-tokens [ 72 ] = TOKEN_RIGHT_BRACKET ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 4 ; tokens [ 75 ] = 15 ;
-tokens [ 76 ] = TOKEN_SEMICOLON ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 4 ; tokens [ 79 ] = 16 ;
-tokenCount = 80 ;
+tokens [ 48 ] = TOKEN_LEFT_BRACKET ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 4 ; tokens [ 51 ] = 3 ;
+tokens [ 52 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 4 ; tokens [ 55 ] = 5 ;
+tokens [ 56 ] = TOKEN_RIGHT_BRACKET ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 4 ; tokens [ 59 ] = 7 ;
+tokens [ 60 ] = TOKEN_ASSIGNMENT ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 4 ; tokens [ 63 ] = 9 ;
+tokens [ 64 ] = TOKEN_IDENTIFIER ; tokens [ 65 ] = 3 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 11 ;
+tokens [ 68 ] = TOKEN_LEFT_BRACKET ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 4 ; tokens [ 71 ] = 13 ;
+tokens [ 72 ] = TOKEN_IDENTIFIER ; tokens [ 73 ] = 4 ; tokens [ 74 ] = 4 ; tokens [ 75 ] = 15 ;
+tokens [ 76 ] = TOKEN_LEFT_BRACKET ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 4 ; tokens [ 79 ] = 17 ;
+tokens [ 80 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 81 ] = 1 ; tokens [ 82 ] = 4 ; tokens [ 83 ] = 19 ;
+tokens [ 84 ] = TOKEN_RIGHT_BRACKET ; tokens [ 85 ] = 0 ; tokens [ 86 ] = 4 ; tokens [ 87 ] = 21 ;
+tokens [ 88 ] = TOKEN_RIGHT_BRACKET ; tokens [ 89 ] = 0 ; tokens [ 90 ] = 4 ; tokens [ 91 ] = 23 ;
+tokens [ 92 ] = TOKEN_SEMICOLON ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 4 ; tokens [ 95 ] = 24 ;
+tokenCount = 96 ;
 
 ` ; a
 `
@@ -182,6 +187,9 @@ proc consumeToken ( )
     if currentToken == [expectedToken] then
         i = i + tokenSize ;
         currentToken = tokens [ i ] ;
+        i = i + tokenSize ;
+        nextToken = tokens [ i ] ;
+        i = i - tokenSize ;
     else 
         _ = i + 2 ;
         errorAtLine = tokens [ _ ] ;
@@ -292,6 +300,7 @@ endproc parseVariableDeclaration
 
 proc forward parseAdditiveExpression
 proc forward parseStatements
+proc forward parseArrayAccess
 
 proc parseFactor ( ) 
     if currentToken == [TOKEN_CONSTANT_INTEGER] then
@@ -305,7 +314,12 @@ proc parseFactor ( )
         expectedToken = TOKEN_RIGHT_PARENTHESIS ;
         consumeToken ( ) ;
     else if currentToken == [TOKEN_IDENTIFIER] then
-        parseIdentifier ( ) ;
+        if nextToken == [TOKEN_LEFT_BRACKET] then 
+            parseArrayAccess ( ) ; `
+            printf(`"[Trace] Factor: array\n"`)`
+        else
+            parseIdentifier ( ) ;
+        end
     else
         unexpectedToken ( ) ;
     end end end
@@ -417,19 +431,25 @@ proc parseLogicalOrExpression ( )
     end
 endproc parseLogicalOrExpression
 
+proc parseArrayAccess ( ) 
+    _ = parseIdentifier ( ) ; 
+    expectedToken = TOKEN_LEFT_BRACKET ;
+    consumeToken ( ) ;
+    parseAdditiveExpression ( ) ;
+    expectedToken = TOKEN_RIGHT_BRACKET ;
+    consumeToken ( ) ; `
+    mov rax, [_]`
+endproc parseArrayAccess
+
 proc parseAssignable ( )
-    _ = parseIdentifier ( ) ;
-    if currentToken == [TOKEN_LEFT_BRACKET] then
-        expectedToken = TOKEN_LEFT_BRACKET ;
-        consumeToken ( ) ;
-        parseAdditiveExpression ( ) ;
-        expectedToken = TOKEN_RIGHT_BRACKET ;
-        consumeToken ( ) ; `
+    if nextToken == [TOKEN_LEFT_BRACKET] then
+        _ = parseArrayAccess ( ) ; `
         printf(`"[Trace] Assignable: array\n"`)`
     else
-        `
+        _ = parseIdentifier ( ) ; `
         printf(`"[Trace] Assignable: variable\n"`)`
-    end
+    end `
+    mov rax, [_]`
 endproc parseAssignable
 
 proc parseAssignmentStatement ( )
