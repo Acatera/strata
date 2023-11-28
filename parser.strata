@@ -268,14 +268,42 @@ tokens [ 24 ] = TOKEN_IDENTIFIER ; tokens [ 25 ] = 1 ; tokens [ 26 ] = 2 ; token
 tokens [ 28 ] = TOKEN_LESS_THAN ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 9 ;
 tokens [ 32 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 33 ] = 10 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 11 ;
 tokens [ 36 ] = TOKEN_DO ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 14 ;
-tokens [ 40 ] = TOKEN_IDENTIFIER ; tokens [ 41 ] = 2 ; tokens [ 42 ] = 3 ; tokens [ 43 ] = 5 ;
-tokens [ 44 ] = TOKEN_ASSIGNMENT ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 3 ; tokens [ 47 ] = 7 ;
-tokens [ 48 ] = TOKEN_IDENTIFIER ; tokens [ 49 ] = 3 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 9 ;
-tokens [ 52 ] = TOKEN_PLUS ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 11 ;
-tokens [ 56 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 57 ] = 1 ; tokens [ 58 ] = 3 ; tokens [ 59 ] = 13 ;
-tokens [ 60 ] = TOKEN_SEMICOLON ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 3 ; tokens [ 63 ] = 14 ;
-tokens [ 64 ] = TOKEN_END ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 1 ;
-tokenCount = 68 ;
+tokens [ 40 ] = TOKEN_IF ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 3 ; tokens [ 43 ] = 5 ;
+tokens [ 44 ] = TOKEN_IDENTIFIER ; tokens [ 45 ] = 2 ; tokens [ 46 ] = 3 ; tokens [ 47 ] = 8 ;
+tokens [ 48 ] = TOKEN_EQUALS ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 10 ;
+tokens [ 52 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 53 ] = 5 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 13 ;
+tokens [ 56 ] = TOKEN_THEN ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 3 ; tokens [ 59 ] = 15 ;
+tokens [ 60 ] = TOKEN_CONTINUE ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 4 ; tokens [ 63 ] = 9 ;
+tokens [ 64 ] = TOKEN_SEMICOLON ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 17 ;
+tokens [ 68 ] = TOKEN_END ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 5 ; tokens [ 71 ] = 5 ;
+tokens [ 72 ] = TOKEN_IF ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 6 ; tokens [ 75 ] = 5 ;
+tokens [ 76 ] = TOKEN_IDENTIFIER ; tokens [ 77 ] = 3 ; tokens [ 78 ] = 6 ; tokens [ 79 ] = 8 ;
+tokens [ 80 ] = TOKEN_EQUALS ; tokens [ 81 ] = 0 ; tokens [ 82 ] = 6 ; tokens [ 83 ] = 10 ;
+tokens [ 84 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 85 ] = 6 ; tokens [ 86 ] = 6 ; tokens [ 87 ] = 13 ;
+tokens [ 88 ] = TOKEN_THEN ; tokens [ 89 ] = 0 ; tokens [ 90 ] = 6 ; tokens [ 91 ] = 15 ;
+tokens [ 92 ] = TOKEN_BREAK ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 7 ; tokens [ 95 ] = 9 ;
+tokens [ 96 ] = TOKEN_SEMICOLON ; tokens [ 97 ] = 0 ; tokens [ 98 ] = 7 ; tokens [ 99 ] = 14 ;
+tokens [ 100 ] = TOKEN_END ; tokens [ 101 ] = 0 ; tokens [ 102 ] = 8 ; tokens [ 103 ] = 5 ;
+tokens [ 104 ] = TOKEN_IDENTIFIER ; tokens [ 105 ] = 4 ; tokens [ 106 ] = 9 ; tokens [ 107 ] = 5 ;
+tokens [ 108 ] = TOKEN_ASSIGNMENT ; tokens [ 109 ] = 0 ; tokens [ 110 ] = 9 ; tokens [ 111 ] = 7 ;
+tokens [ 112 ] = TOKEN_IDENTIFIER ; tokens [ 113 ] = 5 ; tokens [ 114 ] = 9 ; tokens [ 115 ] = 9 ;
+tokens [ 116 ] = TOKEN_PLUS ; tokens [ 117 ] = 0 ; tokens [ 118 ] = 9 ; tokens [ 119 ] = 11 ;
+tokens [ 120 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 121 ] = 1 ; tokens [ 122 ] = 9 ; tokens [ 123 ] = 13 ;
+tokens [ 124 ] = TOKEN_SEMICOLON ; tokens [ 125 ] = 0 ; tokens [ 126 ] = 9 ; tokens [ 127 ] = 14 ;
+tokens [ 128 ] = TOKEN_END ; tokens [ 129 ] = 0 ; tokens [ 130 ] = 10 ; tokens [ 131 ] = 1 ;
+tokenCount = 132 ;
+
+` ; a
+`
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; a
+`
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
 
 ` ; a
 `
@@ -789,7 +817,11 @@ proc parseIfStatement ( blockId hasElse )
     ;printf(`"[Trace] If statement: END\n"`)`
 endproc parseIfStatement
 
+uint64 wsBlockId = 0 ;
 proc parseWhileStatement ( blockId )
+    wsBlockId = blockId ;
+    _ = i + 1 ;
+    tokens [ _ ] = wsBlockId ;
     globalBlockId = globalBlockId + 1 ;
     expectedToken = TOKEN_WHILE ;
     consumeToken ( ) ; `
@@ -812,20 +844,49 @@ proc parseWhileStatement ( blockId )
     printf(`".endwhile_%d:\n"`, [rbp + 16])`
 endproc parseWhileStatement
 
+uint64 pbsBlockId = 0 ;
+uint64 pbsIndex = 0 ;
+uint64 pbsCurrentToken = 0 ;
 proc parseBreakStatement ( )
     expectedToken = TOKEN_BREAK ;
     consumeToken ( ) ; 
     expectedToken = TOKEN_SEMICOLON ;
-    consumeToken ( ) ; `
-    printf(`"[Trace] Break statement: BREAK\n"`)`
+    consumeToken ( ) ; 
+    
+    pbsIndex = i - tokenSize - tokenSize ;
+    while pbsIndex >= 0 do
+        pbsCurrentToken = tokens [ pbsIndex ] ;
+        if pbsCurrentToken == [TOKEN_WHILE] then
+            pbsIndex = pbsIndex + 1 ;
+            pbsBlockId = tokens [ pbsIndex ] ; `
+            printf(`"[Trace] Break statement: BREAK\n"`)
+            printf(`"\tjmp .endwhile_%d\n"`, [pbsBlockId])`
+            break ;
+        end
+        pbsIndex = pbsIndex - tokenSize ;
+    end 
 endproc parseBreakStatement
 
+uint64 pcsBlockId = 0 ;
+uint64 pcsIndex = 0 ;
+uint64 pcsCurrentToken = 0 ;
 proc parseContinueStatement ( )
     expectedToken = TOKEN_CONTINUE ;
     consumeToken ( ) ;
     expectedToken = TOKEN_SEMICOLON ;
-    consumeToken ( ) ; `
-    printf(`"[Trace] Continue statement: CONTINUE\n"`)`
+    consumeToken ( ) ; 
+    pcsIndex = i - tokenSize - tokenSize ;
+    while pcsIndex >= 0 do
+        pcsCurrentToken = tokens [ pcsIndex ] ;
+        if pcsCurrentToken == [TOKEN_WHILE] then
+            pcsIndex = pcsIndex + 1 ;
+            pcsBlockId = tokens [ pcsIndex ] ; `
+            printf(`"[Trace] Continue statement: CONTINUE\n"`)
+            printf(`"\tjmp .while_%d\n"`, [pcsBlockId])`
+            break ;
+        end
+        pcsIndex = pcsIndex - tokenSize ;
+    end 
 endproc parseContinueStatement
 
 proc parseStatement ( )
