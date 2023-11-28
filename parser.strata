@@ -13,6 +13,8 @@ uint64 globalBlockId = 0 ;
 uint64 globalProcedureId = 1 ;
 uint64 globalBoolParsingProcedure = 0 ;
 
+uint64 ppdRbpOffset = 0 ;
+
 array globalVariables = uint64 [ 10000 ] ;
 uint64 globalVariableCount = 0 ;
 uint64 globalVariableSize = 5 ;
@@ -287,10 +289,15 @@ tokens [ 16 ] = TOKEN_IDENTIFIER ; tokens [ 17 ] = 1 ; tokens [ 18 ] = 1 ; token
 tokens [ 20 ] = TOKEN_RIGHT_PARENTHESIS ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 1 ; tokens [ 23 ] = 24 ;
 tokens [ 24 ] = TOKEN_ARROW_RIGHT ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 1 ; tokens [ 27 ] = 26 ;
 tokens [ 28 ] = TOKEN_UINT64 ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 1 ; tokens [ 31 ] = 29 ;
-tokens [ 32 ] = TOKEN_RETURN ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 5 ;
-tokens [ 36 ] = TOKEN_SEMICOLON ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 11 ;
-tokens [ 40 ] = TOKEN_END ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 3 ; tokens [ 43 ] = 1 ;
-tokenCount = 44 ;
+tokens [ 32 ] = TOKEN_UINT64 ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 5 ;
+tokens [ 36 ] = TOKEN_IDENTIFIER ; tokens [ 37 ] = 2 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 12 ;
+tokens [ 40 ] = TOKEN_ASSIGNMENT ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 19 ;
+tokens [ 44 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 2 ; tokens [ 47 ] = 21 ;
+tokens [ 48 ] = TOKEN_SEMICOLON ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 2 ; tokens [ 51 ] = 22 ;
+tokens [ 52 ] = TOKEN_RETURN ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 5 ;
+tokens [ 56 ] = TOKEN_SEMICOLON ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 3 ; tokens [ 59 ] = 11 ;
+tokens [ 60 ] = TOKEN_END ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 4 ; tokens [ 63 ] = 1 ;
+tokenCount = 64 ;
 
 ` ; myFunc
 `
@@ -307,6 +314,17 @@ _ = pushString ( ) ;
 `
 stringToPush [ 0 ] = 97 ;
 stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; localA
+`
+stringToPush [ 0 ] = 108 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 99 ;
+stringToPush [ 3 ] = 97 ;
+stringToPush [ 4 ] = 108 ;
+stringToPush [ 5 ] = 65 ;
+stringToPush [ 6 ] = 0 ;
 _ = pushString ( ) ;
 
 i = 0 ;
@@ -442,8 +460,15 @@ proc parseIntegerDeclaration ( )
 
     gvValue = parseNumber ( ) ;
     
-    _ = addVariable ( gvType 0 gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
-    _ = addSymbol ( gvType 0 gvNamePointer 0 VARIABLE_SCOPE_GLOBAL ) ; `
+    if globalBoolParsingProcedure == 0 then
+        _ = addVariable ( gvType 0 gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
+        _ = addSymbol ( gvType 0 gvNamePointer 0 VARIABLE_SCOPE_GLOBAL ) ; 
+    else 
+        _ = addVariable ( gvType VARTYPE_LOCAL gvNamePointer gvValue globalProcedureId ) ;
+        ppdRbpOffset = ppdRbpOffset - 8 ;
+        _ = addSymbol ( gvType VARTYPE_LOCAL gvNamePointer ppdRbpOffset globalProcedureId ) ; 
+    end
+    `
     printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseIntegerDeclaration 
     
@@ -874,12 +899,16 @@ proc parseArguments ( )
     paProArgumentCount = 0 ;
     gvType = parseType ( ) ;
     gvNamePointer = parseIdentifier ( ) ;
-    _ = addVariable ( gvType 0 gvNamePointer VARTYPE_PARAMETER globalProcedureId ) ;
-    _ = addSymbol ( gvType 0 gvNamePointer VARTYPE_PARAMETER globalProcedureId ) ;
+    ppdRbpOffset = ppdRbpOffset + 8 ;
+    _ = addVariable ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffset globalProcedureId ) ;
+    _ = addSymbol ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffset globalProcedureId ) ;
     paProArgumentCount = paProArgumentCount + 1 ; `
     mov rax, [paProArgumentCount]`
 endproc parseArguments
 
+uint64 ppdIdentifier = 0 ;
+
+uint64 ppdLocalVariableCount = 0 ;
 proc parseProcedureDeclaration ( )
     if globalBoolParsingProcedure == 1 then 
         _ = i - tokenSize ;
@@ -897,18 +926,20 @@ proc parseProcedureDeclaration ( )
     expectedToken = TOKEN_PROC ;
     consumeToken ( ) ; 
 
-    gvNamePointer = parseIdentifier ( ) ;
+    ppdIdentifier = parseIdentifier ( ) ;
 
-    fgsIndex = findSymbol ( gvNamePointer ) ;
+    fgsIndex = findSymbol ( ppdIdentifier ) ;
 
     if fgsIndex != -1 then
-        _ = indentifierRedeclared ( gvNamePointer ) ;
+        _ = indentifierRedeclared ( ppdIdentifier ) ;
     end
 
     expectedToken = TOKEN_LEFT_PARENTHESIS ;
     consumeToken ( ) ; 
 
     if currentToken != [TOKEN_RIGHT_PARENTHESIS] then
+        ppdLocalVariableCount = 0 ;
+        ppdRbpOffset = 16 ;
         parseArguments ( ) ;
     end
 
@@ -921,7 +952,15 @@ proc parseProcedureDeclaration ( )
         gvType = parseType ( ) ;
     end
 
+    _ = readString ( ppdIdentifier ) ; `
+    ;printf(`"[Trace] Procedure declaration: %s\n"`, stringAtPointer)
+    printf(`";==== proc %s ====\n"`, stringAtPointer)
+    printf(`"\tjmp %s_end\n%s:\n"`, stringAtPointer, stringAtPointer)
+    `
+
+
     globalBoolParsingProcedure = 1 ;
+    ppdRbpOffset = 8 ;
 
     parseStatements ( ) ;
 
@@ -931,23 +970,36 @@ proc parseProcedureDeclaration ( )
     expectedToken = TOKEN_END ;
     consumeToken ( ) ;
 
-    _ = addSymbol ( TYPE_PROCEDURE gvType gvNamePointer paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ;
+    _ = addSymbol ( TYPE_PROCEDURE gvType ppdIdentifier paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ;
 
-    _ = readString ( gvNamePointer ) ; `
-    printf(`"[Trace] Procedure declaration: %s with %d parameters\n"`, stringAtPointer, [paProArgumentCount])`
+    _ = readString ( ppdIdentifier ) ; `
+    printf(`"[Trace] Procedure declaration: %s with %d parameters\n"`, stringAtPointer, [paProArgumentCount])
+    printf(`"%s_end:\n"`, stringAtPointer)
+    printf(`";==== end proc %s ====\n"`, stringAtPointer)`
 endproc parseProcedureDeclaration
 
+uint64 prsIsEmptyResult = 0 ;
 proc parseReturnStatement ( )
     expectedToken = TOKEN_RETURN ;
     consumeToken ( ) ;
 
+    prsIsEmptyResult = 1 ;
     if currentToken != [TOKEN_SEMICOLON] then
+        prsIsEmptyResult = 0 ;
         parseLogicalOrExpression ( ) ;
     end
 
     expectedToken = TOKEN_SEMICOLON ;
     consumeToken ( ) ; `
-    printf(`"[Trace] Return statement: RETURN\n"`)`
+    printf(`"[Trace] Return statement: RETURN\n"`)
+    `
+    if prsIsEmptyResult == 0 then `
+        ; has result
+        printf(`"\tpop rax\n\tret\n"`)`
+    else `
+        ; no result
+        printf(`"\tret\n"`)`
+    end 
 endproc parseReturnStatement
 
 proc parseStatement ( )
