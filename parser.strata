@@ -10,6 +10,8 @@ _start:
 uint64 _ = 0 ;
 uint64 true = 1 ;
 uint64 globalBlockId = 0 ;
+uint64 globalProcedureId = 1 ;
+uint64 globalBoolParsingProcedure = 0 ;
 
 array globalVariables = uint64 [ 10000 ] ;
 uint64 globalVariableCount = 0 ;
@@ -261,77 +263,44 @@ uint64 TOKEN_DO                       = 29 ;
 uint64 TOKEN_BREAK                    = 30 ;
 uint64 TOKEN_CONTINUE                 = 31 ;
 
+uint64 TOKEN_PROC                     = 32 ;
+uint64 TOKEN_ARROW_RIGHT              = 33 ;
+uint64 TOKEN_RETURN                   = 34 ;
+
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
 uint64 TYPE_ARRAY                  = 3 ;
+uint64 TYPE_PROCEDURE              = 4 ;
 
 uint64 VARIABLE_SCOPE_GLOBAL       = 0 ;
 
+uint64 VARTYPE_PARAMETER           = 1 ;
+uint64 VARTYPE_LOCAL               = 2 ;
+
 uint64 i = 0 ;
 
-tokens [ 0 ] = TOKEN_UINT64 ; tokens [ 1 ] = 0 ; tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
-tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 8 ;
-tokens [ 8 ] = TOKEN_ASSIGNMENT ; tokens [ 9 ] = 0 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 10 ;
-tokens [ 12 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 12 ;
-tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 13 ;
-tokens [ 20 ] = TOKEN_WHILE ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 2 ; tokens [ 23 ] = 1 ;
-tokens [ 24 ] = TOKEN_IDENTIFIER ; tokens [ 25 ] = 1 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 7 ;
-tokens [ 28 ] = TOKEN_LESS_THAN ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 9 ;
-tokens [ 32 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 33 ] = 10 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 11 ;
-tokens [ 36 ] = TOKEN_DO ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 14 ;
-tokens [ 40 ] = TOKEN_IF ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 3 ; tokens [ 43 ] = 5 ;
-tokens [ 44 ] = TOKEN_IDENTIFIER ; tokens [ 45 ] = 2 ; tokens [ 46 ] = 3 ; tokens [ 47 ] = 8 ;
-tokens [ 48 ] = TOKEN_EQUALS ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 10 ;
-tokens [ 52 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 53 ] = 5 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 13 ;
-tokens [ 56 ] = TOKEN_THEN ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 3 ; tokens [ 59 ] = 15 ;
-tokens [ 60 ] = TOKEN_CONTINUE ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 4 ; tokens [ 63 ] = 9 ;
-tokens [ 64 ] = TOKEN_SEMICOLON ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 17 ;
-tokens [ 68 ] = TOKEN_END ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 5 ; tokens [ 71 ] = 5 ;
-tokens [ 72 ] = TOKEN_IF ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 6 ; tokens [ 75 ] = 5 ;
-tokens [ 76 ] = TOKEN_IDENTIFIER ; tokens [ 77 ] = 3 ; tokens [ 78 ] = 6 ; tokens [ 79 ] = 8 ;
-tokens [ 80 ] = TOKEN_EQUALS ; tokens [ 81 ] = 0 ; tokens [ 82 ] = 6 ; tokens [ 83 ] = 10 ;
-tokens [ 84 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 85 ] = 6 ; tokens [ 86 ] = 6 ; tokens [ 87 ] = 13 ;
-tokens [ 88 ] = TOKEN_THEN ; tokens [ 89 ] = 0 ; tokens [ 90 ] = 6 ; tokens [ 91 ] = 15 ;
-tokens [ 92 ] = TOKEN_BREAK ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 7 ; tokens [ 95 ] = 9 ;
-tokens [ 96 ] = TOKEN_SEMICOLON ; tokens [ 97 ] = 0 ; tokens [ 98 ] = 7 ; tokens [ 99 ] = 14 ;
-tokens [ 100 ] = TOKEN_END ; tokens [ 101 ] = 0 ; tokens [ 102 ] = 8 ; tokens [ 103 ] = 5 ;
-tokens [ 104 ] = TOKEN_IDENTIFIER ; tokens [ 105 ] = 4 ; tokens [ 106 ] = 9 ; tokens [ 107 ] = 5 ;
-tokens [ 108 ] = TOKEN_ASSIGNMENT ; tokens [ 109 ] = 0 ; tokens [ 110 ] = 9 ; tokens [ 111 ] = 7 ;
-tokens [ 112 ] = TOKEN_IDENTIFIER ; tokens [ 113 ] = 5 ; tokens [ 114 ] = 9 ; tokens [ 115 ] = 9 ;
-tokens [ 116 ] = TOKEN_PLUS ; tokens [ 117 ] = 0 ; tokens [ 118 ] = 9 ; tokens [ 119 ] = 11 ;
-tokens [ 120 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 121 ] = 1 ; tokens [ 122 ] = 9 ; tokens [ 123 ] = 13 ;
-tokens [ 124 ] = TOKEN_SEMICOLON ; tokens [ 125 ] = 0 ; tokens [ 126 ] = 9 ; tokens [ 127 ] = 14 ;
-tokens [ 128 ] = TOKEN_END ; tokens [ 129 ] = 0 ; tokens [ 130 ] = 10 ; tokens [ 131 ] = 1 ;
-tokenCount = 132 ;
+tokens [ 0 ] = TOKEN_PROC ; tokens [ 1 ] = 0 ; tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
+tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 6 ;
+tokens [ 8 ] = TOKEN_LEFT_PARENTHESIS ; tokens [ 9 ] = 0 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 13 ;
+tokens [ 12 ] = TOKEN_UINT64 ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 15 ;
+tokens [ 16 ] = TOKEN_IDENTIFIER ; tokens [ 17 ] = 1 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 22 ;
+tokens [ 20 ] = TOKEN_RIGHT_PARENTHESIS ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 1 ; tokens [ 23 ] = 24 ;
+tokens [ 24 ] = TOKEN_ARROW_RIGHT ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 1 ; tokens [ 27 ] = 26 ;
+tokens [ 28 ] = TOKEN_UINT64 ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 1 ; tokens [ 31 ] = 29 ;
+tokens [ 32 ] = TOKEN_RETURN ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 5 ;
+tokens [ 36 ] = TOKEN_SEMICOLON ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 11 ;
+tokens [ 40 ] = TOKEN_END ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 3 ; tokens [ 43 ] = 1 ;
+tokenCount = 44 ;
 
-` ; a
+` ; myFunc
 `
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; a
-`
-stringToPush [ 0 ] = 97 ;
-stringToPush [ 1 ] = 0 ;
+stringToPush [ 0 ] = 109 ;
+stringToPush [ 1 ] = 121 ;
+stringToPush [ 2 ] = 70 ;
+stringToPush [ 3 ] = 117 ;
+stringToPush [ 4 ] = 110 ;
+stringToPush [ 5 ] = 99 ;
+stringToPush [ 6 ] = 0 ;
 _ = pushString ( ) ;
 
 ` ; a
@@ -900,6 +869,87 @@ proc parseContinueStatement ( )
     end 
 endproc parseContinueStatement
 
+uint64 paProArgumentCount = 0 ;
+proc parseArguments ( )
+    paProArgumentCount = 0 ;
+    gvType = parseType ( ) ;
+    gvNamePointer = parseIdentifier ( ) ;
+    _ = addVariable ( gvType 0 gvNamePointer VARTYPE_PARAMETER globalProcedureId ) ;
+    _ = addSymbol ( gvType 0 gvNamePointer VARTYPE_PARAMETER globalProcedureId ) ;
+    paProArgumentCount = paProArgumentCount + 1 ; `
+    mov rax, [paProArgumentCount]`
+endproc parseArguments
+
+proc parseProcedureDeclaration ( )
+    if globalBoolParsingProcedure == 1 then 
+        _ = i - tokenSize ;
+        _ = _ + 2 ;
+        errorAtLine = tokens [ _ ] ;
+        _ = i - tokenSize ;
+        _ = _ + 3 ;
+        errorAtColumn = tokens [ _ ] ; ` 
+        printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+        printf(`"nested procedure declaration is not allowed\n"`)
+        ExitProcess(1)`
+        
+    end
+
+    expectedToken = TOKEN_PROC ;
+    consumeToken ( ) ; 
+
+    gvNamePointer = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( gvNamePointer ) ;
+
+    if fgsIndex != -1 then
+        _ = indentifierRedeclared ( gvNamePointer ) ;
+    end
+
+    expectedToken = TOKEN_LEFT_PARENTHESIS ;
+    consumeToken ( ) ; 
+
+    if currentToken != [TOKEN_RIGHT_PARENTHESIS] then
+        parseArguments ( ) ;
+    end
+
+    expectedToken = TOKEN_RIGHT_PARENTHESIS ;
+    consumeToken ( ) ;
+
+    if currentToken == [TOKEN_ARROW_RIGHT] then
+        expectedToken = TOKEN_ARROW_RIGHT ;
+        consumeToken ( ) ;
+        gvType = parseType ( ) ;
+    end
+
+    globalBoolParsingProcedure = 1 ;
+
+    parseStatements ( ) ;
+
+    globalBoolParsingProcedure = 0 ;
+    globalProcedureId = globalProcedureId + 1 ;
+
+    expectedToken = TOKEN_END ;
+    consumeToken ( ) ;
+
+    _ = addSymbol ( TYPE_PROCEDURE gvType gvNamePointer paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ;
+
+    _ = readString ( gvNamePointer ) ; `
+    printf(`"[Trace] Procedure declaration: %s with %d parameters\n"`, stringAtPointer, [paProArgumentCount])`
+endproc parseProcedureDeclaration
+
+proc parseReturnStatement ( )
+    expectedToken = TOKEN_RETURN ;
+    consumeToken ( ) ;
+
+    if currentToken != [TOKEN_SEMICOLON] then
+        parseLogicalOrExpression ( ) ;
+    end
+
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] Return statement: RETURN\n"`)`
+endproc parseReturnStatement
+
 proc parseStatement ( )
     if currentToken == [TOKEN_UINT64] then
         parseVariableDeclaration ( ) ;
@@ -915,9 +965,13 @@ proc parseStatement ( )
         parseBreakStatement ( ) ;
     else if currentToken == [TOKEN_CONTINUE] then
         parseContinueStatement ( ) ;
+    else if currentToken == [TOKEN_PROC] then
+        parseProcedureDeclaration ( ) ;
+    else if currentToken == [TOKEN_RETURN] then
+        parseReturnStatement ( ) ;
     else
         unexpectedToken ( ) ;
-    end end end end end end end
+    end end end end end end end end end
 endproc parseStatement
 
 proc parseStatements ( )
