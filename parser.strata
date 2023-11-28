@@ -13,21 +13,23 @@ uint64 globalBlockId = 0 ;
 
 array globalVariables = uint64 [ 10000 ] ;
 uint64 globalVariableCount = 0 ;
-uint64 globalVariableSize = 4 ;
+uint64 globalVariableSize = 5 ;
 
 uint64 gvTypeOffset     = 0 ;
 uint64 gvSubTypeOffset  = 1 ;
 uint64 gvNameOffset     = 2 ;
 uint64 gvValueOffset    = 3 ;
+uint64 gvScopeOffset    = 4 ;
 
 uint64 gvType        = 0 ;
 uint64 gvSubType     = 0 ;
 uint64 gvNamePointer = 0 ;
 uint64 gvValue       = 0 ;
+uint64 gvScope       = 0 ;
 
 proc forward readString
 
-proc addGlobalVariable ( type subType namePointer value )
+proc addVariable ( type subType namePointer value scope )
     _ = gvTypeOffset + globalVariableCount * globalVariableSize ;
     globalVariables [ _ ] = type ;
     _ = gvSubTypeOffset + globalVariableCount * globalVariableSize ;
@@ -36,24 +38,28 @@ proc addGlobalVariable ( type subType namePointer value )
     globalVariables [ _ ] = namePointer ;
     _ = gvValueOffset + globalVariableCount * globalVariableSize ;
     globalVariables [ _ ] = value ; 
+    _ = gvScopeOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = scope ;
     globalVariableCount = globalVariableCount + 1 ;
-endproc addGlobalVariable
+endproc addVariable
 
 array globalSymbolTable = uint64 [ 10000 ] ;
 uint64 globalSymbolsCount = 0 ;
-uint64 globalSymbolSize = 4 ;
+uint64 globalSymbolSize = 5 ;
 
 uint64 gsType        = 0 ;
 uint64 gsSubType     = 0 ;
 uint64 gsNamePointer = 0 ;
 uint64 gsValue       = 0 ;
+uint64 gsScope       = 0 ;
 
 uint64 gsTypeOffset     = 0 ;
 uint64 gsSubTypeOffset  = 1 ;
 uint64 gsNameOffset     = 2 ;
 uint64 gsValueOffset    = 3 ;
+uint64 gsScopeOffset    = 4 ;
 
-proc addGlobalSymbol ( type subType namePointer value )
+proc addSymbol ( type subType namePointer value scope )
     _ = gvTypeOffset + globalSymbolsCount * globalSymbolSize ;
     globalSymbolTable [ _ ] = type ;
     _ = gvSubTypeOffset + globalSymbolsCount * globalSymbolSize ;
@@ -62,8 +68,10 @@ proc addGlobalSymbol ( type subType namePointer value )
     globalSymbolTable [ _ ] = namePointer ;
     _ = gvValueOffset + globalSymbolsCount * globalSymbolSize ;
     globalSymbolTable [ _ ] = value ; 
+    _ = gvScopeOffset + globalSymbolsCount * globalSymbolSize ;
+    globalSymbolTable [ _ ] = scope ;
     globalSymbolsCount = globalSymbolsCount + 1 ;
-endproc addGlobalSymbol
+endproc addSymbol
 
 
 proc stringsEqual ( a b ) 
@@ -113,9 +121,9 @@ endproc stringsEqual
 uint64 fgsIndex = 0 ;
 uint64 fgsNamePointer = 0 ;
 uint64 fgsEqual = 0 ;
-proc findGlobalSymbol ( namePointer )
-    fgsIndex = 0 ;
-    while fgsIndex < [globalSymbolsCount] do
+proc findSymbol ( namePointer )
+    fgsIndex = globalSymbolsCount - 1 ;
+    while fgsIndex >= 0 do
         _ = gvNameOffset + fgsIndex * globalSymbolSize ;
         fgsNamePointer = globalSymbolTable [ _ ] ;
         fgsEqual = stringsEqual ( namePointer fgsNamePointer ) ;
@@ -124,7 +132,7 @@ proc findGlobalSymbol ( namePointer )
             break ;
         end
 
-        fgsIndex = fgsIndex + 1 ;
+        fgsIndex = fgsIndex - 1 ;
     end
 
     if fgsEqual == [true] then
@@ -136,24 +144,25 @@ proc findGlobalSymbol ( namePointer )
         gsNamePointer = globalSymbolTable [ _ ] ;
         _ = gsValueOffset + fgsIndex * globalSymbolSize ;
         gsValue = globalSymbolTable [ _ ] ;
+        _ = gsScopeOffset + fgsIndex * globalSymbolSize ;
+        gsScope = globalSymbolTable [ _ ] ;
         
         _ = gvValueOffset + fgsIndex * globalSymbolSize ;
-        ` ; a
+        `
         printf(`"[Trace] Found global symbol: #%d with value %d.\n"`, [fgsIndex], [_])
-         ; b
         mov rax, [_] `
     else
         gsType = 0 ;
         gsSubType = 0 ;
         gsNamePointer = 0 ;
         gsValue = 0 ;
+        gsScope = 0 ;
 
-        ` ; a
+        `
         printf(`"[Trace] Did not find global symbol.\n"`)
-         ; b
         mov rax, -1 `
     end
-endproc findGlobalSymbol
+endproc findSymbol
 
 uint64 currentToken = 0 ;
 uint64 expectedToken = 0 ;
@@ -255,6 +264,8 @@ uint64 TOKEN_CONTINUE                 = 31 ;
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
 uint64 TYPE_ARRAY                  = 3 ;
+
+uint64 VARIABLE_SCOPE_GLOBAL       = 0 ;
 
 uint64 i = 0 ;
 
@@ -443,15 +454,15 @@ proc parseArrayDeclaration ( )
     `
     printf(`"[Trace] Array declaration: type %d, subtype %d\n"`, [gvType], [gvSubType])
     `
-    _ = addGlobalVariable ( gvType gvSubType gvNamePointer gvValue ) ;
-    _ = addGlobalSymbol ( gvType gvSubType gvNamePointer gvValue ) ; `
+    _ = addVariable ( gvType gvSubType gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
+    _ = addSymbol ( gvType gvSubType gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ; `
     printf(`"[Trace] Array declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseArrayDeclaration
 
 proc parseIntegerDeclaration ( )
     gvNamePointer = parseIdentifier ( ) ;
 
-    fgsIndex = findGlobalSymbol ( gvNamePointer ) ;
+    fgsIndex = findSymbol ( gvNamePointer ) ;
 
     if fgsIndex != -1 then
         _ = indentifierRedeclared ( gvNamePointer ) ;
@@ -462,8 +473,8 @@ proc parseIntegerDeclaration ( )
 
     gvValue = parseNumber ( ) ;
     
-    _ = addGlobalVariable ( gvType 0 gvNamePointer gvValue ) ;
-    _ = addGlobalSymbol ( gvType 0 gvNamePointer 0 ) ; `
+    _ = addVariable ( gvType 0 gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
+    _ = addSymbol ( gvType 0 gvNamePointer 0 VARIABLE_SCOPE_GLOBAL ) ; `
     printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseIntegerDeclaration 
     
@@ -504,7 +515,7 @@ proc parseFactor ( )
         if nextToken == [TOKEN_LEFT_BRACKET] then 
             fpIdentifier = parseArrayAccess ( ) ; 
             
-            fgsIndex = findGlobalSymbol ( fpIdentifier ) ;
+            fgsIndex = findSymbol ( fpIdentifier ) ;
 
             if fgsIndex == -1 then
                 _ = identifierUnknown ( fpIdentifier ) ;
@@ -530,7 +541,7 @@ proc parseFactor ( )
 
             fpIdentifier = parseIdentifier ( ) ;
 
-            fgsIndex = findGlobalSymbol ( fpIdentifier ) ;
+            fgsIndex = findSymbol ( fpIdentifier ) ;
 
             if fgsIndex == -1 then
                 _ = identifierUnknown ( fpIdentifier ) ;
@@ -706,7 +717,7 @@ proc parseAssignable ( )
     if nextToken == [TOKEN_LEFT_BRACKET] then 
         paIdentifier = parseArrayAccess ( ) ; 
 
-        fgsIndex = findGlobalSymbol ( paIdentifier ) ;
+        fgsIndex = findSymbol ( paIdentifier ) ;
 
         if fgsIndex == -1 then
             _ = identifierUnknown ( paIdentifier ) ;
@@ -725,7 +736,7 @@ proc parseAssignable ( )
     else
         paIdentifier = parseIdentifier ( ) ; 
         
-        fgsIndex = findGlobalSymbol ( paIdentifier ) ;
+        fgsIndex = findSymbol ( paIdentifier ) ;
 
         if fgsIndex == -1 then
             _ = identifierUnknown ( paIdentifier ) ;
@@ -747,7 +758,7 @@ proc parseAssignmentStatement ( )
     expectedToken = TOKEN_SEMICOLON ;
     consumeToken ( ) ; 
 
-    fgsIndex = findGlobalSymbol ( pasIdentifier ) ;
+    fgsIndex = findSymbol ( pasIdentifier ) ;
 
     if fgsIndex == -1 then
         _ = identifierUnknown ( pasIdentifier ) ;
@@ -939,6 +950,14 @@ while i < [globalVariableCount] do
     gvNamePointer = globalVariables [ _ ] ;
     _ = gvValueOffset + i * globalVariableSize ;
     gvValue = globalVariables [ _ ] ;
+    _ = gvScopeOffset + i * globalVariableSize ;
+    gvScope = globalVariables [ _ ] ;
+
+    if gvScope != [VARIABLE_SCOPE_GLOBAL] then
+        i = i + 1 ;
+        continue ;
+    end
+
     _ = readString ( gvNamePointer ) ; 
     
     if gvType == [TYPE_UINT8] then `
