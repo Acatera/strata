@@ -12,6 +12,8 @@ uint64 true = 1 ;
 uint64 globalBlockId = 0 ;
 uint64 globalProcedureId = 1 ;
 uint64 globalBoolParsingProcedure = 0 ;
+uint64 globalAllowVariableDeclaration = 1 ;
+uint64 ppdLocalVariableCount = 0 ;
 
 uint64 ppdRbpOffset = 0 ;
 
@@ -267,7 +269,9 @@ uint64 TOKEN_CONTINUE                 = 31 ;
 
 uint64 TOKEN_PROC                     = 32 ;
 uint64 TOKEN_ARROW_RIGHT              = 33 ;
-uint64 TOKEN_RETURN                   = 34 ;
+uint64 TOKEN_VARS                     = 34 ;
+uint64 TOKEN_CODE                     = 35 ;
+uint64 TOKEN_RETURN                   = 36 ;
 
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
@@ -281,23 +285,63 @@ uint64 VARTYPE_LOCAL               = 2 ;
 
 uint64 i = 0 ;
 
-tokens [ 0 ] = TOKEN_PROC ; tokens [ 1 ] = 0 ; tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
-tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 6 ;
-tokens [ 8 ] = TOKEN_LEFT_PARENTHESIS ; tokens [ 9 ] = 0 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 13 ;
-tokens [ 12 ] = TOKEN_UINT64 ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 15 ;
-tokens [ 16 ] = TOKEN_IDENTIFIER ; tokens [ 17 ] = 1 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 22 ;
-tokens [ 20 ] = TOKEN_RIGHT_PARENTHESIS ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 1 ; tokens [ 23 ] = 24 ;
-tokens [ 24 ] = TOKEN_ARROW_RIGHT ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 1 ; tokens [ 27 ] = 26 ;
-tokens [ 28 ] = TOKEN_UINT64 ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 1 ; tokens [ 31 ] = 29 ;
-tokens [ 32 ] = TOKEN_UINT64 ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 5 ;
-tokens [ 36 ] = TOKEN_IDENTIFIER ; tokens [ 37 ] = 2 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 12 ;
-tokens [ 40 ] = TOKEN_ASSIGNMENT ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 19 ;
-tokens [ 44 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 2 ; tokens [ 47 ] = 21 ;
-tokens [ 48 ] = TOKEN_SEMICOLON ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 2 ; tokens [ 51 ] = 22 ;
-tokens [ 52 ] = TOKEN_RETURN ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 5 ;
-tokens [ 56 ] = TOKEN_SEMICOLON ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 3 ; tokens [ 59 ] = 11 ;
-tokens [ 60 ] = TOKEN_END ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 4 ; tokens [ 63 ] = 1 ;
-tokenCount = 64 ;
+tokens [ 0 ] = TOKEN_UINT8 ; tokens [ 1 ] = 0 ; tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
+tokens [ 4 ] = TOKEN_LEFT_BRACKET ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 7 ;
+tokens [ 8 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 9 ] = 10 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 9 ;
+tokens [ 12 ] = TOKEN_RIGHT_BRACKET ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 12 ;
+tokens [ 16 ] = TOKEN_IDENTIFIER ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 14 ;
+tokens [ 20 ] = TOKEN_SEMICOLON ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 1 ; tokens [ 23 ] = 21 ;
+tokens [ 24 ] = TOKEN_PROC ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 3 ; tokens [ 27 ] = 1 ;
+tokens [ 28 ] = TOKEN_IDENTIFIER ; tokens [ 29 ] = 1 ; tokens [ 30 ] = 3 ; tokens [ 31 ] = 6 ;
+tokens [ 32 ] = TOKEN_LEFT_PARENTHESIS ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 3 ; tokens [ 35 ] = 13 ;
+tokens [ 36 ] = TOKEN_UINT64 ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 3 ; tokens [ 39 ] = 15 ;
+tokens [ 40 ] = TOKEN_IDENTIFIER ; tokens [ 41 ] = 2 ; tokens [ 42 ] = 3 ; tokens [ 43 ] = 22 ;
+tokens [ 44 ] = TOKEN_RIGHT_PARENTHESIS ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 3 ; tokens [ 47 ] = 24 ;
+tokens [ 48 ] = TOKEN_ARROW_RIGHT ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 3 ; tokens [ 51 ] = 26 ;
+tokens [ 52 ] = TOKEN_UINT64 ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 3 ; tokens [ 55 ] = 29 ;
+tokens [ 56 ] = TOKEN_VARS ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 4 ; tokens [ 59 ] = 1 ;
+tokens [ 60 ] = TOKEN_UINT64 ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 5 ; tokens [ 63 ] = 5 ;
+tokens [ 64 ] = TOKEN_IDENTIFIER ; tokens [ 65 ] = 3 ; tokens [ 66 ] = 5 ; tokens [ 67 ] = 12 ;
+tokens [ 68 ] = TOKEN_ASSIGNMENT ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 5 ; tokens [ 71 ] = 19 ;
+tokens [ 72 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 73 ] = 0 ; tokens [ 74 ] = 5 ; tokens [ 75 ] = 21 ;
+tokens [ 76 ] = TOKEN_SEMICOLON ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 5 ; tokens [ 79 ] = 22 ;
+tokens [ 80 ] = TOKEN_CODE ; tokens [ 81 ] = 0 ; tokens [ 82 ] = 6 ; tokens [ 83 ] = 1 ;
+tokens [ 84 ] = TOKEN_IDENTIFIER ; tokens [ 85 ] = 4 ; tokens [ 86 ] = 7 ; tokens [ 87 ] = 5 ;
+tokens [ 88 ] = TOKEN_ASSIGNMENT ; tokens [ 89 ] = 0 ; tokens [ 90 ] = 7 ; tokens [ 91 ] = 12 ;
+tokens [ 92 ] = TOKEN_IDENTIFIER ; tokens [ 93 ] = 5 ; tokens [ 94 ] = 7 ; tokens [ 95 ] = 14 ;
+tokens [ 96 ] = TOKEN_LEFT_BRACKET ; tokens [ 97 ] = 0 ; tokens [ 98 ] = 7 ; tokens [ 99 ] = 22 ;
+tokens [ 100 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 101 ] = 0 ; tokens [ 102 ] = 7 ; tokens [ 103 ] = 24 ;
+tokens [ 104 ] = TOKEN_RIGHT_BRACKET ; tokens [ 105 ] = 0 ; tokens [ 106 ] = 7 ; tokens [ 107 ] = 26 ;
+tokens [ 108 ] = TOKEN_SEMICOLON ; tokens [ 109 ] = 0 ; tokens [ 110 ] = 7 ; tokens [ 111 ] = 27 ;
+tokens [ 112 ] = TOKEN_IDENTIFIER ; tokens [ 113 ] = 6 ; tokens [ 114 ] = 8 ; tokens [ 115 ] = 5 ;
+tokens [ 116 ] = TOKEN_LEFT_BRACKET ; tokens [ 117 ] = 0 ; tokens [ 118 ] = 8 ; tokens [ 119 ] = 13 ;
+tokens [ 120 ] = TOKEN_IDENTIFIER ; tokens [ 121 ] = 7 ; tokens [ 122 ] = 8 ; tokens [ 123 ] = 15 ;
+tokens [ 124 ] = TOKEN_PLUS ; tokens [ 125 ] = 0 ; tokens [ 126 ] = 8 ; tokens [ 127 ] = 17 ;
+tokens [ 128 ] = TOKEN_IDENTIFIER ; tokens [ 129 ] = 8 ; tokens [ 130 ] = 8 ; tokens [ 131 ] = 19 ;
+tokens [ 132 ] = TOKEN_RIGHT_BRACKET ; tokens [ 133 ] = 0 ; tokens [ 134 ] = 8 ; tokens [ 135 ] = 26 ;
+tokens [ 136 ] = TOKEN_ASSIGNMENT ; tokens [ 137 ] = 0 ; tokens [ 138 ] = 8 ; tokens [ 139 ] = 28 ;
+tokens [ 140 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 141 ] = 42 ; tokens [ 142 ] = 8 ; tokens [ 143 ] = 30 ;
+tokens [ 144 ] = TOKEN_SEMICOLON ; tokens [ 145 ] = 0 ; tokens [ 146 ] = 8 ; tokens [ 147 ] = 32 ;
+tokens [ 148 ] = TOKEN_RETURN ; tokens [ 149 ] = 0 ; tokens [ 150 ] = 9 ; tokens [ 151 ] = 5 ;
+tokens [ 152 ] = TOKEN_IDENTIFIER ; tokens [ 153 ] = 9 ; tokens [ 154 ] = 9 ; tokens [ 155 ] = 12 ;
+tokens [ 156 ] = TOKEN_LEFT_BRACKET ; tokens [ 157 ] = 0 ; tokens [ 158 ] = 9 ; tokens [ 159 ] = 20 ;
+tokens [ 160 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 161 ] = 0 ; tokens [ 162 ] = 9 ; tokens [ 163 ] = 22 ;
+tokens [ 164 ] = TOKEN_RIGHT_BRACKET ; tokens [ 165 ] = 0 ; tokens [ 166 ] = 9 ; tokens [ 167 ] = 24 ;
+tokens [ 168 ] = TOKEN_SEMICOLON ; tokens [ 169 ] = 0 ; tokens [ 170 ] = 9 ; tokens [ 171 ] = 25 ;
+tokens [ 172 ] = TOKEN_END ; tokens [ 173 ] = 0 ; tokens [ 174 ] = 10 ; tokens [ 175 ] = 1 ;
+tokenCount = 176 ;
+
+` ; myArray
+`
+stringToPush [ 0 ] = 109 ;
+stringToPush [ 1 ] = 121 ;
+stringToPush [ 2 ] = 65 ;
+stringToPush [ 3 ] = 114 ;
+stringToPush [ 4 ] = 114 ;
+stringToPush [ 5 ] = 97 ;
+stringToPush [ 6 ] = 121 ;
+stringToPush [ 7 ] = 0 ;
+_ = pushString ( ) ;
 
 ` ; myFunc
 `
@@ -325,6 +369,70 @@ stringToPush [ 3 ] = 97 ;
 stringToPush [ 4 ] = 108 ;
 stringToPush [ 5 ] = 65 ;
 stringToPush [ 6 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; localA
+`
+stringToPush [ 0 ] = 108 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 99 ;
+stringToPush [ 3 ] = 97 ;
+stringToPush [ 4 ] = 108 ;
+stringToPush [ 5 ] = 65 ;
+stringToPush [ 6 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; myArray
+`
+stringToPush [ 0 ] = 109 ;
+stringToPush [ 1 ] = 121 ;
+stringToPush [ 2 ] = 65 ;
+stringToPush [ 3 ] = 114 ;
+stringToPush [ 4 ] = 114 ;
+stringToPush [ 5 ] = 97 ;
+stringToPush [ 6 ] = 121 ;
+stringToPush [ 7 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; myArray
+`
+stringToPush [ 0 ] = 109 ;
+stringToPush [ 1 ] = 121 ;
+stringToPush [ 2 ] = 65 ;
+stringToPush [ 3 ] = 114 ;
+stringToPush [ 4 ] = 114 ;
+stringToPush [ 5 ] = 97 ;
+stringToPush [ 6 ] = 121 ;
+stringToPush [ 7 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; a
+`
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; localA
+`
+stringToPush [ 0 ] = 108 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 99 ;
+stringToPush [ 3 ] = 97 ;
+stringToPush [ 4 ] = 108 ;
+stringToPush [ 5 ] = 65 ;
+stringToPush [ 6 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; myArray
+`
+stringToPush [ 0 ] = 109 ;
+stringToPush [ 1 ] = 121 ;
+stringToPush [ 2 ] = 65 ;
+stringToPush [ 3 ] = 114 ;
+stringToPush [ 4 ] = 114 ;
+stringToPush [ 5 ] = 97 ;
+stringToPush [ 6 ] = 121 ;
+stringToPush [ 7 ] = 0 ;
 _ = pushString ( ) ;
 
 i = 0 ;
@@ -425,6 +533,16 @@ proc parseType ( )
 endproc parseType
 
 proc parseArrayDeclaration ( )
+    if globalBoolParsingProcedure != 0 then 
+        _ = i + 2 ;
+        errorAtLine = tokens [ _ ] ;
+        _ = i + 3 ;
+        errorAtColumn = tokens [ _ ] ;
+        `
+        printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+        printf(`"arrays declarations are not allowed in procedures\n"`)`
+    end
+
     expectedToken = TOKEN_LEFT_BRACKET ;
     consumeToken ( ) ;
 
@@ -465,8 +583,8 @@ proc parseIntegerDeclaration ( )
         _ = addSymbol ( gvType 0 gvNamePointer 0 VARIABLE_SCOPE_GLOBAL ) ; 
     else 
         _ = addVariable ( gvType VARTYPE_LOCAL gvNamePointer gvValue globalProcedureId ) ;
-        ppdRbpOffset = ppdRbpOffset - 8 ;
         _ = addSymbol ( gvType VARTYPE_LOCAL gvNamePointer ppdRbpOffset globalProcedureId ) ; 
+        ppdRbpOffset = ppdRbpOffset + 8 ;
     end
     `
     printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
@@ -474,6 +592,18 @@ endproc parseIntegerDeclaration
     
 
 proc parseVariableDeclaration ( )
+    if globalAllowVariableDeclaration == 0 then
+        _ = i + 2 ;
+        errorAtLine = tokens [ _ ] ;
+        _ = i + 3 ;
+        errorAtColumn = tokens [ _ ] ;
+        `
+        printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+        printf(`"variable declarations are not allowed in procedure code section\n"`)`
+    end
+
+    ppdLocalVariableCount = ppdLocalVariableCount + 1 ;
+
     gvType = parseType ( ) ;
 
     if currentToken == [TOKEN_LEFT_BRACKET] then
@@ -542,15 +672,25 @@ proc parseFactor ( )
             end 
 
             _ = readString ( fpIdentifier ) ; 
-
-            if gsType == [TYPE_UINT8] then ` 
-                printf(`"\tpush byte [%s]\n"`, stringAtPointer)`
-            else if gsType == [TYPE_UINT64] then ` 
-                printf(`"\tpush qword [%s]\n"`, stringAtPointer)`
-            else ` 
-                printf(`"[Error] Error: unknown type %d\n"`, [gsType])
-                ExitProcess(1)`
-            end end
+            if gsScope == [VARIABLE_SCOPE_GLOBAL] then
+                if gsType == [TYPE_UINT8] then ` 
+                    printf(`"\tpush byte [%s]\n"`, stringAtPointer)`
+                else if gsType == [TYPE_UINT64] then ` 
+                    printf(`"\tpush qword [%s]\n"`, stringAtPointer)`
+                else ` 
+                    printf(`"[Error] Error: unknown type %d\n"`, [gsType])
+                    ExitProcess(1)`
+                end end
+            else 
+                if gsSubType == [VARTYPE_PARAMETER] then ` 
+                    printf(`"\tpush qword [rbp + %d]\n"`, [gsValue])`
+                else if gsSubType == [VARTYPE_LOCAL] then ` 
+                    printf(`"\tpush qword [rbp - %d]\n"`, [gsValue])`
+                else ` 
+                    printf(`"[Error] Error: unknown subtype %d\n"`, [gsType])
+                    ExitProcess(1)`
+                end end
+            end
         end
     else
         unexpectedToken ( ) ;
@@ -759,12 +899,26 @@ proc parseAssignmentStatement ( )
     end
     _ = readString ( pasIdentifier ) ;
     
-    if gsType == [TYPE_UINT8] then `
-        printf(`"[Debug] Assigning value to a uint8\n"`)
-        printf(`"\tpop rax\n\tmov byte [%s], al\n"`, stringAtPointer)`
-    else if gsType == [TYPE_UINT64] then `
-        printf(`"[Debug] Assigning value to a uint64\n"`)
-        printf(`"\tpop rax\n\tmov qword [%s], rax\n"`, stringAtPointer)`
+    if gsType == [TYPE_UINT8] then 
+        if gsScope == [VARIABLE_SCOPE_GLOBAL] then `
+            printf(`"[Debug] Assigning value to a uint8\n"`)
+            printf(`"\tpop rax\n\tmov byte [%s], al\n"`, stringAtPointer)`
+        else if gsSubType == [VARTYPE_LOCAL] then `
+            printf(`"[Debug] Assigning value to a local uint8\n"`)
+            printf(`"\tpop rax\n\tmov qword [rbp - %d], rax\n"`, [gsValue])`
+        else if gsSubType == [VARTYPE_PARAMETER] then `
+            printf(`"Cannot assign to a parameter\n"`)`
+        end end end
+    else if gsType == [TYPE_UINT64] then 
+        if gsScope == [VARIABLE_SCOPE_GLOBAL] then `
+            printf(`"[Debug] Assigning value to a uint64\n"`)
+            printf(`"\tpop rax\n\tmov qword [%s], rax\n"`, stringAtPointer)`
+        else if gsSubType == [VARTYPE_LOCAL] then `
+            printf(`"[Debug] Assigning value to a local uint64\n"`)
+            printf(`"\tpop rax\n\tmov qword [rbp - %d], rax\n"`, [gsValue])`
+        else if gsSubType == [VARTYPE_PARAMETER] then `
+            printf(`"Cannot assign to a parameter\n"`)`
+        end end end
     else if gsType == [TYPE_ARRAY] then
         if gsSubType == [TYPE_UINT8] then `
             printf(`"[Debug] Assigning value to an array of uint8\n"`)
@@ -899,16 +1053,17 @@ proc parseArguments ( )
     paProArgumentCount = 0 ;
     gvType = parseType ( ) ;
     gvNamePointer = parseIdentifier ( ) ;
-    ppdRbpOffset = ppdRbpOffset + 8 ;
     _ = addVariable ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffset globalProcedureId ) ;
     _ = addSymbol ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffset globalProcedureId ) ;
+    ppdRbpOffset = ppdRbpOffset + 8 ;
     paProArgumentCount = paProArgumentCount + 1 ; `
     mov rax, [paProArgumentCount]`
 endproc parseArguments
 
 uint64 ppdIdentifier = 0 ;
 
-uint64 ppdLocalVariableCount = 0 ;
+uint64 ppdHasReturnValue = 0 ;
+uint64 ppdReturnStatementCount = 0 ;
 proc parseProcedureDeclaration ( )
     if globalBoolParsingProcedure == 1 then 
         _ = i - tokenSize ;
@@ -938,7 +1093,6 @@ proc parseProcedureDeclaration ( )
     consumeToken ( ) ; 
 
     if currentToken != [TOKEN_RIGHT_PARENTHESIS] then
-        ppdLocalVariableCount = 0 ;
         ppdRbpOffset = 16 ;
         parseArguments ( ) ;
     end
@@ -946,29 +1100,59 @@ proc parseProcedureDeclaration ( )
     expectedToken = TOKEN_RIGHT_PARENTHESIS ;
     consumeToken ( ) ;
 
+    ppdHasReturnValue = 0 ;
     if currentToken == [TOKEN_ARROW_RIGHT] then
         expectedToken = TOKEN_ARROW_RIGHT ;
         consumeToken ( ) ;
         gvType = parseType ( ) ;
+        ppdHasReturnValue = 1 ;
     end
 
+    globalBoolParsingProcedure = 1 ;
+    ppdRbpOffset = 8 ;
+    ppdLocalVariableCount = 0 ;
+
+    if currentToken == [TOKEN_VARS] then
+        expectedToken = TOKEN_VARS ;
+        consumeToken ( ) ;
+        while true == 1 do 
+            parseVariableDeclaration ( ) ;
+            if currentToken == [TOKEN_CODE] then
+                break ;
+            end 
+        end
+    end
+
+    ppdLocalVariableCount = ppdLocalVariableCount * 8 ;
     _ = readString ( ppdIdentifier ) ; `
     ;printf(`"[Trace] Procedure declaration: %s\n"`, stringAtPointer)
     printf(`";==== proc %s ====\n"`, stringAtPointer)
     printf(`"\tjmp %s_end\n%s:\n"`, stringAtPointer, stringAtPointer)
+    printf(`"\tpush rbp\n\tmov rbp, rsp\n"`)
+    printf(`"\tsub rsp, %d\n"`, [ppdLocalVariableCount])
     `
 
+    expectedToken = TOKEN_CODE ;
+    consumeToken ( ) ;
 
-    globalBoolParsingProcedure = 1 ;
-    ppdRbpOffset = 8 ;
-
+    globalAllowVariableDeclaration = 0 ;
+    ppdReturnStatementCount = 0 ;
     parseStatements ( ) ;
 
+    globalAllowVariableDeclaration = 1 ;
     globalBoolParsingProcedure = 0 ;
     globalProcedureId = globalProcedureId + 1 ;
 
     expectedToken = TOKEN_END ;
     consumeToken ( ) ;
+
+    if ppdReturnStatementCount == 0 then 
+        if ppdHasReturnValue == 1 then `
+            printf(`"Error: procedure %s has no return statement\n"`, stringAtPointer)
+            ExitProcess(1)`
+        end `
+        printf(`"\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
+    end
 
     _ = addSymbol ( TYPE_PROCEDURE gvType ppdIdentifier paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ;
 
@@ -983,6 +1167,8 @@ proc parseReturnStatement ( )
     expectedToken = TOKEN_RETURN ;
     consumeToken ( ) ;
 
+    ppdReturnStatementCount = ppdReturnStatementCount + 1 ;
+
     prsIsEmptyResult = 1 ;
     if currentToken != [TOKEN_SEMICOLON] then
         prsIsEmptyResult = 0 ;
@@ -995,10 +1181,10 @@ proc parseReturnStatement ( )
     `
     if prsIsEmptyResult == 0 then `
         ; has result
-        printf(`"\tpop rax\n\tret\n"`)`
+        printf(`"\tpop rax\n\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
     else `
         ; no result
-        printf(`"\tret\n"`)`
+        printf(`"\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
     end 
 endproc parseReturnStatement
 
