@@ -11,6 +11,7 @@ uint64 _ = 0 ;
 uint64 true = 1 ;
 uint64 globalBlockId = 0 ;
 uint64 globalProcedureId = 1 ;
+uint64 globalUserTypeId = 1 ;
 uint64 globalBoolParsingProcedure = 0 ;
 uint64 globalAllowVariableDeclaration = 1 ;
 uint64 ppdLocalVariableCount = 0 ;
@@ -78,7 +79,6 @@ proc addSymbol ( type subType namePointer value scope )
     globalSymbolTable [ _ ] = scope ;
     globalSymbolsCount = globalSymbolsCount + 1 ;
 endproc addSymbol
-
 
 proc stringsEqual ( a b ) 
     _ = readString ( a ) ; `
@@ -173,6 +173,40 @@ endproc findSymbol
 uint64 currentToken = 0 ;
 uint64 expectedToken = 0 ;
 uint64 nextToken = 0 ;
+
+array userTypes = uint64 [ 10000 ] ;
+uint64 userTypeCount = 0 ;
+uint64 userTypeSize = 4 ;
+
+uint64 utParentOffset   = 0 ;
+uint64 utTypeOffset     = 1 ;
+uint64 utNameOffset     = 2 ;
+uint64 utOffsetOffset   = 3 ;
+
+uint64 utParent   = 0 ;
+uint64 utType     = 0 ;
+uint64 utNamePointer = 0 ;
+uint64 utOffset   = 0 ;
+
+proc addUserTypeField ( parent type namePointer offset )
+    _ = utParentOffset + userTypeCount * userTypeSize ;
+    utParent = parent ;
+    userTypes [ _ ] = utParent ;
+
+    _ = utTypeOffset + userTypeCount * userTypeSize ;
+    utType = type ;
+    userTypes [ _ ] = utType ;
+
+    _ = utNameOffset + userTypeCount * userTypeSize ;
+    utNamePointer = namePointer ;
+    userTypes [ _ ] = utNamePointer ;
+
+    _ = utOffsetOffset + userTypeCount * userTypeSize ;
+    utOffset = offset ;
+    userTypes [ _ ] = utOffset ;
+
+    userTypeCount = userTypeCount + 1 ;
+endproc addUserTypeField
 
 array stringBuffer = uint8 [ 100000 ] ;
 uint64 sbIndex = 0 ;
@@ -277,11 +311,14 @@ uint64 TOKEN_VARS                     = 36 ;
 uint64 TOKEN_CODE                     = 37 ;
 uint64 TOKEN_RETURN                   = 38 ;
 
+uint64 TOKEN_STRUCT                   = 39 ;
+
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
 uint64 TYPE_POINTER                = 3 ;
 uint64 TYPE_ARRAY                  = 4 ;
 uint64 TYPE_PROCEDURE              = 5 ;
+uint64 TYPE_STRUCT                 = 6 ;
 
 uint64 VARIABLE_SCOPE_GLOBAL       = 0 ;
 
@@ -290,68 +327,70 @@ uint64 VARTYPE_LOCAL               = 2 ;
 
 uint64 i = 0 ;
 
-tokens [ 0 ] = TOKEN_POINTER ; tokens [ 1 ] = 0 ; tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
-tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 9 ;
-tokens [ 8 ] = TOKEN_ASSIGNMENT ; tokens [ 9 ] = 0 ; tokens [ 10 ] = 1 ; tokens [ 11 ] = 13 ;
-tokens [ 12 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 13 ] = 0 ; tokens [ 14 ] = 1 ; tokens [ 15 ] = 15 ;
-tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 1 ; tokens [ 19 ] = 16 ;
-tokens [ 20 ] = TOKEN_POINTER ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 2 ; tokens [ 23 ] = 1 ;
-tokens [ 24 ] = TOKEN_LEFT_BRACKET ; tokens [ 25 ] = 0 ; tokens [ 26 ] = 2 ; tokens [ 27 ] = 9 ;
-tokens [ 28 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 29 ] = 10 ; tokens [ 30 ] = 2 ; tokens [ 31 ] = 11 ;
-tokens [ 32 ] = TOKEN_RIGHT_BRACKET ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 2 ; tokens [ 35 ] = 14 ;
-tokens [ 36 ] = TOKEN_IDENTIFIER ; tokens [ 37 ] = 1 ; tokens [ 38 ] = 2 ; tokens [ 39 ] = 16 ;
-tokens [ 40 ] = TOKEN_SEMICOLON ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 2 ; tokens [ 43 ] = 24 ;
-tokens [ 44 ] = TOKEN_IDENTIFIER ; tokens [ 45 ] = 2 ; tokens [ 46 ] = 4 ; tokens [ 47 ] = 1 ;
-tokens [ 48 ] = TOKEN_ASSIGNMENT ; tokens [ 49 ] = 0 ; tokens [ 50 ] = 4 ; tokens [ 51 ] = 5 ;
-tokens [ 52 ] = TOKEN_IDENTIFIER ; tokens [ 53 ] = 3 ; tokens [ 54 ] = 4 ; tokens [ 55 ] = 7 ;
-tokens [ 56 ] = TOKEN_LEFT_BRACKET ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 4 ; tokens [ 59 ] = 16 ;
-tokens [ 60 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 4 ; tokens [ 63 ] = 18 ;
-tokens [ 64 ] = TOKEN_RIGHT_BRACKET ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 4 ; tokens [ 67 ] = 20 ;
-tokens [ 68 ] = TOKEN_PLUS ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 4 ; tokens [ 71 ] = 22 ;
-tokens [ 72 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 73 ] = 4 ; tokens [ 74 ] = 4 ; tokens [ 75 ] = 24 ;
-tokens [ 76 ] = TOKEN_SEMICOLON ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 4 ; tokens [ 79 ] = 25 ;
-tokenCount = 80 ;
+tokens [ 0 ] = TOKEN_STRUCT ; tokens [ 1 ] = 0 ; tokens [ 2 ] = 1 ; tokens [ 3 ] = 1 ;
+tokens [ 4 ] = TOKEN_IDENTIFIER ; tokens [ 5 ] = 0 ; tokens [ 6 ] = 1 ; tokens [ 7 ] = 8 ;
+tokens [ 8 ] = TOKEN_UINT64 ; tokens [ 9 ] = 0 ; tokens [ 10 ] = 2 ; tokens [ 11 ] = 5 ;
+tokens [ 12 ] = TOKEN_IDENTIFIER ; tokens [ 13 ] = 1 ; tokens [ 14 ] = 2 ; tokens [ 15 ] = 12 ;
+tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 2 ; tokens [ 19 ] = 16 ;
+tokens [ 20 ] = TOKEN_UINT64 ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 3 ; tokens [ 23 ] = 5 ;
+tokens [ 24 ] = TOKEN_IDENTIFIER ; tokens [ 25 ] = 2 ; tokens [ 26 ] = 3 ; tokens [ 27 ] = 12 ;
+tokens [ 28 ] = TOKEN_SEMICOLON ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 3 ; tokens [ 31 ] = 17 ;
+tokens [ 32 ] = TOKEN_UINT64 ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 4 ; tokens [ 35 ] = 5 ;
+tokens [ 36 ] = TOKEN_IDENTIFIER ; tokens [ 37 ] = 3 ; tokens [ 38 ] = 4 ; tokens [ 39 ] = 12 ;
+tokens [ 40 ] = TOKEN_SEMICOLON ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 4 ; tokens [ 43 ] = 16 ;
+tokens [ 44 ] = TOKEN_UINT64 ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 5 ; tokens [ 47 ] = 5 ;
+tokens [ 48 ] = TOKEN_IDENTIFIER ; tokens [ 49 ] = 4 ; tokens [ 50 ] = 5 ; tokens [ 51 ] = 12 ;
+tokens [ 52 ] = TOKEN_SEMICOLON ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 5 ; tokens [ 55 ] = 18 ;
+tokens [ 56 ] = TOKEN_END ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 6 ; tokens [ 59 ] = 1 ;
+tokenCount = 60 ;
 
-` ; ptr
+` ; Token
 `
-stringToPush [ 0 ] = 112 ;
-stringToPush [ 1 ] = 116 ;
-stringToPush [ 2 ] = 114 ;
-stringToPush [ 3 ] = 0 ;
+stringToPush [ 0 ] = 84 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 107 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 110 ;
+stringToPush [ 5 ] = 0 ;
 _ = pushString ( ) ;
 
-` ; ptrArray
+` ; Type
 `
-stringToPush [ 0 ] = 112 ;
-stringToPush [ 1 ] = 116 ;
-stringToPush [ 2 ] = 114 ;
-stringToPush [ 3 ] = 65 ;
-stringToPush [ 4 ] = 114 ;
-stringToPush [ 5 ] = 114 ;
-stringToPush [ 6 ] = 97 ;
-stringToPush [ 7 ] = 121 ;
-stringToPush [ 8 ] = 0 ;
+stringToPush [ 0 ] = 84 ;
+stringToPush [ 1 ] = 121 ;
+stringToPush [ 2 ] = 112 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 0 ;
 _ = pushString ( ) ;
 
-` ; ptr
+` ; Value
 `
-stringToPush [ 0 ] = 112 ;
-stringToPush [ 1 ] = 116 ;
-stringToPush [ 2 ] = 114 ;
-stringToPush [ 3 ] = 0 ;
+stringToPush [ 0 ] = 86 ;
+stringToPush [ 1 ] = 97 ;
+stringToPush [ 2 ] = 108 ;
+stringToPush [ 3 ] = 117 ;
+stringToPush [ 4 ] = 101 ;
+stringToPush [ 5 ] = 0 ;
 _ = pushString ( ) ;
 
-` ; ptrArray
+` ; Line
 `
-stringToPush [ 0 ] = 112 ;
-stringToPush [ 1 ] = 116 ;
-stringToPush [ 2 ] = 114 ;
-stringToPush [ 3 ] = 65 ;
-stringToPush [ 4 ] = 114 ;
-stringToPush [ 5 ] = 114 ;
-stringToPush [ 6 ] = 97 ;
-stringToPush [ 7 ] = 121 ;
-stringToPush [ 8 ] = 0 ;
+stringToPush [ 0 ] = 76 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 110 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; Column
+`
+stringToPush [ 0 ] = 67 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 108 ;
+stringToPush [ 3 ] = 117 ;
+stringToPush [ 4 ] = 109 ;
+stringToPush [ 5 ] = 110 ;
+stringToPush [ 6 ] = 0 ;
 _ = pushString ( ) ;
 
 i = 0 ;
@@ -1220,6 +1259,74 @@ proc parseProcedureCallStatement ( )
     consumeToken ( ) ; 
 endproc parseProcedureCallStatement
 
+uint64 psbType = 0 ;
+uint64 psbIdentifier = 0 ;
+uint64 psbSizeOfStruct = 0 ;
+uint64 psbCurrentOffset = 0 ;
+proc parseStructBody ( )
+    psbSizeOfStruct = 0 ;
+    psbCurrentOffset = 0 ;
+    while true == 1 do 
+        if currentToken == [TOKEN_UINT8] then 
+                _ = i - tokenSize ;
+            _ = _ + 2 ;
+            errorAtLine = tokens [ _ ] ;
+            _ = i - tokenSize ;
+            _ = _ + 3 ;
+            errorAtColumn = tokens [ _ ] ; ` 
+            printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+            printf(`"valid struct member types are 'uint64' and 'pointer'\n"`)
+            ExitProcess(1)`
+        else if currentToken == [TOKEN_UINT64] then
+            psbType = parseType ( ) ;
+            psbSizeOfStruct = psbSizeOfStruct + 8 ;
+        else if currentToken == [TOKEN_POINTER] then
+            psbType = parseType ( ) ;
+            psbSizeOfStruct = psbSizeOfStruct + 8 ;
+        else
+            break ;
+        end end end
+
+        psbIdentifier = parseIdentifier ( ) ;
+
+        expectedToken = TOKEN_SEMICOLON ;
+        consumeToken ( ) ;
+
+        _ = addUserTypeField ( globalUserTypeId psbType psbIdentifier psbCurrentOffset ) ;
+
+        _ = readString ( psbIdentifier ) ; 
+
+        psbCurrentOffset = psbCurrentOffset + 8 ; `
+        printf(`"[Trace] Struct field: %s of type %d\n"`, stringAtPointer, [psbType])`
+    end
+endproc parseStructBody
+
+uint64 psdIdentifier = 0 ;
+proc parseStructDefinition ( )
+    expectedToken = TOKEN_STRUCT ;
+    consumeToken ( ) ;
+
+    psdIdentifier = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( psdIdentifier ) ;
+
+    if fgsIndex != -1 then
+        _ = indentifierRedeclared ( psdIdentifier ) ;
+    end
+
+    parseStructBody ( ) ;
+
+    expectedToken = TOKEN_END ;
+    consumeToken ( ) ;
+
+    _ = addSymbol ( TYPE_STRUCT globalUserTypeId psdIdentifier psbSizeOfStruct VARIABLE_SCOPE_GLOBAL ) ; 
+
+    _ = readString ( psdIdentifier ) ; `
+    printf(`"[Trace] Struct definition: %s with %d bytes\n"`, stringAtPointer, [psbSizeOfStruct])
+    `
+    globalUserTypeId = globalUserTypeId + 1 ;
+endproc parseStructDefinition
+
 proc parseStatement ( )
     if currentToken == [TOKEN_UINT8] then
         parseVariableDeclaration ( ) ;
@@ -1245,9 +1352,11 @@ proc parseStatement ( )
         parseProcedureDeclaration ( ) ;
     else if currentToken == [TOKEN_RETURN] then
         parseReturnStatement ( ) ;
+    else if currentToken == [TOKEN_STRUCT] then
+        parseStructDefinition ( ) ;
     else
         unexpectedToken ( ) ;
-    end end end end end end end end end end
+    end end end end end end end end end end end
 endproc parseStatement
 
 proc parseStatements ( )
