@@ -172,9 +172,9 @@ endproc findSymbol
 
 uint64 futUserType = 0 ;
 proc findUserType ( userType )
-    fgsIndex = globalSymbolsCount - 1 ;
+    fgsIndex = 0 ;
     fgsEqual = 0 ;
-    while fgsIndex >= 0 do
+    while fgsIndex < [globalSymbolsCount] do
         _ = gsTypeOffset + fgsIndex * globalSymbolSize ;
         _ = globalSymbolTable [ _ ] ;
         if _ != [TYPE_USER_DEFINED] then
@@ -190,7 +190,7 @@ proc findUserType ( userType )
             break ;
         end
 
-        fgsIndex = fgsIndex - 1 ;
+        fgsIndex = fgsIndex + 1 ;
     end
 
     if fgsEqual == [true] then
@@ -206,8 +206,9 @@ proc findUserType ( userType )
         gsScope = globalSymbolTable [ _ ] ;
         
         _ = gvValueOffset + fgsIndex * globalSymbolSize ;
+        _ = globalSymbolTable [ _ ] ;
         `
-        printf(`"[Trace] Found global symbol: #%d with value %d.\n"`, [fgsIndex], [_])
+        printf(`"[Trace] Found user type: #%d with value %d.\n"`, [fgsIndex], [_])
         mov rax, [_] `
     else
         gsType = 0 ;
@@ -217,7 +218,7 @@ proc findUserType ( userType )
         gsScope = 0 ;
 
         `
-        printf(`"[Trace] Did not find global symbol.\n"`)
+        printf(`"[Trace] Did not find user type.\n"`)
         mov rax, -1 `
     end
 endproc findUserType
@@ -259,6 +260,56 @@ proc addUserTypeField ( parent type namePointer offset )
 
     userTypeCount = userTypeCount + 1 ;
 endproc addUserTypeField
+
+
+proc findUserTypeField ( parent fieldNamePointer )
+    fgsIndex = globalSymbolsCount - 1 ;
+    while userTypeCount >= 0 do
+        _ = utParentOffset + fgsIndex * userTypeSize ;
+        utParent = userTypes [ _ ] ;
+    
+        _ = parent ;
+        if utParent != [_] then
+            fgsIndex = fgsIndex - 1 ;
+            continue ;
+        end
+        
+        _ = utNameOffset + fgsIndex * userTypeSize ;
+        utNamePointer = userTypes [ _ ] ;
+        fgsEqual = stringsEqual ( fieldNamePointer utNamePointer ) ;
+
+        if fgsEqual != 0 then
+            break ;
+        end
+
+        fgsIndex = fgsIndex - 1 ;
+    end
+
+    if fgsEqual == [true] then
+        _ = utParentOffset + fgsIndex * userTypeSize ;
+        utParent = userTypes [ _ ] ;
+        _ = utTypeOffset + fgsIndex * userTypeSize ;
+        utType = userTypes [ _ ] ;
+        _ = utNameOffset + fgsIndex * userTypeSize ;
+        utNamePointer = userTypes [ _ ] ;
+        _ = utOffsetOffset + fgsIndex * userTypeSize ;
+        utOffset = userTypes [ _ ] ;
+        
+        _ = utOffsetOffset + fgsIndex * userTypeSize ;
+        _ = userTypes [ _ ] ;
+        `
+        printf(`"[Trace] Found user type field: #%d with offset %d.\n"`, [fgsIndex], [_])
+        mov rax, [_] `
+    else
+        utParent = 0 ;
+        utType = 0 ;
+        utNamePointer = 0 ;
+        utOffset = 0 ;
+        `
+        printf(`"[Trace] Did not find user type field.\n"`)
+        mov rax, -1 `
+    end
+endproc findUserTypeField
 
 array stringBuffer = uint8 [ 100000 ] ;
 uint64 sbIndex = 0 ;
@@ -364,6 +415,7 @@ uint64 TOKEN_CODE                     = 37 ;
 uint64 TOKEN_RETURN                   = 38 ;
 
 uint64 TOKEN_STRUCT                   = 39 ;
+uint64 TOKEN_DOT                      = 40 ;
 
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
@@ -386,79 +438,24 @@ tokens [ 12 ] = TOKEN_IDENTIFIER ; tokens [ 13 ] = 1 ; tokens [ 14 ] = 2 ; token
 tokens [ 16 ] = TOKEN_SEMICOLON ; tokens [ 17 ] = 0 ; tokens [ 18 ] = 2 ; tokens [ 19 ] = 16 ;
 tokens [ 20 ] = TOKEN_UINT64 ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 3 ; tokens [ 23 ] = 5 ;
 tokens [ 24 ] = TOKEN_IDENTIFIER ; tokens [ 25 ] = 2 ; tokens [ 26 ] = 3 ; tokens [ 27 ] = 12 ;
-tokens [ 28 ] = TOKEN_SEMICOLON ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 3 ; tokens [ 31 ] = 17 ;
-tokens [ 32 ] = TOKEN_UINT64 ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 4 ; tokens [ 35 ] = 5 ;
-tokens [ 36 ] = TOKEN_IDENTIFIER ; tokens [ 37 ] = 3 ; tokens [ 38 ] = 4 ; tokens [ 39 ] = 12 ;
-tokens [ 40 ] = TOKEN_SEMICOLON ; tokens [ 41 ] = 0 ; tokens [ 42 ] = 4 ; tokens [ 43 ] = 16 ;
-tokens [ 44 ] = TOKEN_UINT64 ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 5 ; tokens [ 47 ] = 5 ;
-tokens [ 48 ] = TOKEN_IDENTIFIER ; tokens [ 49 ] = 4 ; tokens [ 50 ] = 5 ; tokens [ 51 ] = 12 ;
-tokens [ 52 ] = TOKEN_SEMICOLON ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 5 ; tokens [ 55 ] = 18 ;
-tokens [ 56 ] = TOKEN_END ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 6 ; tokens [ 59 ] = 1 ;
-tokens [ 60 ] = TOKEN_STRUCT ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 8 ; tokens [ 63 ] = 1 ;
-tokens [ 64 ] = TOKEN_IDENTIFIER ; tokens [ 65 ] = 5 ; tokens [ 66 ] = 8 ; tokens [ 67 ] = 8 ;
-tokens [ 68 ] = TOKEN_UINT64 ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 9 ; tokens [ 71 ] = 5 ;
-tokens [ 72 ] = TOKEN_IDENTIFIER ; tokens [ 73 ] = 6 ; tokens [ 74 ] = 9 ; tokens [ 75 ] = 12 ;
-tokens [ 76 ] = TOKEN_SEMICOLON ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 9 ; tokens [ 79 ] = 16 ;
-tokens [ 80 ] = TOKEN_UINT64 ; tokens [ 81 ] = 0 ; tokens [ 82 ] = 10 ; tokens [ 83 ] = 5 ;
-tokens [ 84 ] = TOKEN_IDENTIFIER ; tokens [ 85 ] = 7 ; tokens [ 86 ] = 10 ; tokens [ 87 ] = 12 ;
-tokens [ 88 ] = TOKEN_SEMICOLON ; tokens [ 89 ] = 0 ; tokens [ 90 ] = 10 ; tokens [ 91 ] = 18 ;
-tokens [ 92 ] = TOKEN_END ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 11 ; tokens [ 95 ] = 1 ;
-tokens [ 96 ] = TOKEN_IDENTIFIER ; tokens [ 97 ] = 8 ; tokens [ 98 ] = 13 ; tokens [ 99 ] = 1 ;
-tokens [ 100 ] = TOKEN_IDENTIFIER ; tokens [ 101 ] = 9 ; tokens [ 102 ] = 13 ; tokens [ 103 ] = 7 ;
-tokens [ 104 ] = TOKEN_SEMICOLON ; tokens [ 105 ] = 0 ; tokens [ 106 ] = 13 ; tokens [ 107 ] = 12 ;
-tokens [ 108 ] = TOKEN_IDENTIFIER ; tokens [ 109 ] = 10 ; tokens [ 110 ] = 14 ; tokens [ 111 ] = 1 ;
-tokens [ 112 ] = TOKEN_IDENTIFIER ; tokens [ 113 ] = 11 ; tokens [ 114 ] = 14 ; tokens [ 115 ] = 7 ;
-tokens [ 116 ] = TOKEN_SEMICOLON ; tokens [ 117 ] = 0 ; tokens [ 118 ] = 14 ; tokens [ 119 ] = 12 ;
-tokenCount = 120 ;
-
-` ; Token
-`
-stringToPush [ 0 ] = 84 ;
-stringToPush [ 1 ] = 111 ;
-stringToPush [ 2 ] = 107 ;
-stringToPush [ 3 ] = 101 ;
-stringToPush [ 4 ] = 110 ;
-stringToPush [ 5 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; Type
-`
-stringToPush [ 0 ] = 84 ;
-stringToPush [ 1 ] = 121 ;
-stringToPush [ 2 ] = 112 ;
-stringToPush [ 3 ] = 101 ;
-stringToPush [ 4 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; Value
-`
-stringToPush [ 0 ] = 86 ;
-stringToPush [ 1 ] = 97 ;
-stringToPush [ 2 ] = 108 ;
-stringToPush [ 3 ] = 117 ;
-stringToPush [ 4 ] = 101 ;
-stringToPush [ 5 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; Line
-`
-stringToPush [ 0 ] = 76 ;
-stringToPush [ 1 ] = 105 ;
-stringToPush [ 2 ] = 110 ;
-stringToPush [ 3 ] = 101 ;
-stringToPush [ 4 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; Column
-`
-stringToPush [ 0 ] = 67 ;
-stringToPush [ 1 ] = 111 ;
-stringToPush [ 2 ] = 108 ;
-stringToPush [ 3 ] = 117 ;
-stringToPush [ 4 ] = 109 ;
-stringToPush [ 5 ] = 110 ;
-stringToPush [ 6 ] = 0 ;
-_ = pushString ( ) ;
+tokens [ 28 ] = TOKEN_SEMICOLON ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 3 ; tokens [ 31 ] = 18 ;
+tokens [ 32 ] = TOKEN_END ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 4 ; tokens [ 35 ] = 1 ;
+tokens [ 36 ] = TOKEN_IDENTIFIER ; tokens [ 37 ] = 3 ; tokens [ 38 ] = 6 ; tokens [ 39 ] = 1 ;
+tokens [ 40 ] = TOKEN_IDENTIFIER ; tokens [ 41 ] = 4 ; tokens [ 42 ] = 6 ; tokens [ 43 ] = 7 ;
+tokens [ 44 ] = TOKEN_SEMICOLON ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 6 ; tokens [ 47 ] = 12 ;
+tokens [ 48 ] = TOKEN_IDENTIFIER ; tokens [ 49 ] = 5 ; tokens [ 50 ] = 8 ; tokens [ 51 ] = 1 ;
+tokens [ 52 ] = TOKEN_DOT ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 8 ; tokens [ 55 ] = 7 ;
+tokens [ 56 ] = TOKEN_IDENTIFIER ; tokens [ 57 ] = 6 ; tokens [ 58 ] = 8 ; tokens [ 59 ] = 9 ;
+tokens [ 60 ] = TOKEN_ASSIGNMENT ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 8 ; tokens [ 63 ] = 14 ;
+tokens [ 64 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 65 ] = 1 ; tokens [ 66 ] = 8 ; tokens [ 67 ] = 16 ;
+tokens [ 68 ] = TOKEN_SEMICOLON ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 8 ; tokens [ 71 ] = 17 ;
+tokens [ 72 ] = TOKEN_IDENTIFIER ; tokens [ 73 ] = 7 ; tokens [ 74 ] = 9 ; tokens [ 75 ] = 1 ;
+tokens [ 76 ] = TOKEN_DOT ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 9 ; tokens [ 79 ] = 7 ;
+tokens [ 80 ] = TOKEN_IDENTIFIER ; tokens [ 81 ] = 8 ; tokens [ 82 ] = 9 ; tokens [ 83 ] = 9 ;
+tokens [ 84 ] = TOKEN_ASSIGNMENT ; tokens [ 85 ] = 0 ; tokens [ 86 ] = 9 ; tokens [ 87 ] = 16 ;
+tokens [ 88 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 89 ] = 1 ; tokens [ 90 ] = 9 ; tokens [ 91 ] = 18 ;
+tokens [ 92 ] = TOKEN_SEMICOLON ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 9 ; tokens [ 95 ] = 19 ;
+tokenCount = 96 ;
 
 ` ; Point
 `
@@ -488,26 +485,6 @@ stringToPush [ 3 ] = 117 ;
 stringToPush [ 4 ] = 109 ;
 stringToPush [ 5 ] = 110 ;
 stringToPush [ 6 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; Token
-`
-stringToPush [ 0 ] = 84 ;
-stringToPush [ 1 ] = 111 ;
-stringToPush [ 2 ] = 107 ;
-stringToPush [ 3 ] = 101 ;
-stringToPush [ 4 ] = 110 ;
-stringToPush [ 5 ] = 0 ;
-_ = pushString ( ) ;
-
-` ; token
-`
-stringToPush [ 0 ] = 116 ;
-stringToPush [ 1 ] = 111 ;
-stringToPush [ 2 ] = 107 ;
-stringToPush [ 3 ] = 101 ;
-stringToPush [ 4 ] = 110 ;
-stringToPush [ 5 ] = 0 ;
 _ = pushString ( ) ;
 
 ` ; Point
@@ -528,6 +505,46 @@ stringToPush [ 2 ] = 105 ;
 stringToPush [ 3 ] = 110 ;
 stringToPush [ 4 ] = 116 ;
 stringToPush [ 5 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; point
+`
+stringToPush [ 0 ] = 112 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 105 ;
+stringToPush [ 3 ] = 110 ;
+stringToPush [ 4 ] = 116 ;
+stringToPush [ 5 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; Line
+`
+stringToPush [ 0 ] = 76 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 110 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; point
+`
+stringToPush [ 0 ] = 112 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 105 ;
+stringToPush [ 3 ] = 110 ;
+stringToPush [ 4 ] = 116 ;
+stringToPush [ 5 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; Column
+`
+stringToPush [ 0 ] = 67 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 108 ;
+stringToPush [ 3 ] = 117 ;
+stringToPush [ 4 ] = 109 ;
+stringToPush [ 5 ] = 110 ;
+stringToPush [ 6 ] = 0 ;
 _ = pushString ( ) ;
 
 i = 0 ;
@@ -955,6 +972,8 @@ proc parseArrayAccess ( )
 endproc parseArrayAccess
 
 uint64 paIdentifier = 0 ;
+uint64 paUTFieldIdentifier = 0 ;
+uint64 paType = 0 ;
 proc parseAssignable ( )
     if nextToken == [TOKEN_LEFT_BRACKET] then 
         paIdentifier = parseArrayAccess ( ) ; 
@@ -964,7 +983,7 @@ proc parseAssignable ( )
         if fgsIndex == -1 then
             _ = identifierUnknown ( paIdentifier ) ;
         end 
-        _ = readString ( paIdentifier ) ; 
+        _ = readString ( paIdentifier ) ;
 
         if gsSubType == [TYPE_UINT8] then `
             printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush rax\n"`, stringAtPointer)`
@@ -977,6 +996,29 @@ proc parseAssignable ( )
             ExitProcess(1)`
         end end end `
         printf(`"[Trace] Assignable: array, ct %d\n"`, [currentToken])`
+    else if nextToken == [TOKEN_DOT] then
+        paIdentifier = parseIdentifier ( ) ; 
+        
+        fgsIndex = findSymbol ( paIdentifier ) ;
+
+        if fgsIndex == -1 then
+            _ = identifierUnknown ( paIdentifier ) ;
+        end 
+        
+        paType = gsSubType ;
+        
+        _ = readString ( paIdentifier ) ; `
+        printf(`"[Trace] Assignable: variable\n"`)
+        printf(`"\tmov rax, %s\n\tpush rax\n"`, stringAtPointer)
+        `
+        expectedToken = TOKEN_DOT ;
+        consumeToken ( ) ;
+
+        paUTFieldIdentifier = parseIdentifier ( ) ; 
+
+        fgsIndex = findUserTypeField ( paType paUTFieldIdentifier ) ; `
+        printf(`"\tpop rax\n\tadd rax, %d\n\tpush rax\n"`, [utOffset])
+        `
     else
         paIdentifier = parseIdentifier ( ) ; 
         
@@ -986,7 +1028,7 @@ proc parseAssignable ( )
             _ = identifierUnknown ( paIdentifier ) ;
         end `
         printf(`"[Trace] Assignable: variable\n"`)`
-    end `
+    end end `
     mov rax, [paIdentifier]`
 endproc parseAssignable
 
@@ -1042,21 +1084,24 @@ proc parseAssignmentStatement ( )
     else if gsType == [TYPE_ARRAY] then
         if gsSubType == [TYPE_UINT8] then `
             printf(`"[Debug] Assigning value to an array of uint8\n"`)
-            printf(`"\tpop rbx\n\tpop rax\n\tmov byte [rax], bl\n"`, stringAtPointer)`
+            printf(`"\tpop rbx\n\tpop rax\n\tmov byte [rax], bl\n"`)`
         else if gsSubType == [TYPE_UINT64] then `
             printf(`"[Debug] Assigning value to an array of uint64\n"`)
-            printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`, stringAtPointer)`
+            printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`)`
         else if gsSubType == [TYPE_POINTER] then `
             printf(`"[Debug] Assigning value to an array of uint64\n"`)
-            printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`, stringAtPointer)`
+            printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`)`
         else ` 
             printf(`"[Error] Error: unknown array type %d\n"`, [gsType])
             ExitProcess(1)`
         end end end
+    else if gsType == [TYPE_USER_DEFINED] then `
+        printf(`"[Debug] Assigning value to a struct field\n"`)
+        printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`)`
     else `
         printf(`"[Error] Error: unknown type %d\n"`, [gsType])
         ExitProcess(1)`
-    end end end end `
+    end end end end end `
     printf(`"[Trace] Assignment statement for: '%s'\n"`, stringAtPointer)`
 endproc parseAssignmentStatement
 
@@ -1491,9 +1536,10 @@ proc parseUserTypeVariableDeclaration ( )
     consumeToken ( ) ;
 
     _ = addVariable ( TYPE_USER_DEFINED putvdTypeIdentifier putvdIdentifier 0 VARIABLE_SCOPE_GLOBAL ) ;
+    _ = addSymbol ( TYPE_USER_DEFINED putvdTypeIdentifier putvdIdentifier 0 VARIABLE_SCOPE_GLOBAL ) ;
 
-    `
-    printf(`"[Trace] Found user type: %s\n"`, stringAtPointer)`
+    _ = readString ( putvdIdentifier ) ; `
+    printf(`"[Trace] Variable definition for user type: %s\n"`, stringAtPointer)`
 endproc parseUserTypeVariableDeclaration
 
 uint64 psIdentifier = 0 ;
@@ -1512,13 +1558,19 @@ proc parseStatement ( )
         _ = readString ( psIdentifier ) ;
 
         if fgsIndex != -1 then
-            if gsType == [TYPE_USER_DEFINED] then 
-                parseUserTypeVariableDeclaration ( ) ;
-            else if nextToken == [TOKEN_LEFT_PARENTHESIS] then
-                parseProcedureCallStatement ( ) ;
-            else
+            if nextToken == [TOKEN_DOT] then
                 parseAssignmentStatement ( ) ;
-            end end
+            else
+                if gsType == [TYPE_USER_DEFINED] then 
+                    parseUserTypeVariableDeclaration ( ) ;
+                else if nextToken == [TOKEN_LEFT_PARENTHESIS] then
+                    parseProcedureCallStatement ( ) ;
+                else
+                    parseAssignmentStatement ( ) ;
+                end end
+            end
+        else 
+            _ = identifierUnknown ( psIdentifier ) ;
         end
     else if currentToken == [TOKEN_IF] then
         _ = parseIfStatement ( globalBlockId 0 0 ) ;
@@ -1604,7 +1656,7 @@ while i < [globalVariableCount] do
         if _ == -1 then `
             printf(`"Error: unknown user type %d\n"`, [gvSubType])
             ExitProcess(1)`
-        end
+        end 
 
         _ = readString ( wsdIdentifier ) ; `
         printf(`"section .bss\r\n\t%s resb %d\n"`, stringAtPointer, [gsValue])`
