@@ -440,22 +440,30 @@ tokens [ 20 ] = TOKEN_UINT64 ; tokens [ 21 ] = 0 ; tokens [ 22 ] = 3 ; tokens [ 
 tokens [ 24 ] = TOKEN_IDENTIFIER ; tokens [ 25 ] = 2 ; tokens [ 26 ] = 3 ; tokens [ 27 ] = 12 ;
 tokens [ 28 ] = TOKEN_SEMICOLON ; tokens [ 29 ] = 0 ; tokens [ 30 ] = 3 ; tokens [ 31 ] = 18 ;
 tokens [ 32 ] = TOKEN_END ; tokens [ 33 ] = 0 ; tokens [ 34 ] = 4 ; tokens [ 35 ] = 1 ;
-tokens [ 36 ] = TOKEN_IDENTIFIER ; tokens [ 37 ] = 3 ; tokens [ 38 ] = 6 ; tokens [ 39 ] = 1 ;
-tokens [ 40 ] = TOKEN_IDENTIFIER ; tokens [ 41 ] = 4 ; tokens [ 42 ] = 6 ; tokens [ 43 ] = 7 ;
-tokens [ 44 ] = TOKEN_SEMICOLON ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 6 ; tokens [ 47 ] = 12 ;
-tokens [ 48 ] = TOKEN_IDENTIFIER ; tokens [ 49 ] = 5 ; tokens [ 50 ] = 8 ; tokens [ 51 ] = 1 ;
-tokens [ 52 ] = TOKEN_DOT ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 8 ; tokens [ 55 ] = 7 ;
-tokens [ 56 ] = TOKEN_IDENTIFIER ; tokens [ 57 ] = 6 ; tokens [ 58 ] = 8 ; tokens [ 59 ] = 9 ;
-tokens [ 60 ] = TOKEN_ASSIGNMENT ; tokens [ 61 ] = 0 ; tokens [ 62 ] = 8 ; tokens [ 63 ] = 14 ;
-tokens [ 64 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 65 ] = 1 ; tokens [ 66 ] = 8 ; tokens [ 67 ] = 16 ;
-tokens [ 68 ] = TOKEN_SEMICOLON ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 8 ; tokens [ 71 ] = 17 ;
-tokens [ 72 ] = TOKEN_IDENTIFIER ; tokens [ 73 ] = 7 ; tokens [ 74 ] = 9 ; tokens [ 75 ] = 1 ;
-tokens [ 76 ] = TOKEN_DOT ; tokens [ 77 ] = 0 ; tokens [ 78 ] = 9 ; tokens [ 79 ] = 7 ;
-tokens [ 80 ] = TOKEN_IDENTIFIER ; tokens [ 81 ] = 8 ; tokens [ 82 ] = 9 ; tokens [ 83 ] = 9 ;
-tokens [ 84 ] = TOKEN_ASSIGNMENT ; tokens [ 85 ] = 0 ; tokens [ 86 ] = 9 ; tokens [ 87 ] = 16 ;
-tokens [ 88 ] = TOKEN_CONSTANT_INTEGER ; tokens [ 89 ] = 1 ; tokens [ 90 ] = 9 ; tokens [ 91 ] = 18 ;
-tokens [ 92 ] = TOKEN_SEMICOLON ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 9 ; tokens [ 95 ] = 19 ;
-tokenCount = 96 ;
+tokens [ 36 ] = TOKEN_STRUCT ; tokens [ 37 ] = 0 ; tokens [ 38 ] = 6 ; tokens [ 39 ] = 1 ;
+tokens [ 40 ] = TOKEN_IDENTIFIER ; tokens [ 41 ] = 3 ; tokens [ 42 ] = 6 ; tokens [ 43 ] = 8 ;
+tokens [ 44 ] = TOKEN_UINT64 ; tokens [ 45 ] = 0 ; tokens [ 46 ] = 7 ; tokens [ 47 ] = 5 ;
+tokens [ 48 ] = TOKEN_IDENTIFIER ; tokens [ 49 ] = 4 ; tokens [ 50 ] = 7 ; tokens [ 51 ] = 12 ;
+tokens [ 52 ] = TOKEN_SEMICOLON ; tokens [ 53 ] = 0 ; tokens [ 54 ] = 7 ; tokens [ 55 ] = 17 ;
+tokens [ 56 ] = TOKEN_UINT64 ; tokens [ 57 ] = 0 ; tokens [ 58 ] = 8 ; tokens [ 59 ] = 5 ;
+tokens [ 60 ] = TOKEN_IDENTIFIER ; tokens [ 61 ] = 5 ; tokens [ 62 ] = 8 ; tokens [ 63 ] = 12 ;
+tokens [ 64 ] = TOKEN_SEMICOLON ; tokens [ 65 ] = 0 ; tokens [ 66 ] = 8 ; tokens [ 67 ] = 18 ;
+tokens [ 68 ] = TOKEN_END ; tokens [ 69 ] = 0 ; tokens [ 70 ] = 9 ; tokens [ 71 ] = 1 ;
+tokens [ 72 ] = TOKEN_IDENTIFIER ; tokens [ 73 ] = 6 ; tokens [ 74 ] = 11 ; tokens [ 75 ] = 1 ;
+tokens [ 76 ] = TOKEN_IDENTIFIER ; tokens [ 77 ] = 7 ; tokens [ 78 ] = 11 ; tokens [ 79 ] = 7 ;
+tokens [ 80 ] = TOKEN_SEMICOLON ; tokens [ 81 ] = 0 ; tokens [ 82 ] = 11 ; tokens [ 83 ] = 12 ;
+tokens [ 84 ] = TOKEN_IDENTIFIER ; tokens [ 85 ] = 8 ; tokens [ 86 ] = 12 ; tokens [ 87 ] = 1 ;
+tokens [ 88 ] = TOKEN_IDENTIFIER ; tokens [ 89 ] = 9 ; tokens [ 90 ] = 12 ; tokens [ 91 ] = 6 ;
+tokens [ 92 ] = TOKEN_SEMICOLON ; tokens [ 93 ] = 0 ; tokens [ 94 ] = 12 ; tokens [ 95 ] = 10 ;
+tokens [ 96 ] = TOKEN_IDENTIFIER ; tokens [ 97 ] = 10 ; tokens [ 98 ] = 14 ; tokens [ 99 ] = 1 ;
+tokens [ 100 ] = TOKEN_DOT ; tokens [ 101 ] = 0 ; tokens [ 102 ] = 14 ; tokens [ 103 ] = 7 ;
+tokens [ 104 ] = TOKEN_IDENTIFIER ; tokens [ 105 ] = 11 ; tokens [ 106 ] = 14 ; tokens [ 107 ] = 9 ;
+tokens [ 108 ] = TOKEN_ASSIGNMENT ; tokens [ 109 ] = 0 ; tokens [ 110 ] = 14 ; tokens [ 111 ] = 14 ;
+tokens [ 112 ] = TOKEN_IDENTIFIER ; tokens [ 113 ] = 12 ; tokens [ 114 ] = 14 ; tokens [ 115 ] = 16 ;
+tokens [ 116 ] = TOKEN_DOT ; tokens [ 117 ] = 0 ; tokens [ 118 ] = 14 ; tokens [ 119 ] = 21 ;
+tokens [ 120 ] = TOKEN_IDENTIFIER ; tokens [ 121 ] = 13 ; tokens [ 122 ] = 14 ; tokens [ 123 ] = 23 ;
+tokens [ 124 ] = TOKEN_SEMICOLON ; tokens [ 125 ] = 0 ; tokens [ 126 ] = 14 ; tokens [ 127 ] = 28 ;
+tokenCount = 128 ;
 
 ` ; Point
 `
@@ -487,6 +495,36 @@ stringToPush [ 5 ] = 110 ;
 stringToPush [ 6 ] = 0 ;
 _ = pushString ( ) ;
 
+` ; Size
+`
+stringToPush [ 0 ] = 83 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 122 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; Width
+`
+stringToPush [ 0 ] = 87 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 100 ;
+stringToPush [ 3 ] = 116 ;
+stringToPush [ 4 ] = 104 ;
+stringToPush [ 5 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; Height
+`
+stringToPush [ 0 ] = 72 ;
+stringToPush [ 1 ] = 101 ;
+stringToPush [ 2 ] = 105 ;
+stringToPush [ 3 ] = 103 ;
+stringToPush [ 4 ] = 104 ;
+stringToPush [ 5 ] = 116 ;
+stringToPush [ 6 ] = 0 ;
+_ = pushString ( ) ;
+
 ` ; Point
 `
 stringToPush [ 0 ] = 80 ;
@@ -505,6 +543,24 @@ stringToPush [ 2 ] = 105 ;
 stringToPush [ 3 ] = 110 ;
 stringToPush [ 4 ] = 116 ;
 stringToPush [ 5 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; Size
+`
+stringToPush [ 0 ] = 83 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 122 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 0 ;
+_ = pushString ( ) ;
+
+` ; size
+`
+stringToPush [ 0 ] = 115 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 122 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 0 ;
 _ = pushString ( ) ;
 
 ` ; point
@@ -526,25 +582,23 @@ stringToPush [ 3 ] = 101 ;
 stringToPush [ 4 ] = 0 ;
 _ = pushString ( ) ;
 
-` ; point
+` ; size
 `
-stringToPush [ 0 ] = 112 ;
-stringToPush [ 1 ] = 111 ;
-stringToPush [ 2 ] = 105 ;
-stringToPush [ 3 ] = 110 ;
-stringToPush [ 4 ] = 116 ;
-stringToPush [ 5 ] = 0 ;
+stringToPush [ 0 ] = 115 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 122 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 0 ;
 _ = pushString ( ) ;
 
-` ; Column
+` ; Width
 `
-stringToPush [ 0 ] = 67 ;
-stringToPush [ 1 ] = 111 ;
-stringToPush [ 2 ] = 108 ;
-stringToPush [ 3 ] = 117 ;
-stringToPush [ 4 ] = 109 ;
-stringToPush [ 5 ] = 110 ;
-stringToPush [ 6 ] = 0 ;
+stringToPush [ 0 ] = 87 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 100 ;
+stringToPush [ 3 ] = 116 ;
+stringToPush [ 4 ] = 104 ;
+stringToPush [ 5 ] = 0 ;
 _ = pushString ( ) ;
 
 i = 0 ;
@@ -738,6 +792,7 @@ proc forward parseAdditiveExpression
 proc forward parseStatements
 proc forward parseArrayAccess
 proc forward parseProcedureCall
+proc forward parseStructAccess
 
 uint64 fpIdentifier = 0 ;
 proc parseFactor ( ) 
@@ -779,6 +834,9 @@ proc parseFactor ( )
             parseProcedureCall ( ) ; `
             printf(`"[Trace] Factor: procedure call\n"`)
             printf(`"\tpush rax\n"`)`
+        else if nextToken == [TOKEN_DOT] then
+            parseStructAccess ( ) ; `
+            printf(`"[Trace] Factor: struct access\n"`)`
         else
             _ = i + 1 ;
             _ = tokens [ _ ] ;
@@ -816,7 +874,7 @@ proc parseFactor ( )
                     ExitProcess(1)`
                 end end
             end
-        end end
+        end end end
     else
         unexpectedToken ( ) ;
     end end end
@@ -971,6 +1029,33 @@ proc parseArrayAccess ( )
     mov rax, [paaIdentifier]`
 endproc parseArrayAccess
 
+uint64 psaType = 0 ;
+uint64 psaIdentifier = 0 ;
+uint64 psaStructFieldIdentifier = 0 ;
+proc parseStructAccess ( )
+    psaIdentifier = parseIdentifier ( ) ; 
+
+    fgsIndex = findSymbol ( psaIdentifier ) ;
+
+    if fgsIndex == -1 then
+        _ = identifierUnknown ( psaIdentifier ) ;
+    end 
+
+    psaType = gsSubType ;
+
+    _ = readString ( psaIdentifier ) ; `
+    printf(`"[Trace] Assignable: variable\n"`)
+    printf(`"\tmov rax, %s\n\tpush rax\n"`, stringAtPointer)
+    `
+    expectedToken = TOKEN_DOT ;
+    consumeToken ( ) ;
+
+    psaStructFieldIdentifier = parseIdentifier ( ) ; 
+
+    fgsIndex = findUserTypeField ( psaType psaStructFieldIdentifier ) ; `
+    printf(`"\tpop rax\n\tadd rax, %d\n\tpush rax\n"`, [utOffset])`
+endproc parseStructAccess
+
 uint64 paIdentifier = 0 ;
 uint64 paUTFieldIdentifier = 0 ;
 uint64 paType = 0 ;
@@ -997,28 +1082,7 @@ proc parseAssignable ( )
         end end end `
         printf(`"[Trace] Assignable: array, ct %d\n"`, [currentToken])`
     else if nextToken == [TOKEN_DOT] then
-        paIdentifier = parseIdentifier ( ) ; 
-        
-        fgsIndex = findSymbol ( paIdentifier ) ;
-
-        if fgsIndex == -1 then
-            _ = identifierUnknown ( paIdentifier ) ;
-        end 
-        
-        paType = gsSubType ;
-        
-        _ = readString ( paIdentifier ) ; `
-        printf(`"[Trace] Assignable: variable\n"`)
-        printf(`"\tmov rax, %s\n\tpush rax\n"`, stringAtPointer)
-        `
-        expectedToken = TOKEN_DOT ;
-        consumeToken ( ) ;
-
-        paUTFieldIdentifier = parseIdentifier ( ) ; 
-
-        fgsIndex = findUserTypeField ( paType paUTFieldIdentifier ) ; `
-        printf(`"\tpop rax\n\tadd rax, %d\n\tpush rax\n"`, [utOffset])
-        `
+        parseStructAccess ( ) ;
     else
         paIdentifier = parseIdentifier ( ) ; 
         
