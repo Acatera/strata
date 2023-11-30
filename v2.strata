@@ -1,0 +1,30 @@
+uint64 var = 0; // this is a 64-bit unsigned integer
+
+// OMG!!!
+var = 0xFFFFFFFFFFFFFFFF; // this is the maximum value of a 64-bit unsigned integer
+
+struct Point 
+    uint64 Line;
+    uint64 Column;
+end
+
+struct Size
+    uint64 Width;
+    uint64 Height;
+end
+
+uint8[8] array;Point point;
+
+
+
+"\"my text\n\""
+
+
+MyProc(asdas, asd,                             asd);
+
+
+
+
+Size                               size;
+
+point.Line = size.Width;

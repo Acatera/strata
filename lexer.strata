@@ -1,37 +1,194 @@
 `
+%include "inc/std.inc"
+
+%define SOURCE_CODE_SIZE 1048576
+section .bss
+    inFileHandle resq 1
+
+section .data
+    cStrSourceFile db "v2.strata", 0
+    cStrOutputFile db "v2.asm", 0
+
+section .text
+    global _start
+    extern CreateFileA
+    extern ReadFile
+    extern GetLastError
+
+_start:
+    InitStandardOutput()
+    `
+
+
+
 array sourceCode = uint8 [ 1048576 ] ;
-uint64 bytesRead = 0
+uint64 bytesRead = 0 ;
 
-`
-    strcpy(sourceCode, szSourceCode, [dwBytesRead])
-    mov rax, [dwBytesRead]
-    mov [bytesRead], rax
-    printf(`"Source code size: %d bytes\r\n"`, [bytesRead])
-`
-uint64 i = 0
-uint64 j = 0
-uint8 c = 0
-array token = uint8 [ 64 ] ;
+proc CreateFile ( ) `
+    ; print input and output file names
+    printf(`"[\#27[92mINFO\#27[0m] Input file '%s'\r\n"`, cStrSourceFile)
+    printf(`"[\#27[92mINFO\#27[0m] Output file '%s'\r\n"`, cStrOutputFile)
 
-while i < [bytesRead] do
-    c = sourceCode [ i ] ;
-    if c == 32 then
-        token [ j ] = 0 ;
-        j = 0 ;
-        `
-        printf(`"Token %s\n"`, token)
-        `
-        while c == 32 do
-            i = i + 1 ;
-            c = sourceCode [ i ] ;
+    ; Preparing the parameters for CreateFileA to open a file for reading
+    mov rcx, cStrSourceFile                       ; First parameter: Pointer to the filename (LPCSTR)
+    mov rdx, GENERIC_READ                       ; Second parameter: Access to the file (DWORD), for reading use GENERIC_READ
+    mov r8, 1                                   ; Third parameter: File sharing mode (DWORD)
+    mov r9, 0                                   ; Fourth parameter: Pointer to security attributes (LPSECURITY_ATTRIBUTES)
+    sub rsp, 4*8 + 3*8                          ; Shadow space for 4 register parameters + 3 additional stack parameters
+    mov [rsp+4*8], dword 3                      ; Fifth parameter: Action to take on files that exist or do not exist (DWORD)
+    mov [rsp+5*8], dword FILE_ATTRIBUTE_NORMAL  ; Sixth parameter: File attributes and flags (DWORD)
+    mov [rsp+6*8], dword 0                      ; Seventh parameter: Handle to a template file (HANDLE)
+    call CreateFileA
+    add rsp, 4*8 + 3*8 
+    mov [inFileHandle], rax
+    
+    mov rcx, [inFileHandle]      ; Handle to the file (HANDLE)
+    mov rdx, sourceCode        ; Pointer to the buffer that receives the data read from the file (LPVOID)
+    mov r8, dword SOURCE_CODE_SIZE   ; Number of bytes to be read from the file (DWORD)
+    mov r9, bytesRead         ; Pointer to the variable that receives the number of bytes read (LPDWORD)
+    sub rsp, 32
+    push 0
+    call ReadFile
+    add rsp, 40`
+endproc CreateFile
+
+uint64 handle = 0 ; 
+handle = CreateFile ( ) ;
+
+if handle < 0 then `
+    printf(`"[\#27[91mERROR\#27[0m] Failed to open input file '%s'\n"`, cStrSourceFile)
+    ExitProcess(1) `
+else `
+    printf(`"[\#27[92mINFO\#27[0m] Successfully opened input file '%s'\n"`, cStrSourceFile) 
+    printf(`"[\#27[92mINFO\#27[0m] Read %d bytes from input file\n"`, [bytesRead])`
+end 
+
+uint64 _ = 0 ;
+uint64 true = 1 ;
+
+uint8 c = 0 ;
+uint64 scIndex = 0 ;
+array token = uint8 [ 256 ] ;
+uint64 tokenIndex = 0 ;
+uint64 isSep = 0 ;
+
+proc isSpace ( )
+    if c == 32 then `
+        mov rax, 1`
+    else if c == 10 then `
+        mov rax, 1`
+    else if c == 13 then `
+        mov rax, 1`
+    else if c == 9 then `
+        mov rax, 1`
+    else `
+        mov rax, 0`
+    end end end end
+endproc isSpace
+
+proc isSeparator ( )
+    if c == 59 then `
+        mov rax, 1`
+    else if c == 44 then `
+        mov rax, 1`
+    else if c == 40 then `
+        mov rax, 1`
+    else if c == 41 then `
+        mov rax, 1`
+    else if c == 91 then `
+        mov rax, 1`
+    else if c == 93 then `
+        mov rax, 1`
+    else if c == 46 then `
+        mov rax, 1`
+    else `
+        mov rax, 0`
+    end end end end end end end
+endproc isSeparator
+
+while scIndex < [bytesRead] do 
+    c = sourceCode [ scIndex ] ; 
+    _ = isSpace ( ) ;
+    isSep = isSeparator ( ) ;
+    if _ == 1 then 
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
         end
-        continue;
-    else
-        token [ j ] = c ;
-        j = j + 1 ;
-    end
-    i = i + 1 ;
-end
-`    
+        tokenIndex = 0 ;
+        c = sourceCode [ scIndex ] ;
+        while true == 1 do
+            _ = isSpace ( c ) ;
+            if _ == 1 then
+                scIndex = scIndex + 1 ;
+                c = sourceCode [ scIndex ] ;
+            else
+                scIndex = scIndex - 1 ;
+                c = sourceCode [ scIndex ] ;
+                break ;
+            end
+        end
+    else if c ==  47 then
+        _ = scIndex + 1 ;
+        c = sourceCode [ _ ] ;
+        if c == 47 then
+            tokenIndex = 0 ;
+            scIndex = scIndex + 1 ;
+            while c != 10 do
+                scIndex = scIndex + 1 ;
+                c = sourceCode [ scIndex ] ;
+            end
+        end 
+    else if c == 34 then 
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+        end
+        tokenIndex = 0 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;    
+        while true == 1 do 
+            if c == 34 then hslkdjfhlsdhflkshdlfkhlkhlskd
 
-    ExitProcess(0)
+            szDestFiles
+            defaultsd
+            failed
+            
+                _ = scIndex - 1 ;
+                c = sourceCode [ _ ] ;
+                if c != 92 then 
+                    break ;
+                end
+            end
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            scIndex = scIndex + 1 ;
+            c = sourceCode [ scIndex ] ;
+        end
+        token [ tokenIndex ] = 0 ; `
+        printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+        `
+        tokenIndex = 0 ;
+    else if isSep == 1 then
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+        end
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        token [ tokenIndex ] = 0 ; `
+        printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+        `
+        tokenIndex = 0 ;
+    else            
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+    end end end end
+
+
+    scIndex = scIndex + 1 ;
+end
+`
+
+    ExitProcess(0)`

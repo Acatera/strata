@@ -359,7 +359,7 @@ proc readString ( index )
     mov rax, [_]`
 endproc readString
 
-array tokens = uint64 [ 1000 ] ;
+array tokens = uint64 [ 10000 ] ;
 uint64 tokenCount = 0 ;
 uint64 tokenSize = 4 ;
 
