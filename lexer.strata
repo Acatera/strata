@@ -18,9 +18,6 @@ section .text
 _start:
     InitStandardOutput()
     `
-
-
-
 array sourceCode = uint8 [ 1048576 ] ;
 uint64 bytesRead = 0 ;
 
@@ -66,11 +63,225 @@ end
 uint64 _ = 0 ;
 uint64 true = 1 ;
 
+array tokens = uint64 [ 10000 ] ;
+uint64 tokenCount = 0 ;
+uint64 tokenSize = 4 ;
+
+proc push_token ( tokenType strIndex line col )
+    tokens [ tokenCount ] = tokenType ;
+    _ = tokenCount + 1 ;
+    tokens [ _ ] = strIndex ;
+    _ = tokenCount + 2 ;
+    tokens [ _ ] = line ;
+    _ = tokenCount + 3 ;
+    tokens [ _ ] = col ;
+    tokenCount = tokenCount + tokenSize ;
+endproc push_token
+
+array stringBuffer = uint8 [ 100000 ] ;
+uint64 sbIndex = 0 ;
+uint64 stringBufferTop = 0 ;
+array stringPointers = uint64 [ 5000 ] ;
+uint64 stringPointersTop = 0 ;
+
+array stringToPush = uint8 [ 256 ] ;
+uint64 freeStringIndex = 0 ;
+uint8 freeChar = 0 ;
+proc pushString ( ) 
+    freeStringIndex = 0 ;
+    freeChar = stringToPush [ freeStringIndex ] ;
+    stringPointers [ stringPointersTop ] = stringBufferTop ;
+
+    while freeChar != 0 do 
+        stringBuffer [ stringBufferTop ] = freeChar ;
+        stringBufferTop = stringBufferTop + 1 ;
+        freeStringIndex = freeStringIndex + 1 ;
+        freeChar = stringToPush [ freeStringIndex ] ;
+    end
+    
+    stringBuffer [ stringBufferTop ] = 0 ;
+    stringBufferTop = stringBufferTop + 1 ; 
+    `
+    ;printf(`"[Trace] Pushed string: #%d with length %d.\n"`, [stringPointersTop], [freeStringIndex])
+    `
+    stringPointersTop = stringPointersTop + 1 ; 
+endproc pushString 
+
 uint8 c = 0 ;
 uint64 scIndex = 0 ;
 array token = uint8 [ 256 ] ;
 uint64 tokenIndex = 0 ;
 uint64 isSep = 0 ;
+
+uint64 TOKEN_UINT8                    =  1 ;
+uint64 TOKEN_UINT64                   =  2 ;
+uint64 TOKEN_POINTER                  =  3 ;
+uint64 TOKEN_IDENTIFIER               =  4 ;
+uint64 TOKEN_ASSIGNMENT               =  5 ;
+uint64 TOKEN_CONSTANT_INTEGER         =  6 ;
+
+uint64 TOKEN_SEMICOLON                =  7 ;
+uint64 TOKEN_COMMA                    =  8 ;
+
+uint64 TOKEN_LEFT_PARENTHESIS         =  9 ;
+uint64 TOKEN_RIGHT_PARENTHESIS        = 10 ;
+
+uint64 TOKEN_LEFT_BRACKET             = 11 ;
+uint64 TOKEN_RIGHT_BRACKET            = 12 ;
+
+uint64 TOKEN_PLUS                     = 13 ;
+uint64 TOKEN_MINUS                    = 14 ;
+uint64 TOKEN_MULTIPLY                 = 15 ;
+uint64 TOKEN_DIVIDE                   = 16 ;
+uint64 TOKEN_MODULO                   = 17 ;
+
+uint64 TOKEN_LESS_THAN                = 18 ;
+uint64 TOKEN_LESS_THAN_OR_EQUAL_TO    = 19 ;
+uint64 TOKEN_GREATER_THAN             = 20 ;
+uint64 TOKEN_GREATER_THAN_OR_EQUAL_TO = 21 ;
+uint64 TOKEN_EQUALS                   = 22 ;
+uint64 TOKEN_NOT_EQUALS               = 23 ;
+
+uint64 TOKEN_LOGICAL_AND              = 24 ;
+uint64 TOKEN_LOGICAL_OR               = 25 ;
+
+uint64 TOKEN_IF                       = 26 ;
+uint64 TOKEN_THEN                     = 27 ;
+uint64 TOKEN_ELSE                     = 28 ;
+uint64 TOKEN_END                      = 29 ;
+
+uint64 TOKEN_WHILE                    = 30 ;
+uint64 TOKEN_DO                       = 31 ;
+uint64 TOKEN_BREAK                    = 32 ;
+uint64 TOKEN_CONTINUE                 = 33 ;
+
+uint64 TOKEN_PROC                     = 34 ;
+uint64 TOKEN_ARROW_RIGHT              = 35 ;
+uint64 TOKEN_VARS                     = 36 ;
+uint64 TOKEN_CODE                     = 37 ;
+uint64 TOKEN_RETURN                   = 38 ;
+
+uint64 TOKEN_STRUCT                   = 39 ;
+uint64 TOKEN_DOT                      = 40 ;
+
+uint64 TOKEN_CONSTANT_STRING          = 41 ;
+
+array token_dictionary = uint8 [ 5000 ] ;
+uint64 token_dictionary_top = 0 ;
+array token_dictionary_pointers = uint64 [ 500 ] ;
+uint64 token_dictionary_pointers_top = 0 ;
+
+proc register_token_type ( token_type ) 
+    freeStringIndex = 0 ;
+    freeChar = stringToPush [ freeStringIndex ] ;
+    token_dictionary_pointers [ token_dictionary_pointers_top ] = token_dictionary_top ;
+
+    while freeChar != 0 do 
+        token_dictionary [ token_dictionary_top ] = freeChar ;
+        token_dictionary_top = token_dictionary_top + 1 ;
+        freeStringIndex = freeStringIndex + 1 ;
+        freeChar = stringToPush [ freeStringIndex ] ;
+    end
+    
+    token_dictionary [ token_dictionary_top ] = 0 ;
+    token_dictionary_top = token_dictionary_top + 1 ; 
+    `
+    ;printf(`"[Trace] Pushed string: #%d with length %d.\n"`, [token_dictionary_pointers_top], [freeStringIndex])
+    `
+    token_dictionary_pointers_top = token_dictionary_pointers_top + 1 ; 
+    _ = token_type ;
+    token_dictionary_pointers [ token_dictionary_pointers_top ] = _ ;
+    token_dictionary_pointers_top = token_dictionary_pointers_top + 1 ;
+endproc register_token_type 
+
+// there's a bug somewhere, it's comparing the wrong strings
+
+array token_at_pointer = uint8 [ 256 ] ;
+proc readString ( index )
+    freeStringIndex = 0 ;
+    _ = index ;
+    _ = _ * 2 ;
+    sbIndex = token_dictionary_pointers [ _ ] ;
+    _ = sbIndex ;
+    freeChar = token_dictionary [ sbIndex ] ;
+
+    while freeChar != 0 do 
+        token_at_pointer [ freeStringIndex ] = freeChar ;
+        freeStringIndex = freeStringIndex + 1 ;
+        sbIndex = sbIndex + 1 ;
+        freeChar = token_dictionary [ sbIndex ] ;
+    end 
+    token_at_pointer [ freeStringIndex ] = 0 ; `
+    printf(`"[Trace] Read string: #%d with length %d.\n"`, [rbp + 16], [freeStringIndex])
+    mov rax, [_]`
+endproc readString
+
+proc token_equals ( a ) `
+    mov rsi, token
+    `
+    _ = readString ( a ) ; `
+    mov rdi, rax
+    mov rax, token_at_pointer
+    add rdi, rax
+.t:
+    printf(`"[Trace] Comparing strings: %s and %s\n"`, rsi, rdi)
+.loop:
+    mov al, byte [rdi]
+    mov bl, byte [rsi]
+    cmp al, bl
+    jne .str_neq
+    cmp al, 0
+    je .str1_null
+    cmp bl, 0
+    je .str2_null
+    inc rdi
+    inc rsi
+    jmp .loop
+
+.str1_null:
+    cmp bl, 0
+    je .str_eq
+    jmp .str_neq
+
+.str2_null:
+    cmp al, 0
+    je .str_eq
+    jmp .str_neq    
+
+.str_neq:
+    xor rax, rax
+    jmp .end
+
+.str_eq:
+    mov rax, 1
+.end: `
+endproc token_equals
+
+uint64 gttIndex = 0 ;
+uint64 gttNamePointer = 0 ;
+uint64 gttEqual = 0 ;
+proc get_token_type (  )
+    gttIndex = 0 ;
+    gttEqual = 0 ;
+    while gttIndex < [token_dictionary_pointers_top] do
+        gttNamePointer = token_dictionary_pointers [ gttIndex ] ;
+        gttEqual = token_equals ( gttNamePointer ) ;
+
+        if gttEqual != 0 then
+            break ;
+        end
+
+        gttIndex = gttIndex + 2 ;
+    end
+
+    if gttEqual == [true] then 
+        _ = 1 + gttIndex ;
+        _ = token_dictionary_pointers [ _ ] ; `
+        mov rax, [_]` 
+    else `
+        mov rax, 0`
+    end
+endproc get_token_type
 
 proc isSpace ( )
     if c == 32 then `
@@ -106,14 +317,165 @@ proc isSeparator ( )
     end end end end end end end
 endproc isSeparator
 
+stringToPush [ 0 ] = 117 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 110 ;
+stringToPush [ 3 ] = 116 ;
+stringToPush [ 4 ] = 56 ;
+stringToPush [ 5 ] = 0 ;
+_ = register_token_type ( TOKEN_UINT8 ) ;
+
+stringToPush [ 0 ] = 117 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 110 ;
+stringToPush [ 3 ] = 116 ;
+stringToPush [ 4 ] = 54 ;
+stringToPush [ 5 ] = 52 ;
+stringToPush [ 6 ] = 0 ;
+_ = register_token_type ( TOKEN_UINT64 ) ;
+
+stringToPush [ 0 ] = 112 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 105 ;
+stringToPush [ 3 ] = 110 ;
+stringToPush [ 4 ] = 116 ;
+stringToPush [ 5 ] = 101 ;
+stringToPush [ 6 ] = 114 ;
+stringToPush [ 7 ] = 0 ;
+_ = register_token_type ( TOKEN_POINTER ) ;
+
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 110 ;
+stringToPush [ 2 ] = 100 ;
+stringToPush [ 3 ] = 0 ;
+_ = register_token_type ( TOKEN_LOGICAL_AND ) ;
+
+stringToPush [ 0 ] = 111 ;
+stringToPush [ 1 ] = 114 ;
+stringToPush [ 2 ] = 0 ;
+_ = register_token_type ( TOKEN_LOGICAL_OR ) ;
+
+stringToPush [ 0 ] = 105 ;
+stringToPush [ 1 ] = 102 ;
+stringToPush [ 2 ] = 0 ;
+_ = register_token_type ( TOKEN_IF ) ;
+
+stringToPush [ 0 ] = 116 ;
+stringToPush [ 1 ] = 104 ;
+stringToPush [ 2 ] = 101 ;
+stringToPush [ 3 ] = 110 ;
+stringToPush [ 4 ] = 0 ;
+_ = register_token_type ( TOKEN_THEN ) ;
+
+stringToPush [ 0 ] = 101 ;
+stringToPush [ 1 ] = 108 ;
+stringToPush [ 2 ] = 115 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 0 ;
+_ = register_token_type ( TOKEN_ELSE ) ;
+
+stringToPush [ 0 ] = 101 ;
+stringToPush [ 1 ] = 110 ;
+stringToPush [ 2 ] = 100 ;
+stringToPush [ 3 ] = 0 ;
+_ = register_token_type ( TOKEN_END ) ;
+
+stringToPush [ 0 ] = 119 ;
+stringToPush [ 1 ] = 104 ;
+stringToPush [ 2 ] = 105 ;
+stringToPush [ 3 ] = 108 ;
+stringToPush [ 4 ] = 101 ;
+stringToPush [ 5 ] = 0 ;
+_ = register_token_type ( TOKEN_WHILE ) ;
+
+stringToPush [ 0 ] = 100 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 0 ;
+_ = register_token_type ( TOKEN_DO ) ;
+
+stringToPush [ 0 ] = 98 ;
+stringToPush [ 1 ] = 114 ;
+stringToPush [ 2 ] = 101 ;
+stringToPush [ 3 ] = 97 ;
+stringToPush [ 4 ] = 107 ;
+stringToPush [ 5 ] = 0 ;
+_ = register_token_type ( TOKEN_BREAK ) ;
+
+stringToPush [ 0 ] = 99 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 110 ;
+stringToPush [ 3 ] = 116 ;
+stringToPush [ 4 ] = 105 ;
+stringToPush [ 5 ] = 110 ;
+stringToPush [ 6 ] = 117 ;
+stringToPush [ 7 ] = 101 ;
+stringToPush [ 8 ] = 0 ;
+_ = register_token_type ( TOKEN_CONTINUE ) ;
+
+stringToPush [ 0 ] = 112 ;
+stringToPush [ 1 ] = 114 ;
+stringToPush [ 2 ] = 111 ;
+stringToPush [ 3 ] = 99 ;
+stringToPush [ 4 ] = 0 ;
+_ = register_token_type ( TOKEN_PROC ) ;
+
+stringToPush [ 0 ] = 118 ;
+stringToPush [ 1 ] = 97 ;
+stringToPush [ 2 ] = 114 ;
+stringToPush [ 3 ] = 115 ;
+stringToPush [ 4 ] = 0 ;
+_ = register_token_type ( TOKEN_VARS ) ;
+
+stringToPush [ 0 ] = 99 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 100 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 0 ;
+_ = register_token_type ( TOKEN_CODE ) ;
+
+stringToPush [ 0 ] = 114 ;
+stringToPush [ 1 ] = 101 ;
+stringToPush [ 2 ] = 116 ;
+stringToPush [ 3 ] = 117 ;
+stringToPush [ 4 ] = 114 ;
+stringToPush [ 5 ] = 110 ;
+stringToPush [ 6 ] = 0 ;
+_ = register_token_type ( TOKEN_RETURN ) ;
+
+stringToPush [ 0 ] = 115 ;
+stringToPush [ 1 ] = 116 ;
+stringToPush [ 2 ] = 114 ;
+stringToPush [ 3 ] = 117 ;
+stringToPush [ 4 ] = 99 ;
+stringToPush [ 5 ] = 116 ;
+stringToPush [ 6 ] = 0 ;
+_ = register_token_type ( TOKEN_STRUCT ) ;
+
+`
+printf(`"Token dictionary count: %d\n"`, [token_dictionary_pointers_top])
+`
+uint64 token_type = 0 ;
+proc push_and_print_token ( ) `
+    printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+    `
+    token_type = get_token_type ( ) ;
+    if token_type == 0 then 
+        token_type = TOKEN_IDENTIFIER ;
+        _ = push_token ( token_type 0 0 0 ) ;
+    else 
+        _ = push_token ( token_type 0 0 0 ) ;
+    end `
+    printf(`"[\#27[92mINFO\#27[0m] Token type: %d\n"`, [token_type])`
+endproc push_and_print_token
+
 while scIndex < [bytesRead] do 
     c = sourceCode [ scIndex ] ; 
     _ = isSpace ( ) ;
     isSep = isSeparator ( ) ;
     if _ == 1 then 
         if tokenIndex > 0 then 
-            token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+            token [ tokenIndex ] = 0 ;
+            push_and_print_token ( ) ;
         end
         tokenIndex = 0 ;
         c = sourceCode [ scIndex ] ;
@@ -198,8 +560,9 @@ while scIndex < [bytesRead] do
         token [ tokenIndex ] = c ; 
         tokenIndex = tokenIndex + 1 ;
         token [ tokenIndex ] = 0 ; `
-        printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+        printf(`"[\#27[92mINFO\#27[0m] Token: [!] '%s'\n"`, token)
         `
+        _ = push_token ( TOKEN_CONSTANT_STRING 0 0 0 ) ;
         tokenIndex = 0 ;
     else if isSep == 1 then
         if tokenIndex > 0 then 
@@ -210,8 +573,23 @@ while scIndex < [bytesRead] do
         token [ tokenIndex ] = c ;
         tokenIndex = tokenIndex + 1 ;
         token [ tokenIndex ] = 0 ; `
-        printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+        printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
         `
+        if c == 59 then
+            _ = push_token ( TOKEN_SEMICOLON 0 0 0 ) ;
+        else if c == 44 then
+            _ = push_token ( TOKEN_COMMA 0 0 0 ) ;
+        else if c == 40 then
+            _ = push_token ( TOKEN_LEFT_PARENTHESIS 0 0 0 ) ;
+        else if c == 41 then
+            _ = push_token ( TOKEN_RIGHT_PARENTHESIS 0 0 0 ) ;
+        else if c == 91 then
+            _ = push_token ( TOKEN_LEFT_BRACKET 0 0 0 ) ;
+        else if c == 93 then
+            _ = push_token ( TOKEN_RIGHT_BRACKET 0 0 0 ) ;
+        else if c == 46 then
+            _ = push_token ( TOKEN_DOT 0 0 0 ) ;
+        end end end end end end end 
         tokenIndex = 0 ;
     else if c == 61 then
         if tokenIndex > 0 then 
@@ -227,13 +605,15 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = c ;
             tokenIndex = tokenIndex + 1 ;
             token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
+            _ = push_token ( TOKEN_EQUALS 0 0 0 ) ;
             tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
+            _ = push_token ( TOKEN_ASSIGNMENT 0 0 0 ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end
@@ -251,8 +631,9 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = c ;
             tokenIndex = tokenIndex + 1 ;
             token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
+            _ = push_token ( TOKEN_NOT_EQUALS 0 0 0 ) ;
             tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
@@ -275,13 +656,15 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = c ;
             tokenIndex = tokenIndex + 1 ;
             token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
+            _ = push_token ( TOKEN_LESS_THAN_OR_EQUAL_TO 0 0 0 ) ;
             tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
+            _ = push_token ( TOKEN_LESS_THAN 0 0 0 ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end
@@ -299,13 +682,15 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = c ;
             tokenIndex = tokenIndex + 1 ;
             token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
+            _ = push_token ( TOKEN_GREATER_THAN_OR_EQUAL_TO 0 0 0 ) ;
             tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
+            _ = push_token ( TOKEN_GREATER_THAN 0 0 0 ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end
@@ -328,8 +713,9 @@ while scIndex < [bytesRead] do
             tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
+            _ = push_token ( TOKEN_PLUS 0 0 0 ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end
@@ -352,8 +738,9 @@ while scIndex < [bytesRead] do
             tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
+            _ = push_token ( TOKEN_MULTIPLY 0 0 0 ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end 
@@ -374,13 +761,22 @@ while scIndex < [bytesRead] do
             printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
             `
             tokenIndex = 0 ;
-        else 
+        else if c == 62 then
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
             `
+            _ = push_token ( TOKEN_ARROW_RIGHT 0 0 0 ) ;
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_MINUS 0 0 0 ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
-        end 
+        end end
     else if c == 47 then
         if tokenIndex > 0 then 
             token [ tokenIndex ] = 0 ; `
@@ -407,8 +803,9 @@ while scIndex < [bytesRead] do
             end
         else 
             token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
+            _ = push_token ( TOKEN_DIVIDE 0 0 0 ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end end  
@@ -431,8 +828,9 @@ while scIndex < [bytesRead] do
             tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
+            _ = push_token ( TOKEN_MODULO 0 0 0 ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end  
@@ -444,5 +842,5 @@ while scIndex < [bytesRead] do
     scIndex = scIndex + 1 ;
 end
 `
-
+    printf(`"Token count: %d\n"`, [tokenCount])
     ExitProcess(0)`
