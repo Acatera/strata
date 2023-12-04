@@ -128,43 +128,75 @@ while scIndex < [bytesRead] do
                 break ;
             end
         end
-    else if c ==  47 then
-        _ = scIndex + 1 ;
-        c = sourceCode [ _ ] ;
-        if c == 47 then
-            tokenIndex = 0 ;
-            scIndex = scIndex + 1 ;
-            while c != 10 do
-                scIndex = scIndex + 1 ;
-                c = sourceCode [ scIndex ] ;
-            end
-        end 
     else if c == 34 then 
         if tokenIndex > 0 then 
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
         end
         tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
         scIndex = scIndex + 1 ;
         c = sourceCode [ scIndex ] ;    
-        while true == 1 do 
-            if c == 34 then hslkdjfhlsdhflkshdlfkhlkhlskd
-
-            szDestFiles
-            defaultsd
-            failed
-            
-                _ = scIndex - 1 ;
-                c = sourceCode [ _ ] ;
-                if c != 92 then 
-                    break ;
-                end
-            end
-            token [ tokenIndex ] = c ;
-            tokenIndex = tokenIndex + 1 ;
-            scIndex = scIndex + 1 ;
-            c = sourceCode [ scIndex ] ;
+        while scIndex < [bytesRead] do 
+            if c == 92 then
+                scIndex = scIndex + 1 ;
+                c = sourceCode [ scIndex ] ;
+                if c == 34 then
+                    token [ tokenIndex ] = c ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else if c == 92 then
+                    token [ tokenIndex ] = c ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else if c == 110 then
+                    token [ tokenIndex ] = 10 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else if c == 114 then
+                    token [ tokenIndex ] = 13 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else if c == 116 then
+                    token [ tokenIndex ] = 9 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else if c == 48 then
+                    token [ tokenIndex ] = 0 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else if c == 39 then
+                    token [ tokenIndex ] = 39 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else if c == 92 then
+                    token [ tokenIndex ] = 92 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else `
+                    printf(`"[\#27[91mERROR\#27[0m] Invalid escape sequence\n"`)
+                    ExitProcess(1)`
+                end end end end end end end end 
+            else if c == 34 then
+                break ;
+            else
+                token [ tokenIndex ] = c ;
+                tokenIndex = tokenIndex + 1 ;
+                scIndex = scIndex + 1 ;
+                c = sourceCode [ scIndex ] ;
+            end end 
         end
+        token [ tokenIndex ] = c ; 
+        tokenIndex = tokenIndex + 1 ;
         token [ tokenIndex ] = 0 ; `
         printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
         `
@@ -181,11 +213,233 @@ while scIndex < [bytesRead] do
         printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
         `
         tokenIndex = 0 ;
+    else if c == 61 then
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+        end
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
+        if c == 61 then
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
+        end
+    else if c == 33 then
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+        end
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
+        if c == 61 then
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
+        end
+    else if c == 60 then
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+        end
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
+        if c == 61 then
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
+        end
+    else if c == 62 then
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+        end
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
+        if c == 61 then
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
+        end
+    else if c == 43 then
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+        end
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
+        if c == 61 then
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
+        end
+    else if c == 42 then
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+        end
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
+        if c == 61 then
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
+        end 
+    else if c == 45 then
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+        end
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
+        if c == 61 then
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
+        end 
+    else if c == 47 then
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+        end
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
+        if c == 61 then
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+        else if c == 47 then
+            tokenIndex = 0 ;
+            scIndex = scIndex + 1 ;
+            while c != 10 do
+                scIndex = scIndex + 1 ;
+                c = sourceCode [ scIndex ] ;
+            end
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
+        end end  
+    else if c == 37 then
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+        end
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
+        if c == 61 then
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
+        end  
     else            
         token [ tokenIndex ] = c ;
         tokenIndex = tokenIndex + 1 ;
-    end end end end
-
+    end end end end end end end end end end end end
 
     scIndex = scIndex + 1 ;
 end
