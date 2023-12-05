@@ -1,244 +1,14 @@
  `
 %include "inc/std.inc"
 ; %define DEBUG 0
-`
-`;state machine`
-uint64 EXPECTING_ANYTHING         = 0
-uint64 EXPECTING_IDENTIFIER       = 1
-uint64 EXPECTING_ASSIGNMENT       = 2
-uint64 EXPECTING_CONSTANT_INTEGER = 3
-uint64 EXPECTING_SEMICOLON        = 4
-
-uint64 machineState = 0
-
-`; array of pointers to statements of any sort
-`
-array program = uint64 [ 65536 ] ; 
-uint64 programCount = 0
-
-uint64 currentProcArgCount = 0
-uint64 currentProcArgIndex = 0
-
-array tokens = uint64 [ 65536 ] ;
-uint64 tokenCount = 0
-uint64 tokenSize = 4
-uint64 tokenI = 0
-uint64 tokenTypeIndex = 0
-uint64 tokenTypeValue = 0
-uint64 tokenLineIndex = 0
-uint64 tokenLineValue = 0
-uint64 tokenStartIndex = 0
-uint64 tokenStartValue = 0
-uint64 tokenLengthIndex = 0
-uint64 tokenLengthValue = 0
-uint64 currentTokenType = 0
-uint64 nextBLockId = 0
-uint64 currentLine = 1
-uint64 currentTokenStart = 0
-uint64 currentTokenLength = 0
-
-array currentIdentifier = uint8 [ 256 ] ;
-
-array irStack = uint64 [ 65536 ] ;
-uint64 irStackCount = 0
-uint64 irStackTokenTypeIndex = 0
-uint64 irStackTokenValueIndex = 0
-uint64 irStackTokenTypeValue = 0
-uint64 irStackTokenValueValue = 0
-uint64 irStackSize = 2
-uint64 irStackI = 0
-
-uint64 tokenTypeToPush = 0
-uint64 tokenValueToPush = 0
-proc pushTokenToIRStack `
-    ;printf(`"Pushing token to IR stack - t: %x; v: %d\n"`, [tokenTypeToPush], [tokenValueToPush])
-    `
-    irStackTokenTypeIndex = irStackCount * irStackSize ;
-    irStackTokenValueIndex = irStackCount * irStackSize + 1 ;
-    `
-    ;printf(`"Offset for Type: %d\n"`, [irStackTokenTypeIndex])
-    ;printf(`"Offset for Value: %d\n"`, [irStackTokenValueIndex])
-    `
-    irStack [ irStackTokenTypeIndex ] = tokenTypeToPush ;
-    irStack [ irStackTokenValueIndex ] = tokenValueToPush ;
-
-    irStackCount = irStackCount + 1 ;
-endproc pushTokenToIRStack
-
-proc incrementCurrentLine
-    currentLine = currentLine + 1 ;
-endproc incrementCurrentLine
-
-proc writeVariableDeclaration
-
-endproc writeVariableDeclaration
-
-uint64 printHumanTokenTypeArg1 = 0
-proc printHumanTokenType
-    if printHumanTokenTypeArg1 == 1 then
-        `
-        printf(`"OP_EQUALS\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 2 then
-        `
-        printf(`"OP_NOT_EQUALS\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 3 then
-        `
-        printf(`"OP_LESS\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 4 then
-        `
-        printf(`"OP_LESS_OR_EQAL\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 5 then
-        `
-        printf(`"OP_GREATER\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 6 then
-        `
-        printf(`"OP_GREATER_OR_EQUAL\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 7 then
-        `
-        printf(`"OP_ASSIGNMENT\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 8 then
-        `
-        printf(`"OP_PLUS\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 9 then
-        `
-        printf(`"OP_MINUS\n"`)
-        `     
-    else if printHumanTokenTypeArg1 == 10 then
-        `
-        printf(`"OP_MUL\n"`)
-        ` 
-    else if printHumanTokenTypeArg1 == 11 then
-        `
-        printf(`"OP_DIV\n"`)
-        ` 
-    else if printHumanTokenTypeArg1 == 12 then
-        `
-        printf(`"OP_MOD\n"`)
-        `    
-    else if printHumanTokenTypeArg1 == 256 then
-        `
-        printf(`"KEYWORD_IF\n"`)
-        `  
-    else if printHumanTokenTypeArg1 == 257 then
-        `
-        printf(`"KEYWORD_THEN\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 258 then
-        `
-        printf(`"KEYWORD_ELSE\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 259 then
-        `
-        printf(`"KEYWORD_END\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 260 then
-        `
-        printf(`"KEYWORD_WHILE\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 261 then
-        `
-        printf(`"KEYWORD_DO\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 262 then
-        `
-        printf(`"KEYWORD_CONTINUE\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 263 then
-        `
-        printf(`"KEYWORD_BREAK\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 264 then
-        `
-        printf(`"KEYWORD_UINT8\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 265 then
-        `
-        printf(`"KEYWORD_UINT64\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 266 then
-        `
-        printf(`"KEYWORD_STRING--\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 267 then
-        `
-        printf(`"KEYWORD_EVAL--\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 268 then
-        `
-        printf(`"KEYWORD_ARRAY\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 269 then
-        `
-        printf(`"KEYWORD_PROC\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 270 then
-        `
-        printf(`"KEYWORD_ENDPROC\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 16 then
-        `
-        printf(`"CONSTANT_STRING\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 17 then
-        `
-        printf(`"ASM_LITERAL\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 18 then
-        `
-        printf(`"IDENTIFIER\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 19 then
-        `
-        printf(`"CONSTANT_INTEGER\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 20 then
-        `
-        printf(`"SEMICOLON\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 21 then
-        `
-        printf(`"SQBRACKET_OPEN\n"`)
-        `
-    else if printHumanTokenTypeArg1 == 22 then
-        `
-        printf(`"SQBRACKET_CLOSE\n"`)
-        `
-    else 
-        `
-        printf(`"Unknown token type %x\n"`, [printHumanTokenTypeArg1])
-        `
-    end end end end end end end end
-    end end end end end end end end
-    end end end end end end end end
-    end end end end end end end end
-    end end
-endproc printHumanTokenType
-
-proc printUnexpectedToken `
-    printf(`"[\#27[91mERROR\#27[0m] line %d - Unexpected token: "`, [currentLine])
-    `
-    printHumanTokenTypeArg1 = tokenTypeValue ;
-    printHumanTokenType
-    `
-    ExitProcess(1)
-    `
-endproc printUnexpectedToken
-
-`
-%define SOURCE_CODE_SIZE 1024*1024
-%define TINY_BUFFER_SIZE 32
+%define SOURCE_CODE_SIZE 1024*2048
+%define TINY_BUFFER_SIZE 64
 %define SMALL_BUFFER_SIZE 64
 %define MED_BUFFER_SIZE 256
-%define OPERATOR_BUFFER_SIZE 16
-
+%define OPERATOR_BUFFER_SIZE 64
+`
+uint64 currentTokenType = 0 ;
+`
 %macro _reset_counters_ 0
     ; r8 - offset in source code, token start
     ; r9 - token length
@@ -380,10 +150,11 @@ struc SymbolTable
     .SymbolCount resq 1
     .size equ $ - .Pointer
 
-%define MAX_TOKEN_COUNT 1024 * 16
+%define MAX_TOKEN_COUNT 1024 * 128
 
 %define BLOCK_ITEM_SIZE 8
 section .bss
+    currentProcArgCount resq 1
     szSourceCode resb SOURCE_CODE_SIZE
     szTokenValue resb SMALL_BUFFER_SIZE
     pBufferTiny resb TINY_BUFFER_SIZE
@@ -391,7 +162,7 @@ section .bss
     ptr2Buffer64 resb SMALL_BUFFER_SIZE
     ptr3Buffer64 resb SMALL_BUFFER_SIZE
     ptrBuffer256 resb MED_BUFFER_SIZE
-    blockStack resb 256 * Block.size ; todo - revisit this
+    blockStack resb 512 * Block.size ; todo - revisit this
     blockCount resq 1
     lpProcessInformation resb 24
     lpStartupInfo resb 104
@@ -400,15 +171,15 @@ section .bss
     bProcessingIfCondition resq 1
     dqCurrentLine resq 1
     dqLineStart resq 1
-    pOperatorStack resq 32
+    pOperatorStack resq 64
     dqOperatorCount resq 1
-    pOperandStack resq 32
+    pOperandStack resq 64
     dqOperandCount resq 1
     dqStatementOpCount resq 1
     
-    szNames resb 1024 * 64
+    szNames resb 2048 * 128
     pszNameEndPointer resq 1
-    pNames resb 1024 * Name.size
+    pNames resb 2048 * Name.size
     dqNameCount resq 1
 
     hndSourceFile resq 1
@@ -420,9 +191,9 @@ section .bss
     szFilenameWithoutExtension resb 256
     lpExitCode resq 1
 
-    memory resb 1024 * 1024
+    memory resb 1024 * 2048
     pFreePointer resq 1
-    symbolTables resb 256 * SymbolTable.size
+    symbolTables resb 512 * SymbolTable.size
 
     dqSymbolTableCount resq 1
     pCurrentSymbolTable resq 1
@@ -430,8 +201,8 @@ section .bss
     dqCurrentAssignedOperandValue resq 1 ; this is used to store the offset from rbp, in case of paramaters
     dqCurrentParamValue resq 1 ; this is used to store the offset from rbp, in case of paramaters
 
-%define CONST_STRING_COUNT 1024
-%define CONST_STRING_CAPACITY 1024*256 
+%define CONST_STRING_COUNT 1048
+%define CONST_STRING_CAPACITY 1048*256 
 
     ; constant string literals
     ; allow for 1024 constant string literal pointers
@@ -642,6 +413,8 @@ end `
         ExitProcess(1)`
     end `
 
+    printf(`"Read %d bytes from file '%s'.\r\n"`, [dwBytesRead], szSourceFile)
+
     ; Preparing the parameters for CreateFileA to open a file for writing
     mov rcx, szDestFile                         ; Pointer to the filename (LPCSTR)
     mov rdx, GENERIC_WRITE                      ; Access to the file (DWORD), for reading use GENERIC_READ
@@ -717,9 +490,7 @@ end `
     add r8, 2
     mov [dqLineStart], r8
     sub r8, 2
-    `
-    currentLine = currentLine + 1 ;
-    `
+
     ;printf(`"Newline %d\n"`, [currentLine])
 
 
@@ -740,7 +511,7 @@ end `
     sub rsp, 8 ; reserve space on the stack for the token type
     mov [rbp], word 0 ; initialize token type to 0
 `
-currentTokenType = 0 ;
+
 
 if CompareTokenWith(szKeywordIf) then `
     mov [rbp], word KeywordIf
@@ -923,23 +694,13 @@ end end end end `
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r15
 
-    mov [currentTokenStart], r8
-    mov [currentTokenLength], r9
-
     PushCallerSavedRegs()
     PushCalleeSavedRegs()
+    mov r10, szSourceCode
+    add r8, r10
+    strcpy(szTokenValue, r8, r9)
+    printf(`"Token: %s\r\n"`, szTokenValue)
 
-`
-tokenTypeIndex = tokenCount * tokenSize + 0 ;
-tokenLineIndex = tokenCount * tokenSize + 1 ;
-tokenStartIndex = tokenCount * tokenSize + 2 ;
-tokenLengthIndex = tokenCount * tokenSize + 3 ;
-tokens [ tokenTypeIndex ] = currentTokenType ;
-tokens [ tokenLineIndex ] = currentLine ;
-tokens [ tokenStartIndex ] = currentTokenStart ;
-tokens [ tokenLengthIndex ] = currentTokenLength ;
-tokenCount = tokenCount + 1 ;
-`
     PopCalleeSavedRegs()
     PopCallerSavedRegs()
 
@@ -966,7 +727,7 @@ tokenCount = tokenCount + 1 ;
     jmp .asm_literal_loop
 
 .asm_newline:
-    call incrementCurrentLine
+
     jmp .after_asm_newline
 
 .asm_literal_end:
@@ -994,18 +755,7 @@ tokenCount = tokenCount + 1 ;
     multipop rax, rbx, rcx, rdx, r10, r14
     PushCallerSavedRegs()
     PushCalleeSavedRegs()
-`
-currentTokenType = 17 ;
-tokenTypeIndex = tokenCount * tokenSize + 0 ;
-tokenLineIndex = tokenCount * tokenSize + 1 ;
-tokenStartIndex = tokenCount * tokenSize + 2 ;
-tokenLengthIndex = tokenCount * tokenSize + 3 ;
-tokens [ tokenTypeIndex ] = currentTokenType ;
-tokens [ tokenLineIndex ] = currentLine ;
-tokens [ tokenStartIndex ] = currentTokenStart ;
-tokens [ tokenLengthIndex ] = currentTokenLength ;
-tokenCount = tokenCount + 1 ;
-`
+
     PopCalleeSavedRegs()
     PopCallerSavedRegs()
     jmp .read_token_loop
@@ -1048,18 +798,7 @@ tokenCount = tokenCount + 1 ;
     multipop rax, rbx, rcx, rdx, r10, r14
     PushCallerSavedRegs()
     PushCalleeSavedRegs()
-`
-currentTokenType = 16 ;
-tokenTypeIndex = tokenCount * tokenSize + 0 ;
-tokenLineIndex = tokenCount * tokenSize + 1 ;
-tokenStartIndex = tokenCount * tokenSize + 2 ;
-tokenLengthIndex = tokenCount * tokenSize + 3 ;
-tokens [ tokenTypeIndex ] = currentTokenType ;
-tokens [ tokenLineIndex ] = currentLine ;
-tokens [ tokenStartIndex ] = currentTokenStart ;
-tokens [ tokenLengthIndex ] = currentTokenLength ;
-tokenCount = tokenCount + 1 ;
-`
+
     PopCalleeSavedRegs()
     PopCallerSavedRegs()
     jmp .read_token_loop
@@ -1074,18 +813,7 @@ tokenCount = tokenCount + 1 ;
     call push_symbol_table
     mov rax, memory
     mov qword [pFreePointer], rax
-`
-tokenI = 0 ;
-while tokenI < [tokenCount] do 
-    tokenTypeIndex = tokenI * tokenSize + 0 ;
-    tokenLineIndex = tokenI * tokenSize + 1 ;
-    tokenTypeValue = tokens [ tokenTypeIndex ] ;
-    tokenLineValue = tokens [ tokenLineIndex ] ; 
-    
 
-    tokenI = tokenI + 1 ;
-end
-`
 %define NextToken() nextToken
 %macro nextToken 0
     add rdx, Token.size ; jump to next token

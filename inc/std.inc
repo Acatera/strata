@@ -38,8 +38,8 @@ section .bss
     _internal_printf_std_out resq 1
     _internal_printf_buffer resb DEFAULT_BUFFER_SIZE
     _internal_printf_output_buffer resb DEFAULT_BUFFER_SIZE
-    itoh_buffer resb 32
-    sprintfBuffer resb 32
+    itoh_buffer resb 64
+    sprintfBuffer resb 64
     printfBuffer resb 128
     escapeBuffer resb 128
 

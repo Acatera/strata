@@ -1,39 +1,4 @@
-uint64 var = 0; // this is a 64-bit unsigned integer
-uint8 var2 = 0; // this is a 8-bit unsigned integer
-
-// OMG!!!
-var = 0xFFFFFFFFFFFFFFFF;// this is the maximum value of a 64-bit unsigned integer
-
-struct Point 
-    uint64 Line;
-    uint64 Column;
+uint8 chr = 0;
+chr = 1;
+struct A 
 end
-
-struct Size
-    uint64 Width;
-    uint64 Height;
-end
-
-uint8[8] array;Point point;
-
-proc MyProc(uint64 a, uint64 b, uint64 c)
-    return b + c;
-end
-
-"my text"
-
-
-MyProc(asdas, asd,                             asd);
-
-a[0];
-
-
-Size                               size;
-
-point.Line= <=size.Width < 1 > 2 >= 3 != 34 == 69;
-size.Width=1+2;
-a += 1 - 2;
-a -= 1  ;
-a *= 1 / 2;
-a /= 1 % 2;
-a %= 1 * 2;
