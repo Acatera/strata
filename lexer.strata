@@ -67,15 +67,16 @@ array tokens = uint64 [ 10000 ] ;
 uint64 tokenCount = 0 ;
 uint64 tokenSize = 4 ;
 
-proc push_token ( tokenType strIndex line col )
+proc push_token ( tokenType value line col )
     tokens [ tokenCount ] = tokenType ;
     _ = tokenCount + 1 ;
-    tokens [ _ ] = strIndex ;
+    tokens [ _ ] = value ;
     _ = tokenCount + 2 ;
     tokens [ _ ] = line ;
     _ = tokenCount + 3 ;
     tokens [ _ ] = col ;
-    tokenCount = tokenCount + tokenSize ;
+    tokenCount = tokenCount + tokenSize ; `
+    printf(`"[Trace] Pushed token: %d %d\n"`, [rbp+16], [rbp+24])`
 endproc push_token
 
 array stringBuffer = uint8 [ 100000 ] ;
@@ -84,19 +85,25 @@ uint64 stringBufferTop = 0 ;
 array stringPointers = uint64 [ 5000 ] ;
 uint64 stringPointersTop = 0 ;
 
+uint8 c = 0 ;
+uint64 scIndex = 0 ;
+array token = uint8 [ 256 ] ;
+uint64 tokenIndex = 0 ;
+uint64 isSep = 0 ;
+
 array stringToPush = uint8 [ 256 ] ;
 uint64 freeStringIndex = 0 ;
 uint8 freeChar = 0 ;
-proc pushString ( ) 
+proc push_identifier ( ) 
     freeStringIndex = 0 ;
-    freeChar = stringToPush [ freeStringIndex ] ;
+    freeChar = token [ freeStringIndex ] ;
     stringPointers [ stringPointersTop ] = stringBufferTop ;
 
     while freeChar != 0 do 
         stringBuffer [ stringBufferTop ] = freeChar ;
         stringBufferTop = stringBufferTop + 1 ;
         freeStringIndex = freeStringIndex + 1 ;
-        freeChar = stringToPush [ freeStringIndex ] ;
+        freeChar = token [ freeStringIndex ] ;
     end
     
     stringBuffer [ stringBufferTop ] = 0 ;
@@ -105,13 +112,7 @@ proc pushString ( )
     ;printf(`"[Trace] Pushed string: #%d with length %d.\n"`, [stringPointersTop], [freeStringIndex])
     `
     stringPointersTop = stringPointersTop + 1 ; 
-endproc pushString 
-
-uint8 c = 0 ;
-uint64 scIndex = 0 ;
-array token = uint8 [ 256 ] ;
-uint64 tokenIndex = 0 ;
-uint64 isSep = 0 ;
+endproc push_identifier 
 
 uint64 TOKEN_UINT8                    =  1 ;
 uint64 TOKEN_UINT64                   =  2 ;
@@ -293,11 +294,13 @@ proc to_number ( )
     while tnChar != 0 do 
         tnNumber = tnNumber * 10 ;
         tnDigit = tnChar - 48 ;
+
         if tnDigit > 9 then
             tnSuccess = 0 ;
             break;
         end
         
+        tnNumber = tnNumber + tnDigit ;
         tnIndex = tnIndex + 1 ;
         tnChar = token [ tnIndex ] ;
     end `
@@ -477,19 +480,21 @@ printf(`"Token dictionary count: %d\n"`, [token_dictionary_pointers_top])
 `
 uint64 token_type = 0 ;
 proc push_and_print_token ( ) `
-    printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+    printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'; "`, token)
     `
-        _ = to_number ( ) ;
+    _ = to_number ( ) ;
     if _ == 1 then 
-        token_type = TOKEN_CONSTANT_INTEGER ;
+        _ = push_token ( TOKEN_CONSTANT_INTEGER tnNumber 0 0 ) ;
     else
         token_type = get_token_type ( ) ;
         if token_type == 0 then 
-            token_type = TOKEN_IDENTIFIER ;
+            _ = push_token ( TOKEN_IDENTIFIER stringPointersTop 0 0 ) ;
+            push_identifier ( ) ;
+        else
+            _ = push_token ( token_type 0 0 0 ) ;
         end 
-        _ = push_token ( token_type 0 0 0 ) ;
     end `
-    printf(`"[\#27[92mINFO\#27[0m] Token type: %d\n"`, [token_type])`
+    printf(`"token type: %d\n"`, [token_type])`
 endproc push_and_print_token
 
 while scIndex < [bytesRead] do 
@@ -516,8 +521,8 @@ while scIndex < [bytesRead] do
         end
     else if c == 34 then 
         if tokenIndex > 0 then 
-            token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
@@ -590,8 +595,8 @@ while scIndex < [bytesRead] do
         tokenIndex = 0 ;
     else if isSep == 1 then
         if tokenIndex > 0 then 
-            token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
@@ -617,8 +622,8 @@ while scIndex < [bytesRead] do
         tokenIndex = 0 ;
     else if c == 61 then
         if tokenIndex > 0 then 
-            token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
@@ -643,8 +648,8 @@ while scIndex < [bytesRead] do
         end
     else if c == 33 then
         if tokenIndex > 0 then 
-            token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
@@ -668,8 +673,8 @@ while scIndex < [bytesRead] do
         end
     else if c == 60 then
         if tokenIndex > 0 then 
-            token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
@@ -694,8 +699,8 @@ while scIndex < [bytesRead] do
         end
     else if c == 62 then
         if tokenIndex > 0 then 
-            token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+            token [ tokenIndex ] = 0 ;
+            push_and_print_token ( ) ;
         end
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
@@ -720,8 +725,8 @@ while scIndex < [bytesRead] do
         end
     else if c == 43 then
         if tokenIndex > 0 then 
-            token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
@@ -745,8 +750,8 @@ while scIndex < [bytesRead] do
         end
     else if c == 42 then
         if tokenIndex > 0 then 
-            token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+            token [ tokenIndex ] = 0 ;
+            push_and_print_token ( ) ;
         end
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
@@ -770,8 +775,8 @@ while scIndex < [bytesRead] do
         end 
     else if c == 45 then
         if tokenIndex > 0 then 
-            token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
@@ -803,8 +808,8 @@ while scIndex < [bytesRead] do
         end end
     else if c == 47 then
         if tokenIndex > 0 then 
-            token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
@@ -835,8 +840,8 @@ while scIndex < [bytesRead] do
         end end  
     else if c == 37 then
         if tokenIndex > 0 then 
-            token [ tokenIndex ] = 0 ; `
-            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)`
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
