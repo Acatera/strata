@@ -1,6 +1,7 @@
-`%include "inc/std.inc"
+`
+%include "inc/std.inc"
 
-%define SRC_SIZE 1048576
+%define SOURCE_CODE_SIZE 1048576
 section .bss
     inFileHandle resq 1
 
@@ -17,215 +18,215 @@ section .text
 _start:
     InitStandardOutput()
     `
-array src = uint8 [ 1048576 ] ;
+array sourceCode = uint8 [ 1048576 ] ;
 uint64 bytesRead = 0 ;
 
 proc CreateFile ( ) `
-    printf(`"; Input file '%s'\r\n"`, cStrSourceFile)
-    printf(`"; Output file '%s'\r\n"`, cStrOutputFile)
+    ; print input and output file names
+    printf(`"[\#27[92mINFO\#27[0m] Input file '%s'\r\n"`, cStrSourceFile)
+    printf(`"[\#27[92mINFO\#27[0m] Output file '%s'\r\n"`, cStrOutputFile)
 
-    mov rcx, cStrSourceFile
-    mov rdx, GENERIC_READ
-    mov r8, 1
-    mov r9, 0
-    sub rsp, 4*8 + 3*8
-    mov [rsp+4*8], dword 3
-    mov [rsp+5*8], dword FILE_ATTRIBUTE_NORMAL
-    mov [rsp+6*8], dword 0
+    ; Preparing the parameters for CreateFileA to open a file for reading
+    mov rcx, cStrSourceFile                       ; First parameter: Pointer to the filename (LPCSTR)
+    mov rdx, GENERIC_READ                       ; Second parameter: Access to the file (DWORD), for reading use GENERIC_READ
+    mov r8, 1                                   ; Third parameter: File sharing mode (DWORD)
+    mov r9, 0                                   ; Fourth parameter: Pointer to security attributes (LPSECURITY_ATTRIBUTES)
+    sub rsp, 4*8 + 3*8                          ; Shadow space for 4 register parameters + 3 additional stack parameters
+    mov [rsp+4*8], dword 3                      ; Fifth parameter: Action to take on files that exist or do not exist (DWORD)
+    mov [rsp+5*8], dword FILE_ATTRIBUTE_NORMAL  ; Sixth parameter: File attributes and flags (DWORD)
+    mov [rsp+6*8], dword 0                      ; Seventh parameter: Handle to a template file (HANDLE)
     call CreateFileA
-    add rsp, 4*8 + 3*8
+    add rsp, 4*8 + 3*8 
     mov [inFileHandle], rax
-
-    mov rcx, [inFileHandle]      
-    mov rdx, src        
-    mov r8, dword SRC_SIZE   
-    mov r9, bytesRead         
+    
+    mov rcx, [inFileHandle]      ; Handle to the file (HANDLE)
+    mov rdx, sourceCode        ; Pointer to the buffer that receives the data read from the file (LPVOID)
+    mov r8, dword SOURCE_CODE_SIZE   ; Number of bytes to be read from the file (DWORD)
+    mov r9, bytesRead         ; Pointer to the variable that receives the number of bytes read (LPDWORD)
     sub rsp, 32
     push 0
     call ReadFile
     add rsp, 40`
 endproc CreateFile
 
-uint64 handle = 0 ;
+uint64 handle = 0 ; 
 handle = CreateFile ( ) ;
 
 if handle < 0 then `
     printf(`"[\#27[91mERROR\#27[0m] Failed to open input file '%s'\n"`, cStrSourceFile)
     ExitProcess(1) `
 else `
-    printf(`"; Successfully opened input file '%s'\n"`, cStrSourceFile)
-    printf(`"; Read %d bytes from input file\n"`, [bytesRead])`
-end
+    printf(`"[\#27[92mINFO\#27[0m] Successfully opened input file '%s'\n"`, cStrSourceFile) 
+    printf(`"[\#27[92mINFO\#27[0m] Read %d bytes from input file\n"`, [bytesRead])`
+end 
 
 uint64 _ = 0 ;
-uint64 __ = 0 ;
 uint64 true = 1 ;
 
 uint8 c = 0 ;
-uint64 scIdx = 0 ;
+uint64 scIndex = 0 ;
 array token = uint8 [ 256 ] ;
-uint64 tknIdx = 0 ;
+uint64 tokenIndex = 0 ;
 uint64 isSep = 0 ;
 
 uint64 line = 1 ;
-uint64 lineStart = 1 ;
+uint64 line_start = 1 ;
 uint64 col = 1 ;
 
-array tkns = uint64 [ 10000 ] ;
+array tokens = uint64 [ 10000 ] ;
 uint64 tokenCount = 0 ;
-uint64 tknSize = 4 ;
+uint64 tokenSize = 4 ;
 
-proc pushToken ( tokenType value line col )
-    tkns [ tokenCount ] = tokenType ;
+proc push_token ( tokenType value line col )
+    tokens [ tokenCount ] = tokenType ;
     _ = tokenCount + 1 ;
-    tkns [ _ ] = value ;
+    tokens [ _ ] = value ;
     _ = tokenCount + 2 ;
-    tkns [ _ ] = line ;
+    tokens [ _ ] = line ;
     _ = tokenCount + 3 ;
-    tkns [ _ ] = col ;
-    tokenCount = tokenCount + tknSize ;
-endproc pushToken
+    tokens [ _ ] = col ;
+    tokenCount = tokenCount + tokenSize ; `
+    printf(`"[Trace] Pushed token: %d %d"`, [rbp+16], [rbp+24])
+    printf(`" %d %d\n"`, [rbp+32], [rbp+40])`
+endproc push_token
 
-array strBuf = uint8 [ 100000 ] ;
+array stringBuffer = uint8 [ 100000 ] ;
 uint64 sbIndex = 0 ;
-uint64 strBufTop = 0 ;
-array strPtrs = uint64 [ 5000 ] ;
-uint64 strPtrsTop = 0 ;
+uint64 stringBufferTop = 0 ;
+array stringPointers = uint64 [ 5000 ] ;
+uint64 stringPointersTop = 0 ;
 
-array strToPush = uint8 [ 256 ] ;
+array stringToPush = uint8 [ 256 ] ;
 uint64 freeStringIndex = 0 ;
 uint8 freeChar = 0 ;
-proc pushIdent ( )
+proc push_identifier ( ) 
     freeStringIndex = 0 ;
     freeChar = token [ freeStringIndex ] ;
-    strPtrs [ strPtrsTop ] = strBufTop ;
+    stringPointers [ stringPointersTop ] = stringBufferTop ;
 
-    while freeChar != 0 do
-        strBuf [ strBufTop ] = freeChar ;
-        strBufTop = strBufTop + 1 ;
+    while freeChar != 0 do 
+        stringBuffer [ stringBufferTop ] = freeChar ;
+        stringBufferTop = stringBufferTop + 1 ;
         freeStringIndex = freeStringIndex + 1 ;
         freeChar = token [ freeStringIndex ] ;
     end
+    
+    stringBuffer [ stringBufferTop ] = 0 ;
+    stringBufferTop = stringBufferTop + 1 ; 
+    `
+    ;printf(`"[Trace] Pushed string: #%d with length %d.\n"`, [stringPointersTop], [freeStringIndex])
+    `
+    stringPointersTop = stringPointersTop + 1 ; 
+endproc push_identifier 
 
-    strBuf [ strBufTop ] = 0 ;
-    strBufTop = strBufTop + 1 ;
-    strPtrsTop = strPtrsTop + 1 ;
-endproc pushIdent
+uint64 TOKEN_UINT8                    =  1 ;
+uint64 TOKEN_UINT64                   =  2 ;
+uint64 TOKEN_POINTER                  =  3 ;
+uint64 TOKEN_IDENTIFIER               =  4 ;
+uint64 TOKEN_ASSIGNMENT               =  5 ;
+uint64 TOKEN_CONSTANT_INTEGER         =  6 ;
 
-uint64 TK_UINT8                    =  1 ;
-uint64 TK_UINT64                   =  2 ;
-uint64 TK_POINTER                  =  3 ;
-uint64 TK_IDENT               =  4 ;
-uint64 TK_ASSIGNMENT               =  5 ;
-uint64 TK_CONSTANT_INTEGER         =  6 ;
+uint64 TOKEN_SEMICOLON                =  7 ;
+uint64 TOKEN_COMMA                    =  8 ;
 
-uint64 TK_SEMICOLON                =  7 ;
-uint64 TK_COMMA                    =  8 ;
+uint64 TOKEN_LEFT_PARENTHESIS         =  9 ;
+uint64 TOKEN_RIGHT_PARENTHESIS        = 10 ;
 
-uint64 TK_LEFT_PAREN         =  9 ;
-uint64 TK_RIGHT_PAREN        = 10 ;
+uint64 TOKEN_LEFT_BRACKET             = 11 ;
+uint64 TOKEN_RIGHT_BRACKET            = 12 ;
 
-uint64 TK_LEFT_BRACKET             = 11 ;
-uint64 TK_RIGHT_BRACKET            = 12 ;
+uint64 TOKEN_PLUS                     = 13 ;
+uint64 TOKEN_MINUS                    = 14 ;
+uint64 TOKEN_MULTIPLY                 = 15 ;
+uint64 TOKEN_DIVIDE                   = 16 ;
+uint64 TOKEN_MODULO                   = 17 ;
 
-uint64 TK_PLUS                     = 13 ;
-uint64 TK_MINUS                    = 14 ;
-uint64 TK_MULTIPLY                 = 15 ;
-uint64 TK_DIVIDE                   = 16 ;
-uint64 TK_MODULO                   = 17 ;
+uint64 TOKEN_LESS_THAN                = 18 ;
+uint64 TOKEN_LESS_THAN_OR_EQUAL_TO    = 19 ;
+uint64 TOKEN_GREATER_THAN             = 20 ;
+uint64 TOKEN_GREATER_THAN_OR_EQUAL_TO = 21 ;
+uint64 TOKEN_EQUALS                   = 22 ;
+uint64 TOKEN_NOT_EQUALS               = 23 ;
 
-uint64 TK_LESS_THAN                = 18 ;
-uint64 TK_LESS_THAN_OR_EQUAL_TO    = 19 ;
-uint64 TK_GREATER_THAN             = 20 ;
-uint64 TK_GREATER_THAN_OR_EQUAL_TO = 21 ;
-uint64 TK_EQUALS                   = 22 ;
-uint64 TK_NOT_EQUALS               = 23 ;
+uint64 TOKEN_LOGICAL_AND              = 24 ;
+uint64 TOKEN_LOGICAL_OR               = 25 ;
 
-uint64 TK_LOGICAL_AND              = 24 ;
-uint64 TK_LOGICAL_OR               = 25 ;
+uint64 TOKEN_IF                       = 26 ;
+uint64 TOKEN_THEN                     = 27 ;
+uint64 TOKEN_ELSE                     = 28 ;
+uint64 TOKEN_END                      = 29 ;
 
-uint64 TK_IF                       = 26 ;
-uint64 TK_THEN                     = 27 ;
-uint64 TK_ELSE                     = 28 ;
-uint64 TK_END                      = 29 ;
+uint64 TOKEN_WHILE                    = 30 ;
+uint64 TOKEN_DO                       = 31 ;
+uint64 TOKEN_BREAK                    = 32 ;
+uint64 TOKEN_CONTINUE                 = 33 ;
 
-uint64 TK_WHILE                    = 30 ;
-uint64 TK_DO                       = 31 ;
-uint64 TK_BREAK                    = 32 ;
-uint64 TK_CONTINUE                 = 33 ;
+uint64 TOKEN_PROC                     = 34 ;
+uint64 TOKEN_ARROW_RIGHT              = 35 ;
+uint64 TOKEN_VARS                     = 36 ;
+uint64 TOKEN_CODE                     = 37 ;
+uint64 TOKEN_RETURN                   = 38 ;
 
-uint64 TK_PROC                     = 34 ;
-uint64 TK_ARROW_RIGHT              = 35 ;
-uint64 TK_VARS                     = 36 ;
-uint64 TK_CODE                     = 37 ;
-uint64 TK_RETURN                   = 38 ;
+uint64 TOKEN_STRUCT                   = 39 ;
+uint64 TOKEN_DOT                      = 40 ;
 
-uint64 TK_STRUCT                   = 39 ;
-uint64 TK_DOT                      = 40 ;
+uint64 TOKEN_CONSTANT_STRING          = 41 ;
 
-uint64 TK_CONSTANT_STRING          = 41 ;
+array token_dictionary = uint8 [ 5000 ] ;
+uint64 token_dictionary_top = 0 ;
+array token_dictionary_pointers = uint64 [ 500 ] ;
+uint64 token_dictionary_pointers_top = 0 ;
 
-uint64 TYPE_UINT8                  = 1 ;
-uint64 TYPE_UINT64                 = 2 ;
-uint64 TYPE_POINTER                = 3 ;
-uint64 TYPE_ARRAY                  = 4 ;
-uint64 TYPE_PROCEDURE              = 5 ;
-uint64 TYPE_USER_DEFINED           = 6 ;
-
-uint64 VAR_SCOPE_GLB       = 0 ;
-
-uint64 VARTYPE_PARAMETER           = 1 ;
-uint64 VARTYPE_LOCAL               = 2 ;
-
-array tknDict = uint8 [ 5000 ] ;
-uint64 tknDictTop = 0 ;
-array tnkDictPtrs = uint64 [ 500 ] ;
-uint64 tnkDictPtrsTop = 0 ;
-
-proc addTokenType ( tk_type )
+proc register_token_type ( token_type ) 
     freeStringIndex = 0 ;
-    freeChar = strToPush [ freeStringIndex ] ;
-    tnkDictPtrs [ tnkDictPtrsTop ] = tknDictTop ;
+    freeChar = stringToPush [ freeStringIndex ] ;
+    token_dictionary_pointers [ token_dictionary_pointers_top ] = token_dictionary_top ;
 
-    while freeChar != 0 do
-        tknDict [ tknDictTop ] = freeChar ;
-        tknDictTop = tknDictTop + 1 ;
+    while freeChar != 0 do 
+        token_dictionary [ token_dictionary_top ] = freeChar ;
+        token_dictionary_top = token_dictionary_top + 1 ;
         freeStringIndex = freeStringIndex + 1 ;
-        freeChar = strToPush [ freeStringIndex ] ;
+        freeChar = stringToPush [ freeStringIndex ] ;
     end
+    
+    token_dictionary [ token_dictionary_top ] = 0 ;
+    token_dictionary_top = token_dictionary_top + 1 ; 
+    `
+    ;printf(`"[Trace] Pushed string: #%d with length %d.\n"`, [token_dictionary_pointers_top], [freeStringIndex])
+    `
+    token_dictionary_pointers_top = token_dictionary_pointers_top + 1 ; 
+    _ = token_type ;
+    token_dictionary_pointers [ token_dictionary_pointers_top ] = _ ;
+    token_dictionary_pointers_top = token_dictionary_pointers_top + 1 ;
+endproc register_token_type 
 
-    tknDict [ tknDictTop ] = 0 ;
-    tknDictTop = tknDictTop + 1 ;
-    tnkDictPtrsTop = tnkDictPtrsTop + 1 ;
-    _ = tk_type ;
-    tnkDictPtrs [ tnkDictPtrsTop ] = _ ;
-    tnkDictPtrsTop = tnkDictPtrsTop + 1 ;
-endproc addTokenType
-
-array tknAtPtr = uint8 [ 256 ] ;
-proc readTknStr ( index )
+array token_at_pointer = uint8 [ 256 ] ;
+proc readString ( index )
     freeStringIndex = 0 ;
     _ = index ;
     _ = _ * 2 ;
-    sbIndex = tnkDictPtrs [ _ ] ;
+    sbIndex = token_dictionary_pointers [ _ ] ;
     _ = sbIndex ;
-    freeChar = tknDict [ sbIndex ] ;
+    freeChar = token_dictionary [ sbIndex ] ;
 
-    while freeChar != 0 do
-        tknAtPtr [ freeStringIndex ] = freeChar ;
+    while freeChar != 0 do 
+        token_at_pointer [ freeStringIndex ] = freeChar ;
         freeStringIndex = freeStringIndex + 1 ;
         sbIndex = sbIndex + 1 ;
-        freeChar = tknDict [ sbIndex ] ;
-    end
-    tknAtPtr [ freeStringIndex ] = 0 ; `
+        freeChar = token_dictionary [ sbIndex ] ;
+    end 
+    token_at_pointer [ freeStringIndex ] = 0 ; `
+    ;printf(`"[Trace] Read string: #%d with length %d.\n"`, [rbp + 16], [freeStringIndex])
     mov rax, [_]`
-endproc readTknStr
+endproc readString
 
-proc tknEq ( a ) `
+proc token_equals ( a ) `
     mov rsi, token
     `
-    _ = readTknStr ( a ) ; `
-    mov rdi, tknAtPtr
+    _ = readString ( a ) ; `
+    mov rdi, token_at_pointer
+
+    ;printf(`"[Trace] Comparing strings: %s and %s\n"`, rsi, rdi)
 .loop:
     mov al, byte [rdi]
     mov bl, byte [rsi]
@@ -247,7 +248,7 @@ proc tknEq ( a ) `
 .str2_null:
     cmp al, 0
     je .str_eq
-    jmp .str_neq
+    jmp .str_neq    
 
 .str_neq:
     xor rax, rax
@@ -256,17 +257,17 @@ proc tknEq ( a ) `
 .str_eq:
     mov rax, 1
 .end: `
-endproc tknEq
+endproc token_equals
 
 uint64 gttCount = 0 ;
 uint64 gttIndex = 0 ;
 uint64 gttEqual = 0 ;
-proc get_tk_type ( )
+proc get_token_type ( )
     gttCount = 0 ;
     gttIndex = 0 ;
     gttEqual = 0 ;
-    while gttCount < [tnkDictPtrsTop] do
-        gttEqual = tknEq ( gttIndex ) ;
+    while gttCount < [token_dictionary_pointers_top] do
+        gttEqual = token_equals ( gttIndex ) ;
 
         if gttEqual != 0 then
             break ;
@@ -276,14 +277,14 @@ proc get_tk_type ( )
         gttIndex = gttIndex + 1 ;
     end
 
-    if gttEqual == [true] then
+    if gttEqual == [true] then 
         _ = 1 + gttCount ;
-        _ = tnkDictPtrs [ _ ] ; `
-        mov rax, [_]`
+        _ = token_dictionary_pointers [ _ ] ; `
+        mov rax, [_]` 
     else `
         mov rax, 0`
     end
-endproc get_tk_type
+endproc get_token_type
 
 uint64 tnNumber = 0 ;
 uint64 tnDigit = 0 ;
@@ -295,7 +296,7 @@ proc to_number ( )
     tnIndex = 0 ;
     tnSuccess = 1 ;
     tnChar = token [ tnIndex ] ;
-    while tnChar != 0 do
+    while tnChar != 0 do 
         tnNumber = tnNumber * 10 ;
         tnDigit = tnChar - 48 ;
 
@@ -303,7 +304,7 @@ proc to_number ( )
             tnSuccess = 0 ;
             break;
         end
-
+        
         tnNumber = tnNumber + tnDigit ;
         tnIndex = tnIndex + 1 ;
         tnChar = token [ tnIndex ] ;
@@ -345,1867 +346,554 @@ proc isSeparator ( )
     end end end end end end end
 endproc isSeparator
 
-strToPush [ 0 ] = 117 ;
-strToPush [ 1 ] = 105 ;
-strToPush [ 2 ] = 110 ;
-strToPush [ 3 ] = 116 ;
-strToPush [ 4 ] = 56 ;
-strToPush [ 5 ] = 0 ;
-_ = addTokenType ( TK_UINT8 ) ;
+stringToPush [ 0 ] = 117 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 110 ;
+stringToPush [ 3 ] = 116 ;
+stringToPush [ 4 ] = 56 ;
+stringToPush [ 5 ] = 0 ;
+_ = register_token_type ( TOKEN_UINT8 ) ;
 
-strToPush [ 0 ] = 117 ;
-strToPush [ 1 ] = 105 ;
-strToPush [ 2 ] = 110 ;
-strToPush [ 3 ] = 116 ;
-strToPush [ 4 ] = 54 ;
-strToPush [ 5 ] = 52 ;
-strToPush [ 6 ] = 0 ;
-_ = addTokenType ( TK_UINT64 ) ;
+stringToPush [ 0 ] = 117 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 110 ;
+stringToPush [ 3 ] = 116 ;
+stringToPush [ 4 ] = 54 ;
+stringToPush [ 5 ] = 52 ;
+stringToPush [ 6 ] = 0 ;
+_ = register_token_type ( TOKEN_UINT64 ) ;
 
-strToPush [ 0 ] = 112 ;
-strToPush [ 1 ] = 111 ;
-strToPush [ 2 ] = 105 ;
-strToPush [ 3 ] = 110 ;
-strToPush [ 4 ] = 116 ;
-strToPush [ 5 ] = 101 ;
-strToPush [ 6 ] = 114 ;
-strToPush [ 7 ] = 0 ;
-_ = addTokenType ( TK_POINTER ) ;
+stringToPush [ 0 ] = 112 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 105 ;
+stringToPush [ 3 ] = 110 ;
+stringToPush [ 4 ] = 116 ;
+stringToPush [ 5 ] = 101 ;
+stringToPush [ 6 ] = 114 ;
+stringToPush [ 7 ] = 0 ;
+_ = register_token_type ( TOKEN_POINTER ) ;
 
-strToPush [ 0 ] = 97 ;
-strToPush [ 1 ] = 110 ;
-strToPush [ 2 ] = 100 ;
-strToPush [ 3 ] = 0 ;
-_ = addTokenType ( TK_LOGICAL_AND ) ;
+stringToPush [ 0 ] = 97 ;
+stringToPush [ 1 ] = 110 ;
+stringToPush [ 2 ] = 100 ;
+stringToPush [ 3 ] = 0 ;
+_ = register_token_type ( TOKEN_LOGICAL_AND ) ;
 
-strToPush [ 0 ] = 111 ;
-strToPush [ 1 ] = 114 ;
-strToPush [ 2 ] = 0 ;
-_ = addTokenType ( TK_LOGICAL_OR ) ;
+stringToPush [ 0 ] = 111 ;
+stringToPush [ 1 ] = 114 ;
+stringToPush [ 2 ] = 0 ;
+_ = register_token_type ( TOKEN_LOGICAL_OR ) ;
 
-strToPush [ 0 ] = 105 ;
-strToPush [ 1 ] = 102 ;
-strToPush [ 2 ] = 0 ;
-_ = addTokenType ( TK_IF ) ;
+stringToPush [ 0 ] = 105 ;
+stringToPush [ 1 ] = 102 ;
+stringToPush [ 2 ] = 0 ;
+_ = register_token_type ( TOKEN_IF ) ;
 
-strToPush [ 0 ] = 116 ;
-strToPush [ 1 ] = 104 ;
-strToPush [ 2 ] = 101 ;
-strToPush [ 3 ] = 110 ;
-strToPush [ 4 ] = 0 ;
-_ = addTokenType ( TK_THEN ) ;
+stringToPush [ 0 ] = 116 ;
+stringToPush [ 1 ] = 104 ;
+stringToPush [ 2 ] = 101 ;
+stringToPush [ 3 ] = 110 ;
+stringToPush [ 4 ] = 0 ;
+_ = register_token_type ( TOKEN_THEN ) ;
 
-strToPush [ 0 ] = 101 ;
-strToPush [ 1 ] = 108 ;
-strToPush [ 2 ] = 115 ;
-strToPush [ 3 ] = 101 ;
-strToPush [ 4 ] = 0 ;
-_ = addTokenType ( TK_ELSE ) ;
+stringToPush [ 0 ] = 101 ;
+stringToPush [ 1 ] = 108 ;
+stringToPush [ 2 ] = 115 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 0 ;
+_ = register_token_type ( TOKEN_ELSE ) ;
 
-strToPush [ 0 ] = 101 ;
-strToPush [ 1 ] = 110 ;
-strToPush [ 2 ] = 100 ;
-strToPush [ 3 ] = 0 ;
-_ = addTokenType ( TK_END ) ;
+stringToPush [ 0 ] = 101 ;
+stringToPush [ 1 ] = 110 ;
+stringToPush [ 2 ] = 100 ;
+stringToPush [ 3 ] = 0 ;
+_ = register_token_type ( TOKEN_END ) ;
 
-strToPush [ 0 ] = 119 ;
-strToPush [ 1 ] = 104 ;
-strToPush [ 2 ] = 105 ;
-strToPush [ 3 ] = 108 ;
-strToPush [ 4 ] = 101 ;
-strToPush [ 5 ] = 0 ;
-_ = addTokenType ( TK_WHILE ) ;
+stringToPush [ 0 ] = 119 ;
+stringToPush [ 1 ] = 104 ;
+stringToPush [ 2 ] = 105 ;
+stringToPush [ 3 ] = 108 ;
+stringToPush [ 4 ] = 101 ;
+stringToPush [ 5 ] = 0 ;
+_ = register_token_type ( TOKEN_WHILE ) ;
 
-strToPush [ 0 ] = 100 ;
-strToPush [ 1 ] = 111 ;
-strToPush [ 2 ] = 0 ;
-_ = addTokenType ( TK_DO ) ;
+stringToPush [ 0 ] = 100 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 0 ;
+_ = register_token_type ( TOKEN_DO ) ;
 
-strToPush [ 0 ] = 98 ;
-strToPush [ 1 ] = 114 ;
-strToPush [ 2 ] = 101 ;
-strToPush [ 3 ] = 97 ;
-strToPush [ 4 ] = 107 ;
-strToPush [ 5 ] = 0 ;
-_ = addTokenType ( TK_BREAK ) ;
+stringToPush [ 0 ] = 98 ;
+stringToPush [ 1 ] = 114 ;
+stringToPush [ 2 ] = 101 ;
+stringToPush [ 3 ] = 97 ;
+stringToPush [ 4 ] = 107 ;
+stringToPush [ 5 ] = 0 ;
+_ = register_token_type ( TOKEN_BREAK ) ;
 
-strToPush [ 0 ] = 99 ;
-strToPush [ 1 ] = 111 ;
-strToPush [ 2 ] = 110 ;
-strToPush [ 3 ] = 116 ;
-strToPush [ 4 ] = 105 ;
-strToPush [ 5 ] = 110 ;
-strToPush [ 6 ] = 117 ;
-strToPush [ 7 ] = 101 ;
-strToPush [ 8 ] = 0 ;
-_ = addTokenType ( TK_CONTINUE ) ;
+stringToPush [ 0 ] = 99 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 110 ;
+stringToPush [ 3 ] = 116 ;
+stringToPush [ 4 ] = 105 ;
+stringToPush [ 5 ] = 110 ;
+stringToPush [ 6 ] = 117 ;
+stringToPush [ 7 ] = 101 ;
+stringToPush [ 8 ] = 0 ;
+_ = register_token_type ( TOKEN_CONTINUE ) ;
 
-strToPush [ 0 ] = 112 ;
-strToPush [ 1 ] = 114 ;
-strToPush [ 2 ] = 111 ;
-strToPush [ 3 ] = 99 ;
-strToPush [ 4 ] = 0 ;
-_ = addTokenType ( TK_PROC ) ;
+stringToPush [ 0 ] = 112 ;
+stringToPush [ 1 ] = 114 ;
+stringToPush [ 2 ] = 111 ;
+stringToPush [ 3 ] = 99 ;
+stringToPush [ 4 ] = 0 ;
+_ = register_token_type ( TOKEN_PROC ) ;
 
-strToPush [ 0 ] = 118 ;
-strToPush [ 1 ] = 97 ;
-strToPush [ 2 ] = 114 ;
-strToPush [ 3 ] = 115 ;
-strToPush [ 4 ] = 0 ;
-_ = addTokenType ( TK_VARS ) ;
+stringToPush [ 0 ] = 118 ;
+stringToPush [ 1 ] = 97 ;
+stringToPush [ 2 ] = 114 ;
+stringToPush [ 3 ] = 115 ;
+stringToPush [ 4 ] = 0 ;
+_ = register_token_type ( TOKEN_VARS ) ;
 
-strToPush [ 0 ] = 99 ;
-strToPush [ 1 ] = 111 ;
-strToPush [ 2 ] = 100 ;
-strToPush [ 3 ] = 101 ;
-strToPush [ 4 ] = 0 ;
-_ = addTokenType ( TK_CODE ) ;
+stringToPush [ 0 ] = 99 ;
+stringToPush [ 1 ] = 111 ;
+stringToPush [ 2 ] = 100 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 0 ;
+_ = register_token_type ( TOKEN_CODE ) ;
 
-strToPush [ 0 ] = 114 ;
-strToPush [ 1 ] = 101 ;
-strToPush [ 2 ] = 116 ;
-strToPush [ 3 ] = 117 ;
-strToPush [ 4 ] = 114 ;
-strToPush [ 5 ] = 110 ;
-strToPush [ 6 ] = 0 ;
-_ = addTokenType ( TK_RETURN ) ;
+stringToPush [ 0 ] = 114 ;
+stringToPush [ 1 ] = 101 ;
+stringToPush [ 2 ] = 116 ;
+stringToPush [ 3 ] = 117 ;
+stringToPush [ 4 ] = 114 ;
+stringToPush [ 5 ] = 110 ;
+stringToPush [ 6 ] = 0 ;
+_ = register_token_type ( TOKEN_RETURN ) ;
 
-strToPush [ 0 ] = 115 ;
-strToPush [ 1 ] = 116 ;
-strToPush [ 2 ] = 114 ;
-strToPush [ 3 ] = 117 ;
-strToPush [ 4 ] = 99 ;
-strToPush [ 5 ] = 116 ;
-strToPush [ 6 ] = 0 ;
-_ = addTokenType ( TK_STRUCT ) ;
+stringToPush [ 0 ] = 115 ;
+stringToPush [ 1 ] = 116 ;
+stringToPush [ 2 ] = 114 ;
+stringToPush [ 3 ] = 117 ;
+stringToPush [ 4 ] = 99 ;
+stringToPush [ 5 ] = 116 ;
+stringToPush [ 6 ] = 0 ;
+_ = register_token_type ( TOKEN_STRUCT ) ;
 
-uint64 tk_type = 0 ;
-proc pushPrintTkn ( ) 
+`
+printf(`"Token dictionary count: %d\n"`, [token_dictionary_pointers_top])
+`
+uint64 token_type = 0 ;
+proc push_and_print_token ( ) `
+    printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'; "`, token)
+    `
     _ = to_number ( ) ;
-    if _ == 1 then
-        _ = pushToken ( TK_CONSTANT_INTEGER tnNumber line col ) ;
+    if _ == 1 then 
+        _ = push_token ( TOKEN_CONSTANT_INTEGER tnNumber line col ) ;
     else
-        tk_type = get_tk_type ( ) ;
-        if tk_type == 0 then
-            _ = pushToken ( TK_IDENT strPtrsTop line col ) ;
-            pushIdent ( ) ;
+        token_type = get_token_type ( ) ;
+        if token_type == 0 then 
+            _ = push_token ( TOKEN_IDENTIFIER stringPointersTop line col ) ;
+            push_identifier ( ) ;
         else
-            _ = pushToken ( tk_type 0 line col ) ;
-        end
-    end
-endproc pushPrintTkn
+            _ = push_token ( token_type 0 line col ) ;
+        end 
+    end 
+endproc push_and_print_token
 
-while scIdx < [bytesRead] do
-    c = src [ scIdx ] ;
+while scIndex < [bytesRead] do 
+    c = sourceCode [ scIndex ] ; 
     _ = isSpace ( ) ;
     isSep = isSeparator ( ) ;
-    if _ == 1 then
-        if tknIdx > 0 then
-            token [ tknIdx ] = 0 ;
-            pushPrintTkn ( ) ;
+    if _ == 1 then 
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ;
+            push_and_print_token ( ) ;
         end
 
-        if c == 10 then
+        if c == 10 then 
             line = line + 1 ;
-            lineStart = scIdx + 1 ;
+            line_start = scIndex + 1 ; 
         end
-        tknIdx = 0 ;
-        c = src [ scIdx ] ;
+        tokenIndex = 0 ;
+        c = sourceCode [ scIndex ] ;
         while true == 1 do
             _ = isSpace ( c ) ;
             if _ == 1 then
-                if c == 10 then
+                if c == 10 then 
                     line = line + 1 ;
-                    lineStart = scIdx + 1 ;
+                    line_start = scIndex + 1 ; 
                 end
-                scIdx = scIdx + 1 ;
-                c = src [ scIdx ] ;
+                scIndex = scIndex + 1 ;
+                c = sourceCode [ scIndex ] ;
             else
-                scIdx = scIdx - 1 ;
-                c = src [ scIdx ] ;
+                scIndex = scIndex - 1 ;
+                c = sourceCode [ scIndex ] ;
                 break ;
             end
-
+            
         end
-        col = 1 + scIdx - lineStart - 1 ; 
-    else if c == 34 then
-        if tknIdx > 0 then
-            token [ tknIdx ] = 0 ;
-            pushPrintTkn ( ) ;
+        col = 1 + scIndex - line_start - 1 ; `
+        printf(`"---------------SCIndex: %d, col: %d\n"`, [scIndex], [col])
+        `
+    else if c == 34 then 
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
-        tknIdx = 0 ;
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
-        scIdx = scIdx + 1 ;
-        c = src [ scIdx ] ;
-        while scIdx < [bytesRead] do
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;    
+        while scIndex < [bytesRead] do 
             if c == 92 then
-                scIdx = scIdx + 1 ;
-                c = src [ scIdx ] ;
+                scIndex = scIndex + 1 ;
+                c = sourceCode [ scIndex ] ;
                 if c == 34 then
-                    token [ tknIdx ] = c ;
-                    tknIdx = tknIdx + 1 ;
-                    scIdx = scIdx + 1 ;
-                    c = src [ scIdx ] ;
+                    token [ tokenIndex ] = c ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
                 else if c == 92 then
-                    token [ tknIdx ] = c ;
-                    tknIdx = tknIdx + 1 ;
-                    scIdx = scIdx + 1 ;
-                    c = src [ scIdx ] ;
+                    token [ tokenIndex ] = c ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
                 else if c == 110 then
-                    token [ tknIdx ] = 10 ;
-                    tknIdx = tknIdx + 1 ;
-                    scIdx = scIdx + 1 ;
-                    c = src [ scIdx ] ;
+                    token [ tokenIndex ] = 10 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
                 else if c == 114 then
-                    token [ tknIdx ] = 13 ;
-                    tknIdx = tknIdx + 1 ;
-                    scIdx = scIdx + 1 ;
-                    c = src [ scIdx ] ;
+                    token [ tokenIndex ] = 13 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
                 else if c == 116 then
-                    token [ tknIdx ] = 9 ;
-                    tknIdx = tknIdx + 1 ;
-                    scIdx = scIdx + 1 ;
-                    c = src [ scIdx ] ;
+                    token [ tokenIndex ] = 9 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
                 else if c == 48 then
-                    token [ tknIdx ] = 0 ;
-                    tknIdx = tknIdx + 1 ;
-                    scIdx = scIdx + 1 ;
-                    c = src [ scIdx ] ;
+                    token [ tokenIndex ] = 0 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
                 else if c == 39 then
-                    token [ tknIdx ] = 39 ;
-                    tknIdx = tknIdx + 1 ;
-                    scIdx = scIdx + 1 ;
-                    c = src [ scIdx ] ;
+                    token [ tokenIndex ] = 39 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
                 else if c == 92 then
-                    token [ tknIdx ] = 92 ;
-                    tknIdx = tknIdx + 1 ;
-                    scIdx = scIdx + 1 ;
-                    c = src [ scIdx ] ;
+                    token [ tokenIndex ] = 92 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
                 else `
                     printf(`"[\#27[91mERROR\#27[0m] Invalid escape sequence\n"`)
                     ExitProcess(1)`
-                end end end end end end end end
+                end end end end end end end end 
             else if c == 34 then
                 break ;
             else
-                token [ tknIdx ] = c ;
-                tknIdx = tknIdx + 1 ;
-                scIdx = scIdx + 1 ;
-                c = src [ scIdx ] ;
-            end end
+                token [ tokenIndex ] = c ;
+                tokenIndex = tokenIndex + 1 ;
+                scIndex = scIndex + 1 ;
+                c = sourceCode [ scIndex ] ;
+            end end 
         end
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
-        token [ tknIdx ] = 0 ; 
-        _ = pushToken ( TK_CONSTANT_STRING 0 line col ) ;
-        col = 2 + scIdx - lineStart - 1 ;
-        tknIdx = 0 ;
+        token [ tokenIndex ] = c ; 
+        tokenIndex = tokenIndex + 1 ;
+        token [ tokenIndex ] = 0 ; `
+        printf(`"[\#27[92mINFO\#27[0m] Token: [!] '%s'\n"`, token)
+        `
+        _ = push_token ( TOKEN_CONSTANT_STRING 0 line col ) ;
+        col = 2 + scIndex - line_start - 1 ;
+        tokenIndex = 0 ;
     else if isSep == 1 then
-        if tknIdx > 0 then
-            token [ tknIdx ] = 0 ;
-            pushPrintTkn ( ) ;
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
-        col = scIdx - lineStart - 1 ;
-        tknIdx = 0 ;
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
-        token [ tknIdx ] = 0 ; 
+        col = scIndex - line_start - 1 ; 
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        token [ tokenIndex ] = 0 ; `
+        printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+        `
         if c == 59 then
-            _ = pushToken ( TK_SEMICOLON 0 line col ) ;
+            _ = push_token ( TOKEN_SEMICOLON 0 line col ) ;
         else if c == 44 then
-            _ = pushToken ( TK_COMMA 0 line col ) ;
+            _ = push_token ( TOKEN_COMMA 0 line col ) ;
         else if c == 40 then
-            _ = pushToken ( TK_LEFT_PAREN 0 line col ) ;
+            _ = push_token ( TOKEN_LEFT_PARENTHESIS 0 line col ) ;
         else if c == 41 then
-            _ = pushToken ( TK_RIGHT_PAREN 0 line col ) ;
+            _ = push_token ( TOKEN_RIGHT_PARENTHESIS 0 line col ) ;
         else if c == 91 then
-            _ = pushToken ( TK_LEFT_BRACKET 0 line col ) ;
+            _ = push_token ( TOKEN_LEFT_BRACKET 0 line col ) ;
         else if c == 93 then
-            _ = pushToken ( TK_RIGHT_BRACKET 0 line col ) ;
+            _ = push_token ( TOKEN_RIGHT_BRACKET 0 line col ) ;
         else if c == 46 then
-            _ = pushToken ( TK_DOT 0 line col ) ;
-        end end end end end end end
-        tknIdx = 0 ;
-        col = 1 + scIdx - lineStart - 1 ;
+            _ = push_token ( TOKEN_DOT 0 line col ) ;
+        end end end end end end end 
+        tokenIndex = 0 ;
+        col = 1 + scIndex - line_start - 1 ;
     else if c == 61 then
-        if tknIdx > 0 then
-            token [ tknIdx ] = 0 ;
-            pushPrintTkn ( ) ;
-            col = scIdx - lineStart - 1 ;
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
+            col = scIndex - line_start - 1 ;
         end
-        tknIdx = 0 ;
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
-        scIdx = scIdx + 1 ;
-        c = src [ scIdx ] ;
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
         if c == 61 then
-            token [ tknIdx ] = c ;
-            tknIdx = tknIdx + 1 ;
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_EQUALS 0 line col ) ;
-            tknIdx = 0 ;
-        else
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_ASSIGNMENT 0 line col ) ;
-            tknIdx = 0 ;
-            scIdx = scIdx - 1 ;
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_EQUALS 0 line col ) ;
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_ASSIGNMENT 0 line col ) ;
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
         end
     else if c == 33 then
-        if tknIdx > 0 then
-            token [ tknIdx ] = 0 ;
-            pushPrintTkn ( ) ;
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
-        tknIdx = 0 ;
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
-        scIdx = scIdx + 1 ;
-        c = src [ scIdx ] ;
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
         if c == 61 then
-            token [ tknIdx ] = c ;
-            tknIdx = tknIdx + 1 ;
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_NOT_EQUALS 0 line col ) ;
-            tknIdx = 0 ;
-        else
-            token [ tknIdx ] = 0 ;
-            tknIdx = 0 ;
-            scIdx = scIdx - 1 ;
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_NOT_EQUALS 0 line col ) ;
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
         end
     else if c == 60 then
-        if tknIdx > 0 then
-            token [ tknIdx ] = 0 ;
-            pushPrintTkn ( ) ;
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
-        tknIdx = 0 ;
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
-        scIdx = scIdx + 1 ;
-        c = src [ scIdx ] ;
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
         if c == 61 then
-            token [ tknIdx ] = c ;
-            tknIdx = tknIdx + 1 ;
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_LESS_THAN_OR_EQUAL_TO 0 line col ) ;
-            tknIdx = 0 ;
-        else
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_LESS_THAN 0 line col ) ;
-            tknIdx = 0 ;
-            scIdx = scIdx - 1 ;
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_LESS_THAN_OR_EQUAL_TO 0 line col ) ;
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_LESS_THAN 0 line col ) ;
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
         end
     else if c == 62 then
-        if tknIdx > 0 then
-            token [ tknIdx ] = 0 ;
-            pushPrintTkn ( ) ;
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ;
+            push_and_print_token ( ) ;
         end
-        tknIdx = 0 ;
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
-        scIdx = scIdx + 1 ;
-        c = src [ scIdx ] ;
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
         if c == 61 then
-            token [ tknIdx ] = c ;
-            tknIdx = tknIdx + 1 ;
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_GREATER_THAN_OR_EQUAL_TO 0 line col ) ;
-            tknIdx = 0 ;
-        else
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_GREATER_THAN 0 line col ) ;
-            tknIdx = 0 ;
-            scIdx = scIdx - 1 ;
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_GREATER_THAN_OR_EQUAL_TO 0 line col ) ;
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_GREATER_THAN 0 line col ) ;
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
         end
     else if c == 43 then
-        if tknIdx > 0 then
-            token [ tknIdx ] = 0 ;
-            pushPrintTkn ( ) ;
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
-        tknIdx = 0 ;
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
-        scIdx = scIdx + 1 ;
-        c = src [ scIdx ] ;
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
         if c == 61 then
-            token [ tknIdx ] = c ;
-            tknIdx = tknIdx + 1 ;
-            token [ tknIdx ] = 0 ;
-            tknIdx = 0 ;
-        else
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_PLUS 0 line col ) ;
-            tknIdx = 0 ;
-            scIdx = scIdx - 1 ;
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_PLUS 0 line col ) ;
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
         end
     else if c == 42 then
-        if tknIdx > 0 then
-            token [ tknIdx ] = 0 ;
-            pushPrintTkn ( ) ;
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ;
+            push_and_print_token ( ) ;
         end
-        tknIdx = 0 ;
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
-        scIdx = scIdx + 1 ;
-        c = src [ scIdx ] ;
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
         if c == 61 then
-            token [ tknIdx ] = c ;
-            tknIdx = tknIdx + 1 ;
-            token [ tknIdx ] = 0 ;
-            tknIdx = 0 ;
-        else
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_MULTIPLY 0 line col ) ;
-            tknIdx = 0 ;
-            scIdx = scIdx - 1 ;
-        end
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_MULTIPLY 0 line col ) ;
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
+        end 
     else if c == 45 then
-        if tknIdx > 0 then
-            token [ tknIdx ] = 0 ;
-            pushPrintTkn ( ) ;
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
-        tknIdx = 0 ;
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
-        scIdx = scIdx + 1 ;
-        c = src [ scIdx ] ;
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
         if c == 61 then
-            token [ tknIdx ] = c ;
-            tknIdx = tknIdx + 1 ;
-            token [ tknIdx ] = 0 ;
-            tknIdx = 0 ;
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
         else if c == 62 then
-            token [ tknIdx ] = c ;
-            tknIdx = tknIdx + 1 ;
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_ARROW_RIGHT 0 line col ) ;
-            tknIdx = 0 ;
-        else
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_MINUS 0 line col ) ;
-            tknIdx = 0 ;
-            scIdx = scIdx - 1 ;
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_ARROW_RIGHT 0 line col ) ;
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_MINUS 0 line col ) ;
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
         end end
     else if c == 47 then
-        if tknIdx > 0 then
-            token [ tknIdx ] = 0 ;
-            pushPrintTkn ( ) ;
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
-        tknIdx = 0 ;
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
-        scIdx = scIdx + 1 ;
-        c = src [ scIdx ] ;
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
         if c == 61 then
-            token [ tknIdx ] = c ;
-            tknIdx = tknIdx + 1 ;
-            token [ tknIdx ] = 0 ;
-            tknIdx = 0 ;
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
         else if c == 47 then
-            tknIdx = 0 ;
-            scIdx = scIdx + 1 ;
+            tokenIndex = 0 ;
+            scIndex = scIndex + 1 ;
             while c != 10 do
-                scIdx = scIdx + 1 ;
-                c = src [ scIdx ] ;
+                scIndex = scIndex + 1 ;
+                c = sourceCode [ scIndex ] ;
             end
             line = line + 1 ;
-            lineStart = scIdx + 1 ;
-            col = 1 + scIdx - lineStart - 1 ;
-        else
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_DIVIDE 0 line col ) ;
-            tknIdx = 0 ;
-            scIdx = scIdx - 1 ;
-        end end
+            line_start = scIndex + 1 ;
+            col = 1 + scIndex - line_start - 1 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_DIVIDE 0 line col ) ;
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
+        end end  
     else if c == 37 then
-        if tknIdx > 0 then
-            token [ tknIdx ] = 0 ;
-            pushPrintTkn ( ) ;
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
         end
-        tknIdx = 0 ;
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
-        scIdx = scIdx + 1 ;
-        c = src [ scIdx ] ;
+        tokenIndex = 0 ;
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;
         if c == 61 then
-            token [ tknIdx ] = c ;
-            tknIdx = tknIdx + 1 ;
-            token [ tknIdx ] = 0 ;
-            tknIdx = 0 ;
-        else
-            token [ tknIdx ] = 0 ;
-            _ = pushToken ( TK_MODULO 0 line col ) ;
-            tknIdx = 0 ;
-            scIdx = scIdx - 1 ;
-        end
-    else
-        token [ tknIdx ] = c ;
-        tknIdx = tknIdx + 1 ;
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
+            `
+            tokenIndex = 0 ;
+        else 
+            token [ tokenIndex ] = 0 ; `
+            printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
+            `
+            _ = push_token ( TOKEN_MODULO 0 line col ) ;
+            tokenIndex = 0 ;
+            scIndex = scIndex - 1 ;
+        end  
+    else            
+        token [ tokenIndex ] = c ;
+        tokenIndex = tokenIndex + 1 ;
     end end end end end end end end end end end end
 
-    scIdx = scIdx + 1 ;
+    scIndex = scIndex + 1 ;
 end
 `
-    printf(`"; Token count: %d\n"`, [tokenCount])
-`
-
-uint64 glbBlockId = 0 ;
-uint64 glbProcId = 1 ;
-uint64 glbUserTypeId = 1 ;
-uint64 glbBoolParsingProc = 0 ;
-uint64 glbAllowVarDecl = 1 ;
-uint64 ppdLocalVarCount = 0 ;
-
-uint64 ppdRbpOffs = 0 ;
-
-array glbVars = uint64 [ 10000 ] ;
-uint64 glbVarCount = 0 ;
-uint64 glbVarSize = 5 ;
-
-uint64 gvTypeOffs     = 0 ;
-uint64 gvSubTypeOffs  = 1 ;
-uint64 gvNameOffs     = 2 ;
-uint64 gvValueOffs    = 3 ;
-uint64 gvScopeOffs    = 4 ;
-
-uint64 gvType        = 0 ;
-uint64 gvSubType     = 0 ;
-uint64 gvNamePointer = 0 ;
-uint64 gvValue       = 0 ;
-uint64 gvScope       = 0 ;
-
-proc addVar ( type subType namePointer value scope )
-    _ = gvTypeOffs + glbVarCount * glbVarSize ;
-    glbVars [ _ ] = type ;
-    _ = gvSubTypeOffs + glbVarCount * glbVarSize ;
-    glbVars [ _ ] = subType ;
-    _ = gvNameOffs + glbVarCount * glbVarSize ;
-    glbVars [ _ ] = namePointer ;
-    _ = gvValueOffs + glbVarCount * glbVarSize ;
-    glbVars [ _ ] = value ;
-    _ = gvScopeOffs + glbVarCount * glbVarSize ;
-    glbVars [ _ ] = scope ;
-    glbVarCount = glbVarCount + 1 ;
-endproc addVar
-
-array glbSymbolTable = uint64 [ 10000 ] ;
-uint64 glbSymbolsCount = 0 ;
-uint64 glbSymbolSize = 5 ;
-
-uint64 gsType        = 0 ;
-uint64 gsSubType     = 0 ;
-uint64 gsNamePointer = 0 ;
-uint64 gsValue       = 0 ;
-uint64 gsScope       = 0 ;
-
-uint64 gsTypeOffs     = 0 ;
-uint64 gsSubTypeOffs  = 1 ;
-uint64 gsNameOffs     = 2 ;
-uint64 gsValueOffs    = 3 ;
-uint64 gsScopeOffs    = 4 ;
-
-proc addSymbol ( type subType namePointer value scope )
-    _ = gvTypeOffs + glbSymbolsCount * glbSymbolSize ;
-    glbSymbolTable [ _ ] = type ;
-    _ = gvSubTypeOffs + glbSymbolsCount * glbSymbolSize ;
-    glbSymbolTable [ _ ] = subType ;
-    _ = gvNameOffs + glbSymbolsCount * glbSymbolSize ;
-    glbSymbolTable [ _ ] = namePointer ;
-    _ = gvValueOffs + glbSymbolsCount * glbSymbolSize ;
-    glbSymbolTable [ _ ] = value ;
-    _ = gvScopeOffs + glbSymbolsCount * glbSymbolSize ;
-    glbSymbolTable [ _ ] = scope ;
-    glbSymbolsCount = glbSymbolsCount + 1 ;
-endproc addSymbol
-
-proc forward readStr
-
-proc stringsEqual ( a b )
-    _ = readStr ( a ) ; `
-    mov rsi, rax
-    mov rax, strBuf
-    add rsi, rax
-    `
-    _ = readStr ( b ) ; `
-    mov rdi, rax
-    mov rax, strBuf
-    add rdi, rax
-.loop:
-    mov al, byte [rdi]
-    mov bl, byte [rsi]
-    cmp al, bl
-    jne .str_neq
-    cmp al, 0
-    je .str1_null
-    cmp bl, 0
-    je .str2_null
-    inc rdi
-    inc rsi
-    jmp .loop
-
-.str1_null:
-    cmp bl, 0
-    je .str_eq
-    jmp .str_neq
-
-.str2_null:
-    cmp al, 0
-    je .str_eq
-    jmp .str_neq
-
-.str_neq:
-    xor rax, rax
-    jmp .end
-
-.str_eq:
-    mov rax, 1
-.end: `
-endproc stringsEqual
-
-uint64 fgsIndex = 0 ;
-uint64 fgsNamePointer = 0 ;
-uint64 fgsEqual = 0 ;
-proc findSymbol ( namePointer )
-    fgsIndex = glbSymbolsCount - 1 ;
-    while fgsIndex >= 0 do
-        _ = gvNameOffs + fgsIndex * glbSymbolSize ;
-        fgsNamePointer = glbSymbolTable [ _ ] ;
-        fgsEqual = stringsEqual ( namePointer fgsNamePointer ) ;
-
-        if fgsEqual != 0 then
-            break ;
-        end
-
-        fgsIndex = fgsIndex - 1 ;
-    end
-
-    if fgsEqual == [true] then
-        _ = gsTypeOffs + fgsIndex * glbSymbolSize ;
-        gsType = glbSymbolTable [ _ ] ;
-        _ = gsSubTypeOffs + fgsIndex * glbSymbolSize ;
-        gsSubType = glbSymbolTable [ _ ] ;
-        _ = gsNameOffs + fgsIndex * glbSymbolSize ;
-        gsNamePointer = glbSymbolTable [ _ ] ;
-        _ = gsValueOffs + fgsIndex * glbSymbolSize ;
-        gsValue = glbSymbolTable [ _ ] ;
-        _ = gsScopeOffs + fgsIndex * glbSymbolSize ;
-        gsScope = glbSymbolTable [ _ ] ;
-
-        _ = gvValueOffs + fgsIndex * glbSymbolSize ; `
-        mov rax, [_] `
-    else
-        gsType = 0 ;
-        gsSubType = 0 ;
-        gsNamePointer = 0 ;
-        gsValue = 0 ;
-        gsScope = 0 ; `
-        mov rax, -1 `
-    end
-endproc findSymbol
-
-uint64 futUserType = 0 ;
-proc findUserType ( userType )
-    fgsIndex = 0 ;
-    fgsEqual = 0 ;
-    while fgsIndex < [glbSymbolsCount] do
-        _ = gsTypeOffs + fgsIndex * glbSymbolSize ;
-        _ = glbSymbolTable [ _ ] ;
-        if _ != [TYPE_USER_DEFINED] then
-            fgsIndex = fgsIndex - 1 ;
-            continue ;
-        end
-
-        _ = gsSubTypeOffs + fgsIndex * glbSymbolSize ;
-        _ = glbSymbolTable [ _ ] ;
-        futUserType = userType ;
-        if _ == [futUserType] then
-            fgsEqual = 1 ;
-            break ;
-        end
-
-        fgsIndex = fgsIndex + 1 ;
-    end
-
-    if fgsEqual == [true] then
-        _ = gsTypeOffs + fgsIndex * glbSymbolSize ;
-        gsType = glbSymbolTable [ _ ] ;
-        _ = gsSubTypeOffs + fgsIndex * glbSymbolSize ;
-        gsSubType = glbSymbolTable [ _ ] ;
-        _ = gsNameOffs + fgsIndex * glbSymbolSize ;
-        gsNamePointer = glbSymbolTable [ _ ] ;
-        _ = gsValueOffs + fgsIndex * glbSymbolSize ;
-        gsValue = glbSymbolTable [ _ ] ;
-        _ = gsScopeOffs + fgsIndex * glbSymbolSize ;
-        gsScope = glbSymbolTable [ _ ] ;
-
-        _ = gvValueOffs + fgsIndex * glbSymbolSize ;
-        _ = glbSymbolTable [ _ ] ; `
-        mov rax, [_] `
-    else
-        gsType = 0 ;
-        gsSubType = 0 ;
-        gsNamePointer = 0 ;
-        gsValue = 0 ;
-        gsScope = 0 ; `
-        mov rax, -1 `
-    end
-endproc findUserType
-
-uint64 currTkn = 0 ;
-uint64 nextToken = 0 ;
-
-array userTypes = uint64 [ 10000 ] ;
-uint64 userTypeCount = 0 ;
-uint64 userTypeSize = 4 ;
-
-uint64 utParentOffs   = 0 ;
-uint64 utTypeOffs     = 1 ;
-uint64 utNameOffs     = 2 ;
-uint64 utOffsOffs   = 3 ;
-
-uint64 utParent   = 0 ;
-uint64 utType     = 0 ;
-uint64 utNamePointer = 0 ;
-uint64 utOffs   = 0 ;
-
-proc addUserTypeField ( parent type namePointer offs )
-    _ = utParentOffs + userTypeCount * userTypeSize ;
-    utParent = parent ;
-    userTypes [ _ ] = utParent ;
-
-    _ = utTypeOffs + userTypeCount * userTypeSize ;
-    utType = type ;
-    userTypes [ _ ] = utType ;
-
-    _ = utNameOffs + userTypeCount * userTypeSize ;
-    utNamePointer = namePointer ;
-    userTypes [ _ ] = utNamePointer ;
-
-    _ = utOffsOffs + userTypeCount * userTypeSize ;
-    utOffs = offs ;
-    userTypes [ _ ] = utOffs ;
-
-    userTypeCount = userTypeCount + 1 ;
-endproc addUserTypeField
-
-proc findUserTypeField ( parent fieldNamePointer )
-    fgsIndex = glbSymbolsCount - 1 ;
-    while userTypeCount >= 0 do
-        _ = utParentOffs + fgsIndex * userTypeSize ;
-        utParent = userTypes [ _ ] ;
-
-        _ = parent ;
-        if utParent != [_] then
-            fgsIndex = fgsIndex - 1 ;
-            continue ;
-        end
-
-        _ = utNameOffs + fgsIndex * userTypeSize ;
-        utNamePointer = userTypes [ _ ] ;
-        fgsEqual = stringsEqual ( fieldNamePointer utNamePointer ) ;
-
-        if fgsEqual != 0 then
-            break ;
-        end
-
-        fgsIndex = fgsIndex - 1 ;
-    end
-
-    if fgsEqual == [true] then
-        _ = utParentOffs + fgsIndex * userTypeSize ;
-        utParent = userTypes [ _ ] ;
-        _ = utTypeOffs + fgsIndex * userTypeSize ;
-        utType = userTypes [ _ ] ;
-        _ = utNameOffs + fgsIndex * userTypeSize ;
-        utNamePointer = userTypes [ _ ] ;
-        _ = utOffsOffs + fgsIndex * userTypeSize ;
-        utOffs = userTypes [ _ ] ;
-
-        _ = utOffsOffs + fgsIndex * userTypeSize ;
-        _ = userTypes [ _ ] ;
-        `
-        printf(`"[Trace] Found user type field: #%d with offs %d.\n"`, [fgsIndex], [_])
-        mov rax, [_] `
-    else
-        utParent = 0 ;
-        utType = 0 ;
-        utNamePointer = 0 ;
-        utOffs = 0 ; `
-        mov rax, -1 `
-    end
-endproc findUserTypeField
-
-proc pushString ( )
-    freeStringIndex = 0 ;
-    freeChar = strToPush [ freeStringIndex ] ;
-    strPtrs [ strPtrsTop ] = strBufTop ;
-
-    while freeChar != 0 do
-        strBuf [ strBufTop ] = freeChar ;
-        strBufTop = strBufTop + 1 ;
-        freeStringIndex = freeStringIndex + 1 ;
-        freeChar = strToPush [ freeStringIndex ] ;
-    end
-
-    strBuf [ strBufTop ] = 0 ;
-    strBufTop = strBufTop + 1 ;
-    `
-    printf(`"[Trace] Pushed string: #%d with length %d.\n"`, [strPtrsTop], [freeStringIndex])
-    `
-    strPtrsTop = strPtrsTop + 1 ;
-endproc pushString
-
-array strAtPtr = uint8 [ 256 ] ;
-proc readStr ( index )
-    freeStringIndex = 0 ;
-    _ = index ;
-    sbIndex = strPtrs [ _ ] ;
-    _ = sbIndex ;
-    freeChar = strBuf [ sbIndex ] ;
-
-    while freeChar != 0 do
-        strAtPtr [ freeStringIndex ] = freeChar ;
-        freeStringIndex = freeStringIndex + 1 ;
-        sbIndex = sbIndex + 1 ;
-        freeChar = strBuf [ sbIndex ] ;
-    end
-    strAtPtr [ freeStringIndex ] = 0 ; `
-    mov rax, [_]`
-endproc readStr
-
-array output = uint8 [ 1000000 ] ;
-uint64 outputCount = 0 ;
-
-uint64 i = 0 ;
-
-uint64 errLine = 0 ;
-uint64 errCol = 0 ;
-uint64 n = 0 ;
-proc consume ( expected )
-    n = expected ;
-    if currTkn == [n] then
-        i = i + tknSize ;
-        currTkn = tkns [ i ] ;
-        i = i + tknSize ;
-        nextToken = tkns [ i ] ;
-        i = i - tknSize ;
-    else
-        n = i + 2 ;
-        errLine = tkns [ n ] ;
-        n = i + 3 ;
-        errCol = tkns [ n ] ;
-        `
-        printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-        printf(`"expected token %d but got %d\n"`, [_], [currTkn])
-        ExitProcess(1) `
-    end
-endproc consume
-
-
-proc indentifierRedeclared ( namePointer )
-    _ = i - tknSize ;
-    _ = _ + 2 ;
-    errLine = tkns [ _ ] ;
-    _ = i - tknSize ;
-    _ = _ + 3 ;
-    errCol = tkns [ _ ] ;
-    _ = readStr ( namePointer ) ; `
-    printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-    printf(`"ident redeclared: %s\n"`, strAtPtr) ;
-    ExitProcess(1)`
-endproc indentifierRedeclared
-
-proc identUnknown ( namePointer )
-    _ = i - tknSize ;
-    _ = _ + 2 ;
-    errLine = tkns [ _ ] ;
-    _ = i - tknSize ;
-    _ = _ + 3 ;
-    errCol = tkns [ _ ] ;
-    _ = readStr ( namePointer ) ; `
-    printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-    printf(`"unknown ident: %s\n"`, strAtPtr) ;
-    ExitProcess(1)`
-endproc identUnknown
-
-proc unexpectedToken ( )
-    _ = i + 2 ;
-    errLine = tkns [ _ ] ;
-    _ = i + 3 ;
-    errCol = tkns [ _ ] ;
-    `
-    printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-    printf(`"unexpected token %d\n"`, [currTkn])
-    ExitProcess(1)`
-endproc unexpectedToken
-
-proc parseNumber ( )
-    _ = i + 1 ;
-    _ = tkns [ _ ] ;
-    __ = consume ( TK_CONSTANT_INTEGER ) ; `
-    mov rax, [_]`
-endproc parseNumber
-
-proc parseIdent ( )
-    _ = i + 1 ;
-    _ = tkns [ _ ] ;
-    __ = consume ( TK_IDENT ) ; `
-    mov rax, [_]`
-endproc parseIdent
-
-proc parseType ( )
-    if currTkn == [TK_UINT8] then
-        _ = TYPE_UINT8 ;
-         i = i + tknSize ;
-        currTkn = tkns [ i ] ;
-    else if currTkn == [TK_UINT64] then
-        _ = TYPE_UINT64 ;
-        i = i + tknSize ;
-        currTkn = tkns [ i ] ;
-    else if currTkn == [TK_POINTER] then
-        _ = TYPE_POINTER ;
-        i = i + tknSize ;
-        currTkn = tkns [ i ] ;
-    else
-        unexpectedToken ( ) ;
-    end end end
-    `
-    mov rax, [_]`
-endproc parseType
-
-proc parseArrayDecl ( )
-    if glbBoolParsingProc != 0 then
-        _ = i + 2 ;
-        errLine = tkns [ _ ] ;
-        _ = i + 3 ;
-        errCol = tkns [ _ ] ;
-        `
-        printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-        printf(`"arrays decls are not allowed in procs\n"`)`
-    end
-
-    __ = consume ( TK_LEFT_BRACKET ) ;
-
-    gvValue = parseNumber ( ) ;
-
-    __ = consume ( TK_RIGHT_BRACKET ) ;
-
-    gvNamePointer = parseIdent ( ) ;
-
-    gvSubType = gvType ;
-    gvType = TYPE_ARRAY ;
-
-    `
-    printf(`"[Trace] Array decl: type %d, subtype %d\n"`, [gvType], [gvSubType])
-    `
-    _ = addVar ( gvType gvSubType gvNamePointer gvValue VAR_SCOPE_GLB ) ;
-    _ = addSymbol ( gvType gvSubType gvNamePointer gvValue VAR_SCOPE_GLB ) ; `
-    printf(`"[Trace] Array decl: type %d, value %d\n"`, [gvType], [gvValue])`
-endproc parseArrayDecl
-
-proc parseIntegerDecl ( )
-    gvNamePointer = parseIdent ( ) ;
-
-    fgsIndex = findSymbol ( gvNamePointer ) ;
-
-    if fgsIndex != -1 then
-        _ = indentifierRedeclared ( gvNamePointer ) ;
-    end
-
-    __ = consume ( TK_ASSIGNMENT ) ;
-
-    gvValue = parseNumber ( ) ;
-
-    if glbBoolParsingProc == 0 then
-        _ = addVar ( gvType 0 gvNamePointer gvValue VAR_SCOPE_GLB ) ;
-        _ = addSymbol ( gvType 0 gvNamePointer 0 VAR_SCOPE_GLB ) ;
-    else
-        _ = addVar ( gvType VARTYPE_LOCAL gvNamePointer gvValue glbProcId ) ;
-        _ = addSymbol ( gvType VARTYPE_LOCAL gvNamePointer ppdRbpOffs glbProcId ) ;
-        ppdRbpOffs = ppdRbpOffs + 8 ;
-    end
-endproc parseIntegerDecl
-
-proc parseVarDecl ( )
-    if glbAllowVarDecl == 0 then
-        _ = i + 2 ;
-        errLine = tkns [ _ ] ;
-        _ = i + 3 ;
-        errCol = tkns [ _ ] ;
-        `
-        printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-        printf(`"var decls are not allowed in proc code section\n"`)`
-    end
-
-    ppdLocalVarCount = ppdLocalVarCount + 1 ;
-
-    gvType = parseType ( ) ;
-
-    if currTkn == [TK_LEFT_BRACKET] then
-        parseArrayDecl ( ) ;
-    else if currTkn == [TK_IDENT] then
-        parseIntegerDecl ( ) ;
-    else
-        unexpectedToken ( ) ;
-    end end
-
-    __ = consume ( TK_SEMICOLON ) ;
-endproc parseVarDecl
-
-proc forward parseAdditiveExpr
-proc forward parseStmts
-proc forward parseArrayAccess
-proc forward parseProcCall
-proc forward parseStructAccess
-
-uint64 fpIdent = 0 ;
-proc parseFactor ( )
-    if currTkn == [TK_CONSTANT_INTEGER] then
-        _ = parseNumber ( ) ; `
-        printf(`"\tpush %d\n"`, [_])`
-    else if currTkn == [TK_LEFT_PAREN] then
-        __ = consume ( TK_LEFT_PAREN ) ;
-
-        parseAdditiveExpr ( ) ;
-
-        __ = consume ( TK_RIGHT_PAREN ) ;
-    else if currTkn == [TK_IDENT] then
-        if nextToken == [TK_LEFT_BRACKET] then
-            fpIdent = parseArrayAccess ( ) ;
-
-            fgsIndex = findSymbol ( fpIdent ) ;
-
-            if fgsIndex == -1 then
-                _ = identUnknown ( fpIdent ) ;
-            end
-
-            _ = readStr ( fpIdent ) ;
-
-            if gsSubType == [TYPE_UINT8] then `
-                printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush [rax]\n"`, strAtPtr)`
-            else if gsSubType == [TYPE_UINT64] then `
-                printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, strAtPtr)`
-            else if gsSubType == [TYPE_POINTER] then `
-                printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, strAtPtr)`
-            else `
-                printf(`"[Error] Error: unknown array type %d\n"`, [gsSubType])
-                ExitProcess(1)`
-            end end end 
-        else if nextToken == [TK_LEFT_PAREN] then
-            parseProcCall ( ) ; `
-            printf(`"\tpush rax\n"`)`
-        else if nextToken == [TK_DOT] then
-            parseStructAccess ( ) ; 
-        else
-            _ = i + 1 ;
-            _ = tkns [ _ ] ;
-
-            fpIdent = parseIdent ( ) ;
-
-            fgsIndex = findSymbol ( fpIdent ) ;
-
-            if fgsIndex == -1 then
-                _ = identUnknown ( fpIdent ) ;
-            end
-
-            _ = readStr ( fpIdent ) ;
-            if gsScope == [VAR_SCOPE_GLB] then
-                if gsType == [TYPE_UINT8] then `
-                    printf(`"\tpush byte [%s]\n"`, strAtPtr)`
-                else if gsType == [TYPE_UINT64] then `
-                    printf(`"\tpush qword [%s]\n"`, strAtPtr)`
-                else if gsType == [TYPE_POINTER] then `
-                    printf(`"\tpush qword [%s]\n"`, strAtPtr)`
-                else `
-                    printf(`"[Error] Error: unknown type %d\n"`, [gsType])
-                    ExitProcess(1)`
-                end end end
-            else
-                if gsSubType == [VARTYPE_PARAMETER] then `
-                    printf(`"\tpush qword [rbp + %d]\n"`, [gsValue])`
-                else if gsSubType == [VARTYPE_LOCAL] then `
-                    printf(`"\tpush qword [rbp - %d]\n"`, [gsValue])`
-                else `
-                    printf(`"[Error] Error: unknown subtype %d\n"`, [gsType])
-                    ExitProcess(1)`
-                end end
-            end
-        end end end
-    else
-        unexpectedToken ( ) ;
-    end end end
-endproc parseFactor
-
-proc parseMultiplicativeExpr ( )
-    parseFactor ( ) ;
-    while true == 1 do
-        if currTkn == [TK_MULTIPLY] then
-            __ = consume ( TK_MULTIPLY ) ;
-            parseFactor ( ) ; `
-            printf(`"[Trace] MULTIPLY *\n"`)
-            printf(`"\tpop rbx\n\tpop rax\n\tmul rbx\n\tpush rax\n"`)`
-        else if currTkn == [TK_DIVIDE] then
-            __ = consume ( TK_DIVIDE ) ;
-            parseFactor ( ) ; `
-            printf(`"[Trace] DIVIDE /\n"`)
-            printf(`"\tpop rbx\n\tpop rax\n\tdiv rbx\n\tpush rax\n"`)`
-        else if currTkn == [TK_MODULO] then
-            __ = consume ( TK_MODULO ) ;
-            parseFactor ( ) ; `
-            printf(`"[Trace] MODULO %%\n"`)
-            printf(`"\tpop rbx\n\tpop rax\n\tdiv rbx\n\tpush rdx\n"`)`
-        else
-            break
-        end end end
-    end
-endproc parseMultiplicativeExpr
-
-proc parseAdditiveExpr ( )
-    parseMultiplicativeExpr ( ) ;
-    while true == 1 do
-        if currTkn == [TK_PLUS] then
-            __ = consume ( TK_PLUS ) ;
-            parseMultiplicativeExpr ( ) ; `
-            printf(`"; -- plus --\n"`)
-            printf(`"\tpop rbx\n\tpop rax\n\tadd rax, rbx\n\tpush rax\n"`)`
-        else if currTkn == [TK_MINUS] then
-            __ = consume ( TK_MINUS ) ;
-            parseMultiplicativeExpr ( ) ; `
-            printf(`"[Trace] MINUS -\n"`)
-            printf(`"\tpop rbx\n\tpop rax\n\tsub rax, rbx\n\tpush rax\n"`)`
-        else
-            break ;
-        end end
-    end
-endproc parseAdditiveExpr
-
-uint64 preIndex = 0 ;
-proc parseRelationalExpr ( )
-    parseAdditiveExpr ( ) ;
-    if currTkn == [TK_LESS_THAN] then
-        __ = consume ( TK_LESS_THAN ) ;
-        parseAdditiveExpr ( ) ; `
-        printf(`"; -- < --\n"`)
-        printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjl .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
-        printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
-        `
-        preIndex = preIndex + 1 ;
-    else if currTkn == [TK_LESS_THAN_OR_EQUAL_TO] then
-        __ = consume ( TK_LESS_THAN_OR_EQUAL_TO ) ;
-        parseAdditiveExpr ( ) ; `
-        printf(`"; -- <= --\n"`)
-        printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjle .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
-        printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
-        `
-        preIndex = preIndex + 1 ;
-    else if currTkn == [TK_GREATER_THAN] then
-        __ = consume ( TK_GREATER_THAN ) ;
-        parseAdditiveExpr ( ) ; `
-        printf(`"; -- > --\n"`)
-        printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjg .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
-        printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
-        `
-        preIndex = preIndex + 1 ;
-    else if currTkn == [TK_GREATER_THAN_OR_EQUAL_TO] then
-        __ = consume ( TK_GREATER_THAN_OR_EQUAL_TO ) ;
-        parseAdditiveExpr ( ) ; `
-        printf(`"; -- >= --\n"`)
-        printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjge .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
-        printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
-        `
-        preIndex = preIndex + 1 ;
-    else if currTkn == [TK_EQUALS] then
-        __ = consume ( TK_EQUALS ) ;
-        parseAdditiveExpr ( ) ; `
-        printf(`"; -- == --\n"`)
-        printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tje .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
-        printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
-        `
-        preIndex = preIndex + 1 ;
-    else if currTkn == [TK_NOT_EQUALS] then
-        __ = consume ( TK_NOT_EQUALS ) ;
-        parseAdditiveExpr ( ) ; `
-        printf(`"; -- != --\n"`)
-        printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjne .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
-        printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
-        `
-        preIndex = preIndex + 1 ;
-    end end end end end end
-endproc parseRelationalExpr
-
-proc parseLogicalAndExpr ( )
-    parseRelationalExpr ( ) ;
-    while true == 1 do
-        if currTkn == [TK_LOGICAL_AND] then
-            __ = consume ( TK_LOGICAL_AND ) ;
-            parseRelationalExpr ( ) ; `
-            printf(`"[Trace] LOGICAL_AND &&\n"`)
-            printf(`"\tpop rbx\n\tpop rax\n\tand rax, rbx\n\tpush rax\n"`)`
-        else
-            break ;
-        end
-    end
-endproc parseLogicalAndExpr
-
-proc parseLogicalOrExpr ( )
-    parseLogicalAndExpr ( ) ;
-    while true == 1 do
-        if currTkn == [TK_LOGICAL_OR] then
-            __ = consume ( TK_LOGICAL_OR ) ;
-            parseLogicalAndExpr ( ) ; `
-            printf(`"[Trace] LOGICAL_OR ||\n"`)
-            printf(`"\tpop rbx\n\tpop rax\n\tor rax, rbx\n\tpush rax\n"`)`
-        else
-            break ;
-        end
-    end
-endproc parseLogicalOrExpr
-
-uint64 paaIdent = 0 ;
-proc parseArrayAccess ( )
-    paaIdent = parseIdent ( ) ;
-    __ = consume ( TK_LEFT_BRACKET ) ;
-    parseAdditiveExpr ( ) ;
-    __ = consume ( TK_RIGHT_BRACKET ) ; `
-    mov rax, [paaIdent]`
-endproc parseArrayAccess
-
-uint64 psaType = 0 ;
-uint64 psaIdent = 0 ;
-uint64 psaStructFieldIdent = 0 ;
-proc parseStructAccess ( )
-    psaIdent = parseIdent ( ) ;
-
-    fgsIndex = findSymbol ( psaIdent ) ;
-
-    if fgsIndex == -1 then
-        _ = identUnknown ( psaIdent ) ;
-    end
-
-    psaType = gsSubType ;
-
-    _ = readStr ( psaIdent ) ; `
-    printf(`"; var assignment\n"`)
-    printf(`"\tmov rax, %s\n\tpush rax\n"`, strAtPtr)
-    `
-    __ = consume ( TK_DOT ) ;
-
-    psaStructFieldIdent = parseIdent ( ) ;
-
-    fgsIndex = findUserTypeField ( psaType psaStructFieldIdent ) ; `
-    printf(`"\tpop rax\n\tadd rax, %d\n\tpush rax\n"`, [utOffs])`
-endproc parseStructAccess
-
-uint64 paIdent = 0 ;
-uint64 paUTFieldIdent = 0 ;
-uint64 paType = 0 ;
-proc parseAssignable ( )
-    if nextToken == [TK_LEFT_BRACKET] then
-        paIdent = parseArrayAccess ( ) ;
-
-        fgsIndex = findSymbol ( paIdent ) ;
-
-        if fgsIndex == -1 then
-            _ = identUnknown ( paIdent ) ;
-        end
-        _ = readStr ( paIdent ) ;
-
-        if gsSubType == [TYPE_UINT8] then `
-            printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush rax\n"`, strAtPtr)`
-        else if gsSubType == [TYPE_UINT64] then `
-            printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush rax\n"`, strAtPtr)`
-        else if gsSubType == [TYPE_POINTER] then `
-            printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush rax\n"`, strAtPtr)`
-        else `
-            printf(`"[Error] Error: unknown array type %d\n"`, [gsSubType])
-            ExitProcess(1)`
-        end end end `
-        printf(`"; array assignment ct %d\n"`, [currTkn])`
-    else if nextToken == [TK_DOT] then
-        parseStructAccess ( ) ;
-    else
-        paIdent = parseIdent ( ) ;
-
-        fgsIndex = findSymbol ( paIdent ) ;
-
-        if fgsIndex == -1 then
-            _ = identUnknown ( paIdent ) ;
-        end `
-        printf(`"; var assignment\n"`)`
-    end end `
-    mov rax, [paIdent]`
-endproc parseAssignable
-
-uint64 pasIdent = 0 ;
-proc parseAssignmentStmt ( )
-    pasIdent = parseAssignable ( ) ;
-    __ = consume ( TK_ASSIGNMENT ) ;
-    parseLogicalOrExpr ( ) ;
-    __ = consume ( TK_SEMICOLON ) ;
-    fgsIndex = findSymbol ( pasIdent ) ;
-
-    if fgsIndex == -1 then
-        _ = identUnknown ( pasIdent ) ;
-    end
-    _ = readStr ( pasIdent ) ;
-
-    if gsType == [TYPE_UINT8] then
-        if gsScope == [VAR_SCOPE_GLB] then `
-            printf(`"\tpop rax\n\tmov byte [%s], al\n"`, strAtPtr)`
-        else if gsSubType == [VARTYPE_LOCAL] then `
-            printf(`"\tpop rax\n\tmov qword [rbp - %d], rax\n"`, [gsValue])`
-        else if gsSubType == [VARTYPE_PARAMETER] then `
-            printf(`"Cannot assign to a parameter\n"`)`
-        end end end
-    else if gsType == [TYPE_UINT64] then
-        if gsScope == [VAR_SCOPE_GLB] then `
-            printf(`"\tpop rax\n\tmov qword [%s], rax\n"`, strAtPtr)`
-        else if gsSubType == [VARTYPE_LOCAL] then `
-            printf(`"\tpop rax\n\tmov qword [rbp - %d], rax\n"`, [gsValue])`
-        else if gsSubType == [VARTYPE_PARAMETER] then `
-            printf(`"Cannot assign to a parameter\n"`)`
-        end end end
-    else if gsType == [TYPE_POINTER] then
-        if gsScope == [VAR_SCOPE_GLB] then `
-            printf(`"\tpop rax\n\tmov qword [%s], rax\n"`, strAtPtr)`
-        else if gsSubType == [VARTYPE_LOCAL] then `
-            printf(`"\tpop rax\n\tmov qword [rbp - %d], rax\n"`, [gsValue])`
-        else if gsSubType == [VARTYPE_PARAMETER] then `
-            printf(`"Cannot assign to a parameter\n"`)`
-        end end end
-    else if gsType == [TYPE_ARRAY] then
-        if gsSubType == [TYPE_UINT8] then `
-            printf(`"\tpop rbx\n\tpop rax\n\tmov byte [rax], bl\n"`)`
-        else if gsSubType == [TYPE_UINT64] then `
-            printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`)`
-        else if gsSubType == [TYPE_POINTER] then `
-            printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`)`
-        else `
-            printf(`"[Error] Error: unknown array type %d\n"`, [gsType])
-            ExitProcess(1)`
-        end end end
-    else if gsType == [TYPE_USER_DEFINED] then `
-        printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`)`
-    else `
-        printf(`"[Error] Error: unknown type %d\n"`, [gsType])
-        ExitProcess(1)`
-    end end end end end 
-endproc parseAssignmentStmt
-
-proc parseIfStmt ( blockId hasElse )
-    glbBlockId = glbBlockId + 1 ;
-    __ = consume ( TK_IF ) ; `
-    printf(`"; if stmt block id: %d\n"`, [rbp + 16])
-    `
-    parseLogicalOrExpr ( ) ;
-
-    __ = consume ( TK_THEN ) ; `
-    printf(`"\tpop rax\n\tcmp rax, 0\n\tjz .condition_false_%d\n; then stmt block id %d\n"`, [rbp + 16], [rbp + 16])
-    `
-    parseStmts ( ) ;
-
-    if currTkn == [TK_ELSE] then
-        hasElse = 1 ;
-        __ = consume ( TK_ELSE ) ; `
-        printf(`"\tjmp .endif_%d:\n"`, [rbp + 16])
-        printf(`".condition_false_%d:\n; else stmt block id %d\n"`, [rbp + 16], [rbp + 16])
-        `
-        parseStmts ( ) ;
-    end
-
-    __ = consume ( TK_END ) ;
-    _ = hasElse ;
-    if _ == 1 then `
-        printf(`".endif_%d:\n"`, [rbp + 16])`
-    else `
-        printf(`".condition_false_%d:\n"`, [rbp + 16])`
-    end 
-endproc parseIfStmt
-
-uint64 wsBlockId = 0 ;
-proc parseWhileStmt ( blockId )
-    wsBlockId = blockId ;
-    _ = i + 1 ;
-    tkns [ _ ] = wsBlockId ;
-    glbBlockId = glbBlockId + 1 ;
-    __ = consume ( TK_WHILE ) ; `
-    printf(`".while_%d:\n"`, [rbp + 16])
-    `
-    parseLogicalOrExpr ( ) ;
-
-    __ = consume ( TK_DO ) ; `
-    printf(`"\tpop rax\n\tcmp rax, 0\n\tjz .endwhile_%d\n; do stmt %d\n"`, [rbp + 16], [rbp + 16])
-    `
-    parseStmts ( ) ;
-
-    __ = consume ( TK_END ) ; `
-    printf(`"\tjmp .while_%d\n"`, [rbp + 16])
-    printf(`".endwhile_%d:\n"`, [rbp + 16])`
-endproc parseWhileStmt
-
-uint64 pbsBlockId = 0 ;
-uint64 pbsIndex = 0 ;
-uint64 pbsCurrTkn = 0 ;
-proc parseBreakStmt ( )
-    __ = consume ( TK_BREAK ) ;
-    __ = consume ( TK_SEMICOLON ) ;
-
-    pbsIndex = i - tknSize - tknSize ;
-    while pbsIndex >= 0 do
-        pbsCurrTkn = tkns [ pbsIndex ] ;
-        if pbsCurrTkn == [TK_WHILE] then
-            pbsIndex = pbsIndex + 1 ;
-            pbsBlockId = tkns [ pbsIndex ] ; `
-            printf(`"\tjmp .endwhile_%d\n"`, [pbsBlockId])`
-            break ;
-        end
-        pbsIndex = pbsIndex - tknSize ;
-    end
-endproc parseBreakStmt
-
-uint64 pcsBlockId = 0 ;
-uint64 pcsIndex = 0 ;
-uint64 pcsCurrTkn = 0 ;
-proc parseContinueStmt ( )
-    __ = consume ( TK_CONTINUE ) ;
-    __ = consume ( TK_SEMICOLON ) ;
-    pcsIndex = i - tknSize - tknSize ;
-    while pcsIndex >= 0 do
-        pcsCurrTkn = tkns [ pcsIndex ] ;
-        if pcsCurrTkn == [TK_WHILE] then
-            pcsIndex = pcsIndex + 1 ;
-            pcsBlockId = tkns [ pcsIndex ] ; `
-            printf(`"\tjmp .while_%d\n"`, [pcsBlockId])`
-            break ;
-        end
-        pcsIndex = pcsIndex - tknSize ;
-    end
-endproc parseContinueStmt
-
-uint64 paProArgCount = 0 ;
-proc parseArgs ( )
-    paProArgCount = 0 ;
-    gvType = parseType ( ) ;
-    gvNamePointer = parseIdent ( ) ;
-    _ = addVar ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffs glbProcId ) ;
-    _ = addSymbol ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffs glbProcId ) ;
-    ppdRbpOffs = ppdRbpOffs + 8 ;
-    paProArgCount = paProArgCount + 1 ;
-    while true == 1 do
-        if currTkn == [TK_COMMA] then
-            __ = consume ( TK_COMMA ) ;
-
-            gvType = parseType ( ) ;
-            gvNamePointer = parseIdent ( ) ;
-            _ = addVar ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffs glbProcId ) ;
-            _ = addSymbol ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffs glbProcId ) ;
-            ppdRbpOffs = ppdRbpOffs + 8 ;
-            paProArgCount = paProArgCount + 1 ;
-        else
-            break ;
-        end
-    end `
-    mov rax, [paProArgCount]`
-endproc parseArgs
-
-uint64 ppdIdent = 0 ;
-
-uint64 ppdHasReturnValue = 0 ;
-uint64 ppdReturnStmtCount = 0 ;
-proc parseProcDecl ( )
-    if glbBoolParsingProc == 1 then
-        _ = i - tknSize ;
-        _ = _ + 2 ;
-        errLine = tkns [ _ ] ;
-        _ = i - tknSize ;
-        _ = _ + 3 ;
-        errCol = tkns [ _ ] ; `
-        printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-        printf(`"nested proc decl is not allowed\n"`)
-        ExitProcess(1)`
-
-    end
-
-    __ = consume ( TK_PROC ) ;
-
-    ppdIdent = parseIdent ( ) ;
-
-    fgsIndex = findSymbol ( ppdIdent ) ;
-
-    if fgsIndex != -1 then
-        _ = indentifierRedeclared ( ppdIdent ) ;
-    end
-
-    __ = consume ( TK_LEFT_PAREN ) ;
-
-    if currTkn != [TK_RIGHT_PAREN] then
-        ppdRbpOffs = 16 ;
-        parseArgs ( ) ;
-    end
-
-    __ = consume ( TK_RIGHT_PAREN ) ;
-
-    ppdHasReturnValue = 0 ;
-    if currTkn == [TK_ARROW_RIGHT] then
-        __ = consume ( TK_ARROW_RIGHT ) ;
-        gvType = parseType ( ) ;
-        ppdHasReturnValue = 1 ;
-    end
-
-    glbBoolParsingProc = 1 ;
-    ppdRbpOffs = 8 ;
-    ppdLocalVarCount = 0 ;
-
-    if currTkn == [TK_VARS] then
-        __ = consume ( TK_VARS ) ;
-        while true == 1 do
-            parseVarDecl ( ) ;
-            if currTkn == [TK_CODE] then
-                break ;
-            end
-        end
-    end
-
-    ppdLocalVarCount = ppdLocalVarCount * 8 ;
-    _ = readStr ( ppdIdent ) ; `
-    printf(`"; == proc %s ==\n"`, strAtPtr)
-    printf(`"\tjmp %s_end\n%s:\n"`, strAtPtr, strAtPtr)
-    printf(`"\tpush rbp\n\tmov rbp, rsp\n"`)
-    printf(`"\tsub rsp, %d\n"`, [ppdLocalVarCount])
-    `
-    __ = consume ( TK_CODE ) ;
-
-    glbAllowVarDecl = 0 ;
-    ppdReturnStmtCount = 0 ;
-    parseStmts ( ) ;
-
-    glbAllowVarDecl = 1 ;
-    glbBoolParsingProc = 0 ;
-    glbProcId = glbProcId + 1 ;
-
-    __ = consume ( TK_END ) ;
-
-    if ppdReturnStmtCount == 0 then
-        if ppdHasReturnValue == 1 then `
-            printf(`"Error: proc %s has no return stmt\n"`, strAtPtr)
-            ExitProcess(1)`
-        end `
-        printf(`"\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
-    end
-
-    _ = addSymbol ( TYPE_PROCEDURE gvType ppdIdent paProArgCount VAR_SCOPE_GLB ) ;
-
-    _ = readStr ( ppdIdent ) ; `
-    printf(`"%s_end:\n"`, strAtPtr)
-    printf(`"; == end proc %s ==\n"`, strAtPtr)`
-endproc parseProcDecl
-
-uint64 prsIsEmptyResult = 0 ;
-proc parseReturnStmt ( )
-    __ = consume ( TK_RETURN ) ;
-
-    ppdReturnStmtCount = ppdReturnStmtCount + 1 ;
-
-    prsIsEmptyResult = 1 ;
-    if currTkn != [TK_SEMICOLON] then
-        prsIsEmptyResult = 0 ;
-        parseLogicalOrExpr ( ) ;
-    end
-
-    __ = consume ( TK_SEMICOLON ) ; `
-    printf(`"[Trace] Return stmt: RETURN\n"`)
-    `
-    if prsIsEmptyResult == 0 then `
-        ; has result
-        printf(`"\tpop rax\n\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
-    else `
-        ; no result
-        printf(`"\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
-    end
-endproc parseReturnStmt
-
-uint64 ppcIdent = 0 ;
-uint64 ppcPrcArgCount = 0 ;
-uint64 ppcPrcCallArgCount = 0 ;
-uint64 ppcShadowSpace = 0 ;
-proc parseProcCall ( )
-    ppcIdent = parseIdent ( ) ;
-
-    fgsIndex = findSymbol ( ppcIdent ) ;
-
-    if fgsIndex == -1 then
-        _ = identUnknown ( ppcIdent ) ;
-    end
-
-    ppcPrcArgCount = gsValue ;
-    ppcShadowSpace = ppcPrcArgCount * 8 ;
-    ppdRbpOffs = 16 ;
-
-    __ = consume ( TK_LEFT_PAREN ) ;
-
-    if currTkn != [TK_RIGHT_PAREN] then `
-        printf(`"\tsub rsp, %d\n\tpush rbp\n\tmov rbp, rsp\n"`, [ppcShadowSpace])`
-    end
-
-    ppcPrcCallArgCount = 0 ;
-    while currTkn != [TK_RIGHT_PAREN] do
-        parseLogicalOrExpr ( ) ; `
-        printf(`"\tpop qword [rbp + %d]\n"`, [ppdRbpOffs])
-        `
-        ppcPrcCallArgCount = ppcPrcCallArgCount + 1 ;
-        ppdRbpOffs = ppdRbpOffs + 8 ;
-        if currTkn == [TK_COMMA] then
-            __ = consume ( TK_COMMA ) ;
-        end
-    end
-
-    __ = consume ( TK_RIGHT_PAREN ) ;
-
-    if ppcPrcArgCount != [ppcPrcCallArgCount] then
-        _ = i - tknSize ;
-        _ = _ + 2 ;
-        errLine = tkns [ _ ] ;
-        _ = i - tknSize ;
-        _ = _ + 3 ;
-        errCol = tkns [ _ ] ; `
-        printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-        printf(`"proc requires %d args, but %d args are provided\n"`, [ppcPrcArgCount], [ppcPrcCallArgCount])
-        ExitProcess(1)`
-    end
-
-    _ = readStr ( ppdIdent ) ;
-
-    if ppcPrcArgCount != 0 then `
-        printf(`"\tmov rsp, rbp\n\tpop rbp\n\tcall %s\n\tadd rsp, %d\n"`, strAtPtr, [ppcShadowSpace])`
-    else `
-        printf(`"\tcall %s\n\tadd rsp, %d\n"`, strAtPtr, [ppcShadowSpace])`
-    end
-    `
-    printf(`"[Trace] Proc call: %s with %d args\n"`, strAtPtr, [ppcPrcArgCount])`
-endproc parseProcCall
-
-proc parseProcCallStmt ( )
-    parseProcCall ( ) ;
-
-    __ = consume ( TK_SEMICOLON ) ;
-endproc parseProcCallStmt
-
-uint64 psbType = 0 ;
-uint64 psbIdent = 0 ;
-uint64 psbSizeOfStruct = 0 ;
-uint64 psbCurrentOffs = 0 ;
-proc parseStructBody ( )
-    psbSizeOfStruct = 0 ;
-    psbCurrentOffs = 0 ;
-    while true == 1 do
-        if currTkn == [TK_UINT8] then
-                _ = i - tknSize ;
-            _ = _ + 2 ;
-            errLine = tkns [ _ ] ;
-            _ = i - tknSize ;
-            _ = _ + 3 ;
-            errCol = tkns [ _ ] ; `
-            printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-            printf(`"valid struct member types are 'uint64' and 'pointer'\n"`)
-            ExitProcess(1)`
-        else if currTkn == [TK_UINT64] then
-            psbType = parseType ( ) ;
-            psbSizeOfStruct = psbSizeOfStruct + 8 ;
-        else if currTkn == [TK_POINTER] then
-            psbType = parseType ( ) ;
-            psbSizeOfStruct = psbSizeOfStruct + 8 ;
-        else
-            break ;
-        end end end
-
-        psbIdent = parseIdent ( ) ;
-
-        __ = consume ( TK_SEMICOLON ) ;
-
-        _ = addUserTypeField ( glbUserTypeId psbType psbIdent psbCurrentOffs ) ;
-
-        _ = readStr ( psbIdent ) ;
-
-        psbCurrentOffs = psbCurrentOffs + 8 ; 
-    end
-endproc parseStructBody
-
-uint64 psdIdent = 0 ;
-proc parseStructDefinition ( )
-    __ = consume ( TK_STRUCT ) ;
-
-    psdIdent = parseIdent ( ) ;
-
-    fgsIndex = findSymbol ( psdIdent ) ;
-
-    if fgsIndex != -1 then
-        _ = indentifierRedeclared ( psdIdent ) ;
-    end
-
-    parseStructBody ( ) ;
-
-    __ = consume ( TK_END ) ;
-
-    _ = addSymbol ( TYPE_USER_DEFINED glbUserTypeId psdIdent psbSizeOfStruct VAR_SCOPE_GLB ) ;
-
-    _ = readStr ( psdIdent ) ; 
-    glbUserTypeId = glbUserTypeId + 1 ;
-endproc parseStructDefinition
-
-uint64 putvdTypeIdent = 0 ;
-uint64 putvdIdent = 0 ;
-proc parseUserTypeVarDecl ( )
-     _ = i + 1 ;
-    __ = consume ( TK_IDENT ) ;
-
-    fgsIndex = findSymbol ( putvdTypeIdent ) ;
-
-    if fgsIndex == -1 then
-        _ = identUnknown ( putvdTypeIdent ) ;
-    end
-    putvdTypeIdent = gsSubType ;
-
-    putvdIdent = parseIdent ( ) ;
-
-    fgsIndex = findSymbol ( putvdIdent ) ;
-
-    if fgsIndex != -1 then
-        _ = indentifierRedeclared ( putvdIdent ) ;
-    end
-
-    __ = consume ( TK_SEMICOLON ) ;
-
-    _ = addVar ( TYPE_USER_DEFINED putvdTypeIdent putvdIdent 0 VAR_SCOPE_GLB ) ;
-    _ = addSymbol ( TYPE_USER_DEFINED putvdTypeIdent putvdIdent 0 VAR_SCOPE_GLB ) ;
-
-    _ = readStr ( putvdIdent ) ; 
-endproc parseUserTypeVarDecl
-
-uint64 psIdent = 0 ;
-proc parseStmt ( )
-    if currTkn == [TK_UINT8] then
-        parseVarDecl ( ) ;
-    else if currTkn == [TK_UINT64] then
-        parseVarDecl ( ) ;
-    else if currTkn == [TK_POINTER] then
-        parseVarDecl ( ) ;
-    else if currTkn == [TK_IDENT] then
-        _ = i + 1 ;
-        psIdent = tkns [ _ ] ;
-
-        fgsIndex = findSymbol ( psIdent ) ;
-        _ = readStr ( psIdent ) ;
-
-        if fgsIndex != -1 then
-            if nextToken == [TK_DOT] then
-                parseAssignmentStmt ( ) ;
-            else
-                if gsType == [TYPE_USER_DEFINED] then
-                    parseUserTypeVarDecl ( ) ;
-                else if nextToken == [TK_LEFT_PAREN] then
-                    parseProcCallStmt ( ) ;
-                else
-                    parseAssignmentStmt ( ) ;
-                end end
-            end
-        else
-            _ = identUnknown ( psIdent ) ;
-        end
-    else if currTkn == [TK_IF] then
-        _ = parseIfStmt ( glbBlockId 0 0 ) ;
-    else if currTkn == [TK_WHILE] then
-        _ = parseWhileStmt ( glbBlockId ) ;
-    else if currTkn == [TK_BREAK] then
-        parseBreakStmt ( ) ;
-    else if currTkn == [TK_CONTINUE] then
-        parseContinueStmt ( ) ;
-    else if currTkn == [TK_PROC] then
-        parseProcDecl ( ) ;
-    else if currTkn == [TK_RETURN] then
-        parseReturnStmt ( ) ;
-    else if currTkn == [TK_STRUCT] then
-        parseStructDefinition ( ) ;
-    else
-        unexpectedToken ( ) ;
-    end end end end end end end end end end end
-endproc parseStmt
-
-proc parseStmts ( )
-    while true == 1 do
-        if currTkn == [TK_END] then
-            break ;
-        else if currTkn == [TK_ELSE] then
-            break ;
-        else
-            parseStmt ( ) ;
-        end end
-    end
-endproc parseStmts
-
-i = 0 ;
-
-while i < [tokenCount] do
-    currTkn = tkns [ i ] ;
-    parseStmt ( ) ;
-end
-
-
-i = 0 ;
-
-uint64 wsdIdentifier = 0 ;
-while i < [glbVarCount] do
-    _ = gvTypeOffs + i * glbVarSize ;
-    gvType = glbVars [ _ ] ;
-    _ = gvSubTypeOffs + i * glbVarSize ;
-    gvSubType = glbVars [ _ ] ;
-    _ = gvNameOffs + i * glbVarSize ;
-    gvNamePointer = glbVars [ _ ] ;
-    _ = gvValueOffs + i * glbVarSize ;
-    gvValue = glbVars [ _ ] ;
-    _ = gvScopeOffs + i * glbVarSize ;
-    gvScope = glbVars [ _ ] ;
-
-    if gvScope != [VAR_SCOPE_GLB] then
-        i = i + 1 ;
-        continue ;
-    end
-
-    _ = readStr ( gvNamePointer ) ; 
-    
-    if gvType == [TYPE_UINT8] then `
-        printf(`"section .data\r\n\t%s db %d\n"`, strAtPtr, [gvValue])`
-    else if gvType == [TYPE_UINT64] then `
-        printf(`"section .data\r\n\t%s dq %d\n"`, strAtPtr, [gvValue])`
-    else if gvType == [TYPE_POINTER] then `
-        printf(`"section .data\r\n\t%s dq %d\n"`, strAtPtr, [gvValue])`
-    else if gvType == [TYPE_ARRAY] then 
-        if gvSubType == [TYPE_UINT8] then `
-            printf(`"section .bss\r\n\t%s resb %d\n"`, strAtPtr, [gvValue])`
-        else if gvSubType == [TYPE_UINT64] then `
-            printf(`"section .bss\r\n\t%s resq %d\n"`, strAtPtr, [gvValue])`
-        else if gvSubType == [TYPE_POINTER] then `
-            printf(`"section .bss\r\n\t%s resq %d\n"`, strAtPtr, [gvValue])`
-        else `
-            printf(`"Error: unknown array type %d\n"`, [gvType])
-            ExitProcess(1)`
-        end end end
-    else if gvType == [TYPE_USER_DEFINED] then
-        wsdIdentifier = gvNamePointer ;
-
-        _ = findUserType ( gvSubType ) ;
-        if _ == -1 then `
-            printf(`"Error: unknown user type %d\n"`, [gvSubType])
-            ExitProcess(1)`
-        end 
-
-        _ = readStr ( wsdIdentifier ) ; `
-        printf(`"section .bss\r\n\t%s resb %d\n"`, strAtPtr, [gsValue])`
-    else `
-        printf(`"Error: unknown type %d\n"`, [gvType])
-        ExitProcess(1)`
-    end end end end end
-
-    i = i + 1 ;
-end
-`
-
+    printf(`"Token count: %d\n"`, [tokenCount])
     ExitProcess(0)`
