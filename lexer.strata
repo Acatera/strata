@@ -63,6 +63,16 @@ end
 uint64 _ = 0 ;
 uint64 true = 1 ;
 
+uint8 c = 0 ;
+uint64 scIndex = 0 ;
+array token = uint8 [ 256 ] ;
+uint64 tokenIndex = 0 ;
+uint64 isSep = 0 ;
+
+uint64 line = 1 ;
+uint64 line_start = 1 ;
+uint64 col = 1 ;
+
 array tokens = uint64 [ 10000 ] ;
 uint64 tokenCount = 0 ;
 uint64 tokenSize = 4 ;
@@ -76,7 +86,8 @@ proc push_token ( tokenType value line col )
     _ = tokenCount + 3 ;
     tokens [ _ ] = col ;
     tokenCount = tokenCount + tokenSize ; `
-    printf(`"[Trace] Pushed token: %d %d\n"`, [rbp+16], [rbp+24])`
+    printf(`"[Trace] Pushed token: %d %d"`, [rbp+16], [rbp+24])
+    printf(`" %d %d\n"`, [rbp+32], [rbp+40])`
 endproc push_token
 
 array stringBuffer = uint8 [ 100000 ] ;
@@ -84,12 +95,6 @@ uint64 sbIndex = 0 ;
 uint64 stringBufferTop = 0 ;
 array stringPointers = uint64 [ 5000 ] ;
 uint64 stringPointersTop = 0 ;
-
-uint8 c = 0 ;
-uint64 scIndex = 0 ;
-array token = uint8 [ 256 ] ;
-uint64 tokenIndex = 0 ;
-uint64 isSep = 0 ;
 
 array stringToPush = uint8 [ 256 ] ;
 uint64 freeStringIndex = 0 ;
@@ -484,17 +489,16 @@ proc push_and_print_token ( ) `
     `
     _ = to_number ( ) ;
     if _ == 1 then 
-        _ = push_token ( TOKEN_CONSTANT_INTEGER tnNumber 0 0 ) ;
+        _ = push_token ( TOKEN_CONSTANT_INTEGER tnNumber line col ) ;
     else
         token_type = get_token_type ( ) ;
         if token_type == 0 then 
-            _ = push_token ( TOKEN_IDENTIFIER stringPointersTop 0 0 ) ;
+            _ = push_token ( TOKEN_IDENTIFIER stringPointersTop line col ) ;
             push_identifier ( ) ;
         else
-            _ = push_token ( token_type 0 0 0 ) ;
+            _ = push_token ( token_type 0 line col ) ;
         end 
-    end `
-    printf(`"token type: %d\n"`, [token_type])`
+    end 
 endproc push_and_print_token
 
 while scIndex < [bytesRead] do 
@@ -506,11 +510,20 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = 0 ;
             push_and_print_token ( ) ;
         end
+
+        if c == 10 then 
+            line = line + 1 ;
+            line_start = scIndex + 1 ; 
+        end
         tokenIndex = 0 ;
         c = sourceCode [ scIndex ] ;
         while true == 1 do
             _ = isSpace ( c ) ;
             if _ == 1 then
+                if c == 10 then 
+                    line = line + 1 ;
+                    line_start = scIndex + 1 ; 
+                end
                 scIndex = scIndex + 1 ;
                 c = sourceCode [ scIndex ] ;
             else
@@ -518,7 +531,11 @@ while scIndex < [bytesRead] do
                 c = sourceCode [ scIndex ] ;
                 break ;
             end
+            
         end
+        col = 1 + scIndex - line_start - 1 ; `
+        printf(`"---------------SCIndex: %d, col: %d\n"`, [scIndex], [col])
+        `
     else if c == 34 then 
         if tokenIndex > 0 then 
             token [ tokenIndex ] = 0 ; 
@@ -591,13 +608,15 @@ while scIndex < [bytesRead] do
         token [ tokenIndex ] = 0 ; `
         printf(`"[\#27[92mINFO\#27[0m] Token: [!] '%s'\n"`, token)
         `
-        _ = push_token ( TOKEN_CONSTANT_STRING 0 0 0 ) ;
+        _ = push_token ( TOKEN_CONSTANT_STRING 0 line col ) ;
+        col = 2 + scIndex - line_start - 1 ;
         tokenIndex = 0 ;
     else if isSep == 1 then
         if tokenIndex > 0 then 
             token [ tokenIndex ] = 0 ; 
             push_and_print_token ( ) ;
         end
+        col = scIndex - line_start - 1 ; 
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
         tokenIndex = tokenIndex + 1 ;
@@ -605,25 +624,27 @@ while scIndex < [bytesRead] do
         printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
         `
         if c == 59 then
-            _ = push_token ( TOKEN_SEMICOLON 0 0 0 ) ;
+            _ = push_token ( TOKEN_SEMICOLON 0 line col ) ;
         else if c == 44 then
-            _ = push_token ( TOKEN_COMMA 0 0 0 ) ;
+            _ = push_token ( TOKEN_COMMA 0 line col ) ;
         else if c == 40 then
-            _ = push_token ( TOKEN_LEFT_PARENTHESIS 0 0 0 ) ;
+            _ = push_token ( TOKEN_LEFT_PARENTHESIS 0 line col ) ;
         else if c == 41 then
-            _ = push_token ( TOKEN_RIGHT_PARENTHESIS 0 0 0 ) ;
+            _ = push_token ( TOKEN_RIGHT_PARENTHESIS 0 line col ) ;
         else if c == 91 then
-            _ = push_token ( TOKEN_LEFT_BRACKET 0 0 0 ) ;
+            _ = push_token ( TOKEN_LEFT_BRACKET 0 line col ) ;
         else if c == 93 then
-            _ = push_token ( TOKEN_RIGHT_BRACKET 0 0 0 ) ;
+            _ = push_token ( TOKEN_RIGHT_BRACKET 0 line col ) ;
         else if c == 46 then
-            _ = push_token ( TOKEN_DOT 0 0 0 ) ;
+            _ = push_token ( TOKEN_DOT 0 line col ) ;
         end end end end end end end 
         tokenIndex = 0 ;
+        col = 1 + scIndex - line_start - 1 ;
     else if c == 61 then
         if tokenIndex > 0 then 
             token [ tokenIndex ] = 0 ; 
             push_and_print_token ( ) ;
+            col = scIndex - line_start - 1 ;
         end
         tokenIndex = 0 ;
         token [ tokenIndex ] = c ;
@@ -636,13 +657,13 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_EQUALS 0 0 0 ) ;
+            _ = push_token ( TOKEN_EQUALS 0 line col ) ;
             tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_ASSIGNMENT 0 0 0 ) ;
+            _ = push_token ( TOKEN_ASSIGNMENT 0 line col ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end
@@ -662,7 +683,7 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_NOT_EQUALS 0 0 0 ) ;
+            _ = push_token ( TOKEN_NOT_EQUALS 0 line col ) ;
             tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
@@ -687,13 +708,13 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_LESS_THAN_OR_EQUAL_TO 0 0 0 ) ;
+            _ = push_token ( TOKEN_LESS_THAN_OR_EQUAL_TO 0 line col ) ;
             tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_LESS_THAN 0 0 0 ) ;
+            _ = push_token ( TOKEN_LESS_THAN 0 line col ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end
@@ -713,13 +734,13 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_GREATER_THAN_OR_EQUAL_TO 0 0 0 ) ;
+            _ = push_token ( TOKEN_GREATER_THAN_OR_EQUAL_TO 0 line col ) ;
             tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_GREATER_THAN 0 0 0 ) ;
+            _ = push_token ( TOKEN_GREATER_THAN 0 line col ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end
@@ -744,7 +765,7 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_PLUS 0 0 0 ) ;
+            _ = push_token ( TOKEN_PLUS 0 line col ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end
@@ -769,7 +790,7 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_MULTIPLY 0 0 0 ) ;
+            _ = push_token ( TOKEN_MULTIPLY 0 line col ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end 
@@ -796,13 +817,13 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_ARROW_RIGHT 0 0 0 ) ;
+            _ = push_token ( TOKEN_ARROW_RIGHT 0 line col ) ;
             tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_MINUS 0 0 0 ) ;
+            _ = push_token ( TOKEN_MINUS 0 line col ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end end
@@ -830,11 +851,14 @@ while scIndex < [bytesRead] do
                 scIndex = scIndex + 1 ;
                 c = sourceCode [ scIndex ] ;
             end
+            line = line + 1 ;
+            line_start = scIndex + 1 ;
+            col = 1 + scIndex - line_start - 1 ;
         else 
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_DIVIDE 0 0 0 ) ;
+            _ = push_token ( TOKEN_DIVIDE 0 line col ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end end  
@@ -859,7 +883,7 @@ while scIndex < [bytesRead] do
             token [ tokenIndex ] = 0 ; `
             printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
-            _ = push_token ( TOKEN_MODULO 0 0 0 ) ;
+            _ = push_token ( TOKEN_MODULO 0 line col ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
         end  
