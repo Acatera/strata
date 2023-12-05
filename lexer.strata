@@ -172,6 +172,20 @@ uint64 TOKEN_DOT                      = 40 ;
 
 uint64 TOKEN_CONSTANT_STRING          = 41 ;
 
+uint64 TYPE_UINT8                  = 1 ;
+uint64 TYPE_UINT64                 = 2 ;
+uint64 TYPE_POINTER                = 3 ;
+uint64 TYPE_ARRAY                  = 4 ;
+uint64 TYPE_PROCEDURE              = 5 ;
+uint64 TYPE_USER_DEFINED           = 6 ;
+
+uint64 VARIABLE_SCOPE_GLOBAL       = 0 ;
+
+uint64 VARTYPE_PARAMETER           = 1 ;
+uint64 VARTYPE_LOCAL               = 2 ;
+
+uint64 i = 0 ;
+
 array token_dictionary = uint8 [ 5000 ] ;
 uint64 token_dictionary_top = 0 ;
 array token_dictionary_pointers = uint64 [ 500 ] ;
@@ -201,7 +215,7 @@ proc register_token_type ( token_type )
 endproc register_token_type 
 
 array token_at_pointer = uint8 [ 256 ] ;
-proc readString ( index )
+proc read_token ( index )
     freeStringIndex = 0 ;
     _ = index ;
     _ = _ * 2 ;
@@ -218,12 +232,12 @@ proc readString ( index )
     token_at_pointer [ freeStringIndex ] = 0 ; `
     ;printf(`"[Trace] Read string: #%d with length %d.\n"`, [rbp + 16], [freeStringIndex])
     mov rax, [_]`
-endproc readString
+endproc read_token
 
 proc token_equals ( a ) `
     mov rsi, token
     `
-    _ = readString ( a ) ; `
+    _ = read_token ( a ) ; `
     mov rdi, token_at_pointer
 
     ;printf(`"[Trace] Comparing strings: %s and %s\n"`, rsi, rdi)
@@ -894,6 +908,1481 @@ while scIndex < [bytesRead] do
 
     scIndex = scIndex + 1 ;
 end
+
 `
-    printf(`"Token count: %d\n"`, [tokenCount])
+printf(`"Token count: %d\n"`, [tokenCount])
+`
+
+uint64 globalBlockId = 0 ;
+uint64 globalProcedureId = 1 ;
+uint64 globalUserTypeId = 1 ;
+uint64 globalBoolParsingProcedure = 0 ;
+uint64 globalAllowVariableDeclaration = 1 ;
+uint64 ppdLocalVariableCount = 0 ;
+
+uint64 ppdRbpOffset = 0 ;
+
+array globalVariables = uint64 [ 10000 ] ;
+uint64 globalVariableCount = 0 ;
+uint64 globalVariableSize = 5 ;
+
+uint64 gvTypeOffset     = 0 ;
+uint64 gvSubTypeOffset  = 1 ;
+uint64 gvNameOffset     = 2 ;
+uint64 gvValueOffset    = 3 ;
+uint64 gvScopeOffset    = 4 ;
+
+uint64 gvType        = 0 ;
+uint64 gvSubType     = 0 ;
+uint64 gvNamePointer = 0 ;
+uint64 gvValue       = 0 ;
+uint64 gvScope       = 0 ;
+
+proc forward readString
+
+
+proc addVariable ( type subType namePointer value scope )
+    _ = gvTypeOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = type ;
+    _ = gvSubTypeOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = subType ;
+    _ = gvNameOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = namePointer ;
+    _ = gvValueOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = value ; 
+    _ = gvScopeOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = scope ;
+    globalVariableCount = globalVariableCount + 1 ;
+endproc addVariable
+
+array globalSymbolTable = uint64 [ 10000 ] ;
+uint64 globalSymbolsCount = 0 ;
+uint64 globalSymbolSize = 5 ;
+
+uint64 gsType        = 0 ;
+uint64 gsSubType     = 0 ;
+uint64 gsNamePointer = 0 ;
+uint64 gsValue       = 0 ;
+uint64 gsScope       = 0 ;
+
+uint64 gsTypeOffset     = 0 ;
+uint64 gsSubTypeOffset  = 1 ;
+uint64 gsNameOffset     = 2 ;
+uint64 gsValueOffset    = 3 ;
+uint64 gsScopeOffset    = 4 ;
+
+proc addSymbol ( type subType namePointer value scope )
+    _ = gvTypeOffset + globalSymbolsCount * globalSymbolSize ;
+    globalSymbolTable [ _ ] = type ;
+    _ = gvSubTypeOffset + globalSymbolsCount * globalSymbolSize ;
+    globalSymbolTable [ _ ] = subType ;
+    _ = gvNameOffset + globalSymbolsCount * globalSymbolSize ;
+    globalSymbolTable [ _ ] = namePointer ;
+    _ = gvValueOffset + globalSymbolsCount * globalSymbolSize ;
+    globalSymbolTable [ _ ] = value ; 
+    _ = gvScopeOffset + globalSymbolsCount * globalSymbolSize ;
+    globalSymbolTable [ _ ] = scope ;
+    globalSymbolsCount = globalSymbolsCount + 1 ;
+endproc addSymbol
+
+proc stringsEqual ( a b ) 
+    _ = readString ( a ) ; `
+    mov rsi, rax
+    mov rax, stringBuffer
+    add rsi, rax
+    `
+    _ = readString ( b ) ; `
+    mov rdi, rax
+    mov rax, stringBuffer
+    add rdi, rax
+.t:
+    printf(`"[Trace] Comparing strings: %s and %s\n"`, rsi, rdi)
+.loop:
+    mov al, byte [rdi]
+    mov bl, byte [rsi]
+    cmp al, bl
+    jne .str_neq
+    cmp al, 0
+    je .str1_null
+    cmp bl, 0
+    je .str2_null
+    inc rdi
+    inc rsi
+    jmp .loop
+
+.str1_null:
+    cmp bl, 0
+    je .str_eq
+    jmp .str_neq
+
+.str2_null:
+    cmp al, 0
+    je .str_eq
+    jmp .str_neq    
+
+.str_neq:
+    xor rax, rax
+    jmp .end
+
+.str_eq:
+    mov rax, 1
+.end: `
+endproc stringsEqual
+
+uint64 fgsIndex = 0 ;
+uint64 fgsNamePointer = 0 ;
+uint64 fgsEqual = 0 ;
+proc findSymbol ( namePointer )
+    fgsIndex = globalSymbolsCount - 1 ;
+    while fgsIndex >= 0 do
+        _ = gvNameOffset + fgsIndex * globalSymbolSize ;
+        fgsNamePointer = globalSymbolTable [ _ ] ;
+        fgsEqual = stringsEqual ( namePointer fgsNamePointer ) ;
+
+        if fgsEqual != 0 then
+            break ;
+        end
+
+        fgsIndex = fgsIndex - 1 ;
+    end
+
+    if fgsEqual == [true] then
+        _ = gsTypeOffset + fgsIndex * globalSymbolSize ;
+        gsType = globalSymbolTable [ _ ] ;
+        _ = gsSubTypeOffset + fgsIndex * globalSymbolSize ;
+        gsSubType = globalSymbolTable [ _ ] ;
+        _ = gsNameOffset + fgsIndex * globalSymbolSize ;
+        gsNamePointer = globalSymbolTable [ _ ] ;
+        _ = gsValueOffset + fgsIndex * globalSymbolSize ;
+        gsValue = globalSymbolTable [ _ ] ;
+        _ = gsScopeOffset + fgsIndex * globalSymbolSize ;
+        gsScope = globalSymbolTable [ _ ] ;
+        
+        _ = gvValueOffset + fgsIndex * globalSymbolSize ;
+        `
+        printf(`"[Trace] Found global symbol: #%d with value %d.\n"`, [fgsIndex], [_])
+        mov rax, [_] `
+    else
+        gsType = 0 ;
+        gsSubType = 0 ;
+        gsNamePointer = 0 ;
+        gsValue = 0 ;
+        gsScope = 0 ;
+
+        `
+        printf(`"[Trace] Did not find global symbol.\n"`)
+        mov rax, -1 `
+    end
+endproc findSymbol
+
+uint64 futUserType = 0 ;
+proc findUserType ( userType )
+    fgsIndex = 0 ;
+    fgsEqual = 0 ;
+    while fgsIndex < [globalSymbolsCount] do
+        _ = gsTypeOffset + fgsIndex * globalSymbolSize ;
+        _ = globalSymbolTable [ _ ] ;
+        if _ != [TYPE_USER_DEFINED] then
+            fgsIndex = fgsIndex - 1 ;
+            continue ;
+        end
+
+        _ = gsSubTypeOffset + fgsIndex * globalSymbolSize ;
+        _ = globalSymbolTable [ _ ] ;
+        futUserType = userType ;
+        if _ == [futUserType] then
+            fgsEqual = 1 ;
+            break ;
+        end
+
+        fgsIndex = fgsIndex + 1 ;
+    end
+
+    if fgsEqual == [true] then
+        _ = gsTypeOffset + fgsIndex * globalSymbolSize ;
+        gsType = globalSymbolTable [ _ ] ;
+        _ = gsSubTypeOffset + fgsIndex * globalSymbolSize ;
+        gsSubType = globalSymbolTable [ _ ] ;
+        _ = gsNameOffset + fgsIndex * globalSymbolSize ;
+        gsNamePointer = globalSymbolTable [ _ ] ;
+        _ = gsValueOffset + fgsIndex * globalSymbolSize ;
+        gsValue = globalSymbolTable [ _ ] ;
+        _ = gsScopeOffset + fgsIndex * globalSymbolSize ;
+        gsScope = globalSymbolTable [ _ ] ;
+        
+        _ = gvValueOffset + fgsIndex * globalSymbolSize ;
+        _ = globalSymbolTable [ _ ] ;
+        `
+        printf(`"[Trace] Found user type: #%d with value %d.\n"`, [fgsIndex], [_])
+        mov rax, [_] `
+    else
+        gsType = 0 ;
+        gsSubType = 0 ;
+        gsNamePointer = 0 ;
+        gsValue = 0 ;
+        gsScope = 0 ;
+
+        `
+        printf(`"[Trace] Did not find user type.\n"`)
+        mov rax, -1 `
+    end
+endproc findUserType
+
+uint64 currentToken = 0 ;
+uint64 expectedToken = 0 ;
+uint64 nextToken = 0 ;
+
+array userTypes = uint64 [ 10000 ] ;
+uint64 userTypeCount = 0 ;
+uint64 userTypeSize = 4 ;
+
+uint64 utParentOffset   = 0 ;
+uint64 utTypeOffset     = 1 ;
+uint64 utNameOffset     = 2 ;
+uint64 utOffsetOffset   = 3 ;
+
+uint64 utParent   = 0 ;
+uint64 utType     = 0 ;
+uint64 utNamePointer = 0 ;
+uint64 utOffset   = 0 ;
+
+proc addUserTypeField ( parent type namePointer offset )
+    _ = utParentOffset + userTypeCount * userTypeSize ;
+    utParent = parent ;
+    userTypes [ _ ] = utParent ;
+
+    _ = utTypeOffset + userTypeCount * userTypeSize ;
+    utType = type ;
+    userTypes [ _ ] = utType ;
+
+    _ = utNameOffset + userTypeCount * userTypeSize ;
+    utNamePointer = namePointer ;
+    userTypes [ _ ] = utNamePointer ;
+
+    _ = utOffsetOffset + userTypeCount * userTypeSize ;
+    utOffset = offset ;
+    userTypes [ _ ] = utOffset ;
+
+    userTypeCount = userTypeCount + 1 ;
+endproc addUserTypeField
+
+
+proc findUserTypeField ( parent fieldNamePointer )
+    fgsIndex = globalSymbolsCount - 1 ;
+    while userTypeCount >= 0 do
+        _ = utParentOffset + fgsIndex * userTypeSize ;
+        utParent = userTypes [ _ ] ;
+    
+        _ = parent ;
+        if utParent != [_] then
+            fgsIndex = fgsIndex - 1 ;
+            continue ;
+        end
+        
+        _ = utNameOffset + fgsIndex * userTypeSize ;
+        utNamePointer = userTypes [ _ ] ;
+        fgsEqual = stringsEqual ( fieldNamePointer utNamePointer ) ;
+
+        if fgsEqual != 0 then
+            break ;
+        end
+
+        fgsIndex = fgsIndex - 1 ;
+    end
+
+    if fgsEqual == [true] then
+        _ = utParentOffset + fgsIndex * userTypeSize ;
+        utParent = userTypes [ _ ] ;
+        _ = utTypeOffset + fgsIndex * userTypeSize ;
+        utType = userTypes [ _ ] ;
+        _ = utNameOffset + fgsIndex * userTypeSize ;
+        utNamePointer = userTypes [ _ ] ;
+        _ = utOffsetOffset + fgsIndex * userTypeSize ;
+        utOffset = userTypes [ _ ] ;
+        
+        _ = utOffsetOffset + fgsIndex * userTypeSize ;
+        _ = userTypes [ _ ] ;
+        `
+        printf(`"[Trace] Found user type field: #%d with offset %d.\n"`, [fgsIndex], [_])
+        mov rax, [_] `
+    else
+        utParent = 0 ;
+        utType = 0 ;
+        utNamePointer = 0 ;
+        utOffset = 0 ;
+        `
+        printf(`"[Trace] Did not find user type field.\n"`)
+        mov rax, -1 `
+    end
+endproc findUserTypeField
+
+proc pushString ( ) 
+    freeStringIndex = 0 ;
+    freeChar = stringToPush [ freeStringIndex ] ;
+    stringPointers [ stringPointersTop ] = stringBufferTop ;
+
+    while freeChar != 0 do 
+        stringBuffer [ stringBufferTop ] = freeChar ;
+        stringBufferTop = stringBufferTop + 1 ;
+        freeStringIndex = freeStringIndex + 1 ;
+        freeChar = stringToPush [ freeStringIndex ] ;
+    end
+    
+    stringBuffer [ stringBufferTop ] = 0 ;
+    stringBufferTop = stringBufferTop + 1 ; 
+    `
+    printf(`"[Trace] Pushed string: #%d with length %d.\n"`, [stringPointersTop], [freeStringIndex])
+    `
+    stringPointersTop = stringPointersTop + 1 ; 
+endproc pushString 
+
+array stringAtPointer = uint8 [ 256 ] ;
+proc readString ( index )
+    freeStringIndex = 0 ;
+    _ = index ;
+    sbIndex = stringPointers [ _ ] ;
+    _ = sbIndex ;
+    freeChar = stringBuffer [ sbIndex ] ;
+
+    while freeChar != 0 do 
+        stringAtPointer [ freeStringIndex ] = freeChar ;
+        freeStringIndex = freeStringIndex + 1 ;
+        sbIndex = sbIndex + 1 ;
+        freeChar = stringBuffer [ sbIndex ] ;
+    end 
+    stringAtPointer [ freeStringIndex ] = 0 ; `
+    ;printf(`"[Trace] Read string: #%d with length %d.\n"`, [rbp + 16], [freeStringIndex])
+    mov rax, [_]`
+endproc readString
+
+
+uint64 errorAtLine = 0 ;
+uint64 errorAtColumn = 0 ;
+proc consumeToken ( )
+    if currentToken == [expectedToken] then
+        i = i + tokenSize ;
+        currentToken = tokens [ i ] ;
+        i = i + tokenSize ;
+        nextToken = tokens [ i ] ;
+        i = i - tokenSize ;
+    else 
+        _ = i + 2 ;
+        errorAtLine = tokens [ _ ] ;
+        _ = i + 3 ;
+        errorAtColumn = tokens [ _ ] ;
+        `
+        printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+        printf(`"expected token %d but got %d\n"`, [expectedToken], [currentToken])
+        ExitProcess(1) `
+    end
+endproc consumeToken
+
+proc indentifierRedeclared ( namePointer )
+    _ = i - tokenSize ;
+    _ = _ + 2 ;
+    errorAtLine = tokens [ _ ] ;
+    _ = i - tokenSize ;
+    _ = _ + 3 ;
+    errorAtColumn = tokens [ _ ] ;
+    _ = readString ( namePointer ) ; ` 
+    printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+    printf(`"identifier redeclared: %s\n"`, stringAtPointer) ;
+    ExitProcess(1)`
+endproc indentifierRedeclared
+
+proc identifierUnknown ( namePointer )
+    _ = i - tokenSize ;
+    _ = _ + 2 ;
+    errorAtLine = tokens [ _ ] ;
+    _ = i - tokenSize ;
+    _ = _ + 3 ;
+    errorAtColumn = tokens [ _ ] ;
+    _ = readString ( namePointer ) ; ` 
+    printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+    printf(`"unknown identifier: %s\n"`, stringAtPointer) ;
+    ExitProcess(1)`
+endproc identifierUnknown
+
+proc unexpectedToken ( ) 
+    _ = i + 2 ;
+    errorAtLine = tokens [ _ ] ;
+    _ = i + 3 ;
+    errorAtColumn = tokens [ _ ] ;
+    `
+    printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+    printf(`"unexpected token %d\n"`, [currentToken])
+    ExitProcess(1)`
+endproc unexpectedToken
+
+proc parseNumber ( )
+    expectedToken = TOKEN_CONSTANT_INTEGER ;
+    _ = i + 1 ;
+    _ = tokens [ _ ] ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] Number: %d\n"`, [_])
+    ; set result
+    mov rax, [_]`
+endproc parseNumber
+
+proc parseIdentifier ( )
+    expectedToken = TOKEN_IDENTIFIER ;
+    _ = i + 1 ;
+    _ = tokens [ _ ] ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] Identifier: #%d\n"`, [_])
+    ; set result
+    mov rax, [_]`
+endproc parseIdentifier
+
+proc parseType ( )
+    if currentToken == [TOKEN_UINT8] then
+        _ = TYPE_UINT8 ;
+         i = i + tokenSize ;
+        currentToken = tokens [ i ] ;
+    else if currentToken == [TOKEN_UINT64] then
+        _ = TYPE_UINT64 ;
+        i = i + tokenSize ;
+        currentToken = tokens [ i ] ;
+    else if currentToken == [TOKEN_POINTER] then
+        _ = TYPE_POINTER ;
+        i = i + tokenSize ;
+        currentToken = tokens [ i ] ;
+    else
+        unexpectedToken ( ) ;
+    end end end
+    `
+    ; set result
+    mov rax, [_]`
+endproc parseType
+
+proc parseArrayDeclaration ( )
+    if globalBoolParsingProcedure != 0 then 
+        _ = i + 2 ;
+        errorAtLine = tokens [ _ ] ;
+        _ = i + 3 ;
+        errorAtColumn = tokens [ _ ] ;
+        `
+        printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+        printf(`"arrays declarations are not allowed in procedures\n"`)`
+    end
+
+    expectedToken = TOKEN_LEFT_BRACKET ;
+    consumeToken ( ) ;
+
+    gvValue = parseNumber ( ) ;
+
+    expectedToken = TOKEN_RIGHT_BRACKET ;
+    consumeToken ( ) ;
+
+    gvNamePointer = parseIdentifier ( ) ;
+
+    gvSubType = gvType ;
+    gvType = TYPE_ARRAY ;
+
+    `
+    printf(`"[Trace] Array declaration: type %d, subtype %d\n"`, [gvType], [gvSubType])
+    `
+    _ = addVariable ( gvType gvSubType gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
+    _ = addSymbol ( gvType gvSubType gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ; `
+    printf(`"[Trace] Array declaration: type %d, value %d\n"`, [gvType], [gvValue])`
+endproc parseArrayDeclaration
+
+proc parseIntegerDeclaration ( )
+    gvNamePointer = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( gvNamePointer ) ;
+
+    if fgsIndex != -1 then
+        _ = indentifierRedeclared ( gvNamePointer ) ;
+    end
+
+    expectedToken = TOKEN_ASSIGNMENT ;
+    consumeToken ( ) ;
+
+    gvValue = parseNumber ( ) ;
+    
+    if globalBoolParsingProcedure == 0 then
+        _ = addVariable ( gvType 0 gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
+        _ = addSymbol ( gvType 0 gvNamePointer 0 VARIABLE_SCOPE_GLOBAL ) ; 
+    else 
+        _ = addVariable ( gvType VARTYPE_LOCAL gvNamePointer gvValue globalProcedureId ) ;
+        _ = addSymbol ( gvType VARTYPE_LOCAL gvNamePointer ppdRbpOffset globalProcedureId ) ; 
+        ppdRbpOffset = ppdRbpOffset + 8 ;
+    end
+    `
+    printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
+endproc parseIntegerDeclaration 
+    
+
+proc parseVariableDeclaration ( )
+    if globalAllowVariableDeclaration == 0 then
+        _ = i + 2 ;
+        errorAtLine = tokens [ _ ] ;
+        _ = i + 3 ;
+        errorAtColumn = tokens [ _ ] ;
+        `
+        printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+        printf(`"variable declarations are not allowed in procedure code section\n"`)`
+    end
+
+    ppdLocalVariableCount = ppdLocalVariableCount + 1 ;
+
+    gvType = parseType ( ) ;
+
+    if currentToken == [TOKEN_LEFT_BRACKET] then
+        parseArrayDeclaration ( ) ;
+    else if currentToken == [TOKEN_IDENTIFIER] then
+        parseIntegerDeclaration ( ) ;
+    else
+        unexpectedToken ( ) ;
+    end end
+
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ; 
+endproc parseVariableDeclaration
+
+proc forward parseAdditiveExpression
+proc forward parseStatements
+proc forward parseArrayAccess
+proc forward parseProcedureCall
+proc forward parseStructAccess
+
+uint64 fpIdentifier = 0 ;
+proc parseFactor ( ) 
+    if currentToken == [TOKEN_CONSTANT_INTEGER] then
+        _ = parseNumber ( ) ; `
+        printf(`"\tpush %d\n"`, [_])`
+    else if currentToken == [TOKEN_LEFT_PARENTHESIS] then
+        expectedToken = TOKEN_LEFT_PARENTHESIS ;
+        consumeToken ( ) ;
+
+        parseAdditiveExpression ( ) ;
+ 
+        expectedToken = TOKEN_RIGHT_PARENTHESIS ;
+        consumeToken ( ) ;
+    else if currentToken == [TOKEN_IDENTIFIER] then
+        if nextToken == [TOKEN_LEFT_BRACKET] then 
+            fpIdentifier = parseArrayAccess ( ) ; 
+            
+            fgsIndex = findSymbol ( fpIdentifier ) ;
+
+            if fgsIndex == -1 then
+                _ = identifierUnknown ( fpIdentifier ) ;
+            end 
+           
+            _ = readString ( fpIdentifier ) ; 
+
+            if gsSubType == [TYPE_UINT8] then `
+                printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
+            else if gsSubType == [TYPE_UINT64] then `
+                printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
+            else if gsSubType == [TYPE_POINTER] then `
+                printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
+            else ` 
+                printf(`"[Error] Error: unknown array type %d\n"`, [gsSubType])
+                ExitProcess(1)`
+            end end end `
+            printf(`"[Trace] Factor: array\n"`)`
+        else if nextToken == [TOKEN_LEFT_PARENTHESIS] then
+            parseProcedureCall ( ) ; `
+            printf(`"[Trace] Factor: procedure call\n"`)
+            printf(`"\tpush rax\n"`)`
+        else if nextToken == [TOKEN_DOT] then
+            parseStructAccess ( ) ; `
+            printf(`"[Trace] Factor: struct access\n"`)`
+        else
+            _ = i + 1 ;
+            _ = tokens [ _ ] ;
+            `
+            printf(`"[Trace] Factor: variable #%d\n"`, [_])
+            `
+
+            fpIdentifier = parseIdentifier ( ) ;
+
+            fgsIndex = findSymbol ( fpIdentifier ) ;
+
+            if fgsIndex == -1 then
+                _ = identifierUnknown ( fpIdentifier ) ;
+            end 
+
+            _ = readString ( fpIdentifier ) ; 
+            if gsScope == [VARIABLE_SCOPE_GLOBAL] then
+                if gsType == [TYPE_UINT8] then ` 
+                    printf(`"\tpush byte [%s]\n"`, stringAtPointer)`
+                else if gsType == [TYPE_UINT64] then ` 
+                    printf(`"\tpush qword [%s]\n"`, stringAtPointer)`
+                else if gsType == [TYPE_POINTER] then ` 
+                    printf(`"\tpush qword [%s]\n"`, stringAtPointer)`
+                else ` 
+                    printf(`"[Error] Error: unknown type %d\n"`, [gsType])
+                    ExitProcess(1)`
+                end end end
+            else 
+                if gsSubType == [VARTYPE_PARAMETER] then ` 
+                    printf(`"\tpush qword [rbp + %d]\n"`, [gsValue])`
+                else if gsSubType == [VARTYPE_LOCAL] then ` 
+                    printf(`"\tpush qword [rbp - %d]\n"`, [gsValue])`
+                else ` 
+                    printf(`"[Error] Error: unknown subtype %d\n"`, [gsType])
+                    ExitProcess(1)`
+                end end
+            end
+        end end end
+    else
+        unexpectedToken ( ) ;
+    end end end
+endproc parseFactor
+
+proc parseMultiplicativeExpression ( ) 
+    parseFactor ( ) ;
+    while true == 1 do 
+        if currentToken == [TOKEN_MULTIPLY] then
+            expectedToken = TOKEN_MULTIPLY ;
+            consumeToken ( ) ;
+            parseFactor ( ) ; `
+            printf(`"[Trace] MULTIPLY *\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tmul rbx\n\tpush rax\n"`)`
+        else if currentToken == [TOKEN_DIVIDE] then
+            expectedToken = TOKEN_DIVIDE ;
+            consumeToken ( ) ;
+            parseFactor ( ) ; `
+            printf(`"[Trace] DIVIDE /\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tdiv rbx\n\tpush rax\n"`)`
+        else if currentToken == [TOKEN_MODULO] then
+            expectedToken = TOKEN_MODULO ;
+            consumeToken ( ) ;
+            parseFactor ( ) ; `
+            printf(`"[Trace] MODULO %%\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tdiv rbx\n\tpush rdx\n"`)`
+        else
+            break 
+        end end end
+    end
+endproc parseMultiplicativeExpression
+
+proc parseAdditiveExpression ( ) 
+    parseMultiplicativeExpression ( ) ; 
+    while true == 1 do 
+        if currentToken == [TOKEN_PLUS] then
+            expectedToken = TOKEN_PLUS ;
+            consumeToken ( ) ;
+            parseMultiplicativeExpression ( ) ; `
+            printf(`"[Trace] PLUS +\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tadd rax, rbx\n\tpush rax\n"`)`
+        else if currentToken == [TOKEN_MINUS] then
+            expectedToken = TOKEN_MINUS ;
+            consumeToken ( ) ;
+            parseMultiplicativeExpression ( ) ; `
+            printf(`"[Trace] MINUS -\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tsub rax, rbx\n\tpush rax\n"`)`
+        else
+            break ;
+        end end
+    end
+endproc parseAdditiveExpression 
+
+uint64 preIndex = 0 ;
+proc parseRelationalExpression ( )
+    parseAdditiveExpression ( ) ;
+    if currentToken == [TOKEN_LESS_THAN] then
+        expectedToken = TOKEN_LESS_THAN ;
+        consumeToken ( ) ;
+        parseAdditiveExpression ( ) ; `
+        printf(`"[Trace] LESS_THAN <\n"`)
+        printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjl .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
+        printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
+        `
+        preIndex = preIndex + 1 ;
+    else if currentToken == [TOKEN_LESS_THAN_OR_EQUAL_TO] then
+        expectedToken = TOKEN_LESS_THAN_OR_EQUAL_TO ;
+        consumeToken ( ) ;
+        parseAdditiveExpression ( ) ; `
+        printf(`"[Trace] LESS_THAN_OR_EQUAL_TO <=\n"`)
+        printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjle .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
+        printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
+        `
+        preIndex = preIndex + 1 ;
+    else if currentToken == [TOKEN_GREATER_THAN] then
+        expectedToken = TOKEN_GREATER_THAN ;
+        consumeToken ( ) ;
+        parseAdditiveExpression ( ) ; `
+        printf(`"[Trace] GREATER_THAN >\n"`)
+        printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjg .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
+        printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
+        `
+        preIndex = preIndex + 1 ;
+    else if currentToken == [TOKEN_GREATER_THAN_OR_EQUAL_TO] then
+        expectedToken = TOKEN_GREATER_THAN_OR_EQUAL_TO ;
+        consumeToken ( ) ;
+        parseAdditiveExpression ( ) ; `
+        printf(`"[Trace] GREATER_THAN_OR_EQUAL_TO >=\n"`)
+        printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjge .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
+        printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
+        `
+        preIndex = preIndex + 1 ;
+    else if currentToken == [TOKEN_EQUALS] then 
+        expectedToken = TOKEN_EQUALS ;
+        consumeToken ( ) ;
+        parseAdditiveExpression ( ) ; `
+        printf(`"[Trace] EQUALS ==\n"`)
+        printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tje .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
+        printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
+        `
+        preIndex = preIndex + 1 ;
+    else if currentToken == [TOKEN_NOT_EQUALS] then
+        expectedToken = TOKEN_NOT_EQUALS ;
+        consumeToken ( ) ;
+        parseAdditiveExpression ( ) ; `
+        printf(`"[Trace] NOT_EQUALS !=\n"`)
+        printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjne .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
+        printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
+        `
+        preIndex = preIndex + 1 ;
+    end end end end end end
+endproc parseRelationalExpression
+
+proc parseLogicalAndExpression ( )
+    parseRelationalExpression ( ) ;
+    while true == 1 do 
+        if currentToken == [TOKEN_LOGICAL_AND] then
+            expectedToken = TOKEN_LOGICAL_AND ;
+            consumeToken ( ) ;
+            parseRelationalExpression ( ) ; `
+            printf(`"[Trace] LOGICAL_AND &&\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tand rax, rbx\n\tpush rax\n"`)`
+        else
+            break ;
+        end
+    end
+endproc parseLogicalAndExpression
+
+proc parseLogicalOrExpression ( )
+    parseLogicalAndExpression ( ) ;
+    while true == 1 do 
+        if currentToken == [TOKEN_LOGICAL_OR] then
+            expectedToken = TOKEN_LOGICAL_OR ;
+            consumeToken ( ) ;
+            parseLogicalAndExpression ( ) ; `
+            printf(`"[Trace] LOGICAL_OR ||\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tor rax, rbx\n\tpush rax\n"`)`
+        else
+            break ;
+        end
+    end
+endproc parseLogicalOrExpression
+
+uint64 paaIdentifier = 0 ;
+proc parseArrayAccess ( ) 
+    paaIdentifier = parseIdentifier ( ) ; 
+    expectedToken = TOKEN_LEFT_BRACKET ;
+    consumeToken ( ) ;
+    parseAdditiveExpression ( ) ;
+    expectedToken = TOKEN_RIGHT_BRACKET ;
+    consumeToken ( ) ; `
+    mov rax, [paaIdentifier]`
+endproc parseArrayAccess
+
+uint64 psaType = 0 ;
+uint64 psaIdentifier = 0 ;
+uint64 psaStructFieldIdentifier = 0 ;
+proc parseStructAccess ( )
+    psaIdentifier = parseIdentifier ( ) ; 
+
+    fgsIndex = findSymbol ( psaIdentifier ) ;
+
+    if fgsIndex == -1 then
+        _ = identifierUnknown ( psaIdentifier ) ;
+    end 
+
+    psaType = gsSubType ;
+
+    _ = readString ( psaIdentifier ) ; `
+    printf(`"[Trace] Assignable: variable\n"`)
+    printf(`"\tmov rax, %s\n\tpush rax\n"`, stringAtPointer)
+    `
+    expectedToken = TOKEN_DOT ;
+    consumeToken ( ) ;
+
+    psaStructFieldIdentifier = parseIdentifier ( ) ; 
+
+    fgsIndex = findUserTypeField ( psaType psaStructFieldIdentifier ) ; `
+    printf(`"\tpop rax\n\tadd rax, %d\n\tpush rax\n"`, [utOffset])`
+endproc parseStructAccess
+
+uint64 paIdentifier = 0 ;
+uint64 paUTFieldIdentifier = 0 ;
+uint64 paType = 0 ;
+proc parseAssignable ( )
+    if nextToken == [TOKEN_LEFT_BRACKET] then 
+        paIdentifier = parseArrayAccess ( ) ; 
+
+        fgsIndex = findSymbol ( paIdentifier ) ;
+
+        if fgsIndex == -1 then
+            _ = identifierUnknown ( paIdentifier ) ;
+        end 
+        _ = readString ( paIdentifier ) ;
+
+        if gsSubType == [TYPE_UINT8] then `
+            printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush rax\n"`, stringAtPointer)`
+        else if gsSubType == [TYPE_UINT64] then `
+            printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush rax\n"`, stringAtPointer)`
+        else if gsSubType == [TYPE_POINTER] then `
+            printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush rax\n"`, stringAtPointer)`            
+        else ` 
+            printf(`"[Error] Error: unknown array type %d\n"`, [gsSubType])
+            ExitProcess(1)`
+        end end end `
+        printf(`"[Trace] Assignable: array, ct %d\n"`, [currentToken])`
+    else if nextToken == [TOKEN_DOT] then
+        parseStructAccess ( ) ;
+    else
+        paIdentifier = parseIdentifier ( ) ; 
+        
+        fgsIndex = findSymbol ( paIdentifier ) ;
+
+        if fgsIndex == -1 then
+            _ = identifierUnknown ( paIdentifier ) ;
+        end `
+        printf(`"[Trace] Assignable: variable\n"`)`
+    end end `
+    mov rax, [paIdentifier]`
+endproc parseAssignable
+
+uint64 pasIdentifier = 0 ;
+proc parseAssignmentStatement ( )
+    pasIdentifier = parseAssignable ( ) ;
+
+    expectedToken = TOKEN_ASSIGNMENT ;
+    consumeToken ( ) ;
+
+    parseLogicalOrExpression ( ) ;
+
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ; 
+
+    fgsIndex = findSymbol ( pasIdentifier ) ;
+
+    if fgsIndex == -1 then
+        _ = identifierUnknown ( pasIdentifier ) ;
+    end
+    _ = readString ( pasIdentifier ) ;
+    
+    if gsType == [TYPE_UINT8] then 
+        if gsScope == [VARIABLE_SCOPE_GLOBAL] then `
+            printf(`"[Debug] Assigning value to a uint8\n"`)
+            printf(`"\tpop rax\n\tmov byte [%s], al\n"`, stringAtPointer)`
+        else if gsSubType == [VARTYPE_LOCAL] then `
+            printf(`"[Debug] Assigning value to a local uint8\n"`)
+            printf(`"\tpop rax\n\tmov qword [rbp - %d], rax\n"`, [gsValue])`
+        else if gsSubType == [VARTYPE_PARAMETER] then `
+            printf(`"Cannot assign to a parameter\n"`)`
+        end end end
+    else if gsType == [TYPE_UINT64] then 
+        if gsScope == [VARIABLE_SCOPE_GLOBAL] then `
+            printf(`"[Debug] Assigning value to a uint64\n"`)
+            printf(`"\tpop rax\n\tmov qword [%s], rax\n"`, stringAtPointer)`
+        else if gsSubType == [VARTYPE_LOCAL] then `
+            printf(`"[Debug] Assigning value to a local uint64\n"`)
+            printf(`"\tpop rax\n\tmov qword [rbp - %d], rax\n"`, [gsValue])`
+        else if gsSubType == [VARTYPE_PARAMETER] then `
+            printf(`"Cannot assign to a parameter\n"`)`
+        end end end
+    else if gsType == [TYPE_POINTER] then 
+        if gsScope == [VARIABLE_SCOPE_GLOBAL] then `
+            printf(`"[Debug] Assigning value to a uint64\n"`)
+            printf(`"\tpop rax\n\tmov qword [%s], rax\n"`, stringAtPointer)`
+        else if gsSubType == [VARTYPE_LOCAL] then `
+            printf(`"[Debug] Assigning value to a local uint64\n"`)
+            printf(`"\tpop rax\n\tmov qword [rbp - %d], rax\n"`, [gsValue])`
+        else if gsSubType == [VARTYPE_PARAMETER] then `
+            printf(`"Cannot assign to a parameter\n"`)`
+        end end end
+    else if gsType == [TYPE_ARRAY] then
+        if gsSubType == [TYPE_UINT8] then `
+            printf(`"[Debug] Assigning value to an array of uint8\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tmov byte [rax], bl\n"`)`
+        else if gsSubType == [TYPE_UINT64] then `
+            printf(`"[Debug] Assigning value to an array of uint64\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`)`
+        else if gsSubType == [TYPE_POINTER] then `
+            printf(`"[Debug] Assigning value to an array of uint64\n"`)
+            printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`)`
+        else ` 
+            printf(`"[Error] Error: unknown array type %d\n"`, [gsType])
+            ExitProcess(1)`
+        end end end
+    else if gsType == [TYPE_USER_DEFINED] then `
+        printf(`"[Debug] Assigning value to a struct field\n"`)
+        printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`)`
+    else `
+        printf(`"[Error] Error: unknown type %d\n"`, [gsType])
+        ExitProcess(1)`
+    end end end end end `
+    printf(`"[Trace] Assignment statement for: '%s'\n"`, stringAtPointer)`
+endproc parseAssignmentStatement
+
+proc parseIfStatement ( blockId hasElse )
+    globalBlockId = globalBlockId + 1 ;
+    expectedToken = TOKEN_IF ;
+    consumeToken ( ) ; `
+    ;printf(`"[Trace] If statement: IF\n"`)
+    printf(`"; if statement block id: %d\n"`, [rbp + 16])
+    `
+    parseLogicalOrExpression ( ) ;
+
+    expectedToken = TOKEN_THEN ;
+    consumeToken ( ) ;
+    `
+    ;printf(`"[Trace] If statement: THEN\n"`)
+    printf(`"\tpop rax\n\tcmp rax, 0\n\tjz .condition_false_%d\n; then statement block id %d\n"`, [rbp + 16], [rbp + 16])
+    `
+    parseStatements ( ) ;
+
+    if currentToken == [TOKEN_ELSE] then 
+        hasElse = 1 ;
+        expectedToken = TOKEN_ELSE ;
+        consumeToken ( ) ; `
+        printf(`"\tjmp .endif_%d:\n"`, [rbp + 16])
+        printf(`".condition_false_%d:\n; else statement block id %d\n"`, [rbp + 16], [rbp + 16])
+        ;printf(`"[Trace] If statement: ELSE\n"`)
+        `
+        parseStatements ( ) ; 
+    end
+
+    expectedToken = TOKEN_END ;
+    consumeToken ( ) ; 
+    _ = hasElse ;
+    if _ == 1 then `
+        printf(`".endif_%d:\n"`, [rbp + 16])`
+    else `
+        printf(`".condition_false_%d:\n"`, [rbp + 16])`
+    end `
+    ;printf(`"[Trace] If statement: END\n"`)`
+endproc parseIfStatement
+
+uint64 wsBlockId = 0 ;
+proc parseWhileStatement ( blockId )
+    wsBlockId = blockId ;
+    _ = i + 1 ;
+    tokens [ _ ] = wsBlockId ;
+    globalBlockId = globalBlockId + 1 ;
+    expectedToken = TOKEN_WHILE ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] While statement: WHILE\n"`)
+    printf(`".while_%d:\n"`, [rbp + 16])
+    `
+    parseLogicalOrExpression ( ) ;
+
+    expectedToken = TOKEN_DO ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] While statement: DO\n"`)
+    printf(`"\tpop rax\n\tcmp rax, 0\n\tjz .endwhile_%d\n; do statement %d\n"`, [rbp + 16], [rbp + 16])
+    `
+    parseStatements ( ) ;
+
+    expectedToken = TOKEN_END ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] While statement: END\n"`)
+    printf(`"\tjmp .while_%d\n"`, [rbp + 16])
+    printf(`".endwhile_%d:\n"`, [rbp + 16])`
+endproc parseWhileStatement
+
+uint64 pbsBlockId = 0 ;
+uint64 pbsIndex = 0 ;
+uint64 pbsCurrentToken = 0 ;
+proc parseBreakStatement ( )
+    expectedToken = TOKEN_BREAK ;
+    consumeToken ( ) ; 
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ; 
+    
+    pbsIndex = i - tokenSize - tokenSize ;
+    while pbsIndex >= 0 do
+        pbsCurrentToken = tokens [ pbsIndex ] ;
+        if pbsCurrentToken == [TOKEN_WHILE] then
+            pbsIndex = pbsIndex + 1 ;
+            pbsBlockId = tokens [ pbsIndex ] ; `
+            printf(`"[Trace] Break statement: BREAK\n"`)
+            printf(`"\tjmp .endwhile_%d\n"`, [pbsBlockId])`
+            break ;
+        end
+        pbsIndex = pbsIndex - tokenSize ;
+    end 
+endproc parseBreakStatement
+
+uint64 pcsBlockId = 0 ;
+uint64 pcsIndex = 0 ;
+uint64 pcsCurrentToken = 0 ;
+proc parseContinueStatement ( )
+    expectedToken = TOKEN_CONTINUE ;
+    consumeToken ( ) ;
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ; 
+    pcsIndex = i - tokenSize - tokenSize ;
+    while pcsIndex >= 0 do
+        pcsCurrentToken = tokens [ pcsIndex ] ;
+        if pcsCurrentToken == [TOKEN_WHILE] then
+            pcsIndex = pcsIndex + 1 ;
+            pcsBlockId = tokens [ pcsIndex ] ; `
+            printf(`"[Trace] Continue statement: CONTINUE\n"`)
+            printf(`"\tjmp .while_%d\n"`, [pcsBlockId])`
+            break ;
+        end
+        pcsIndex = pcsIndex - tokenSize ;
+    end 
+endproc parseContinueStatement
+
+uint64 paProArgumentCount = 0 ;
+proc parseArguments ( )
+    paProArgumentCount = 0 ;
+    gvType = parseType ( ) ;
+    gvNamePointer = parseIdentifier ( ) ;
+    _ = addVariable ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffset globalProcedureId ) ;
+    _ = addSymbol ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffset globalProcedureId ) ;
+    ppdRbpOffset = ppdRbpOffset + 8 ;
+    paProArgumentCount = paProArgumentCount + 1 ;
+    while true == 1 do
+        if currentToken == [TOKEN_COMMA] then
+            expectedToken = TOKEN_COMMA ;
+            consumeToken ( ) ;
+
+            gvType = parseType ( ) ;
+            gvNamePointer = parseIdentifier ( ) ;
+            _ = addVariable ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffset globalProcedureId ) ;
+            _ = addSymbol ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffset globalProcedureId ) ;
+            ppdRbpOffset = ppdRbpOffset + 8 ;
+            paProArgumentCount = paProArgumentCount + 1 ;
+        else 
+            break ;
+        end
+    end `
+    mov rax, [paProArgumentCount]`
+endproc parseArguments
+
+uint64 ppdIdentifier = 0 ;
+
+uint64 ppdHasReturnValue = 0 ;
+uint64 ppdReturnStatementCount = 0 ;
+proc parseProcedureDeclaration ( )
+    if globalBoolParsingProcedure == 1 then 
+        _ = i - tokenSize ;
+        _ = _ + 2 ;
+        errorAtLine = tokens [ _ ] ;
+        _ = i - tokenSize ;
+        _ = _ + 3 ;
+        errorAtColumn = tokens [ _ ] ; ` 
+        printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+        printf(`"nested procedure declaration is not allowed\n"`)
+        ExitProcess(1)`
+        
+    end
+
+    expectedToken = TOKEN_PROC ;
+    consumeToken ( ) ; 
+
+    ppdIdentifier = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( ppdIdentifier ) ;
+
+    if fgsIndex != -1 then
+        _ = indentifierRedeclared ( ppdIdentifier ) ;
+    end
+
+    expectedToken = TOKEN_LEFT_PARENTHESIS ;
+    consumeToken ( ) ; 
+
+    if currentToken != [TOKEN_RIGHT_PARENTHESIS] then
+        ppdRbpOffset = 16 ;
+        parseArguments ( ) ;
+    end
+
+    expectedToken = TOKEN_RIGHT_PARENTHESIS ;
+    consumeToken ( ) ;
+
+    ppdHasReturnValue = 0 ;
+    if currentToken == [TOKEN_ARROW_RIGHT] then
+        expectedToken = TOKEN_ARROW_RIGHT ;
+        consumeToken ( ) ;
+        gvType = parseType ( ) ;
+        ppdHasReturnValue = 1 ;
+    end
+
+    globalBoolParsingProcedure = 1 ;
+    ppdRbpOffset = 8 ;
+    ppdLocalVariableCount = 0 ;
+
+    if currentToken == [TOKEN_VARS] then
+        expectedToken = TOKEN_VARS ;
+        consumeToken ( ) ;
+        while true == 1 do 
+            parseVariableDeclaration ( ) ;
+            if currentToken == [TOKEN_CODE] then
+                break ;
+            end 
+        end
+    end
+
+    ppdLocalVariableCount = ppdLocalVariableCount * 8 ;
+    _ = readString ( ppdIdentifier ) ; `
+    ;printf(`"[Trace] Procedure declaration: %s\n"`, stringAtPointer)
+    printf(`";==== proc %s ====\n"`, stringAtPointer)
+    printf(`"\tjmp %s_end\n%s:\n"`, stringAtPointer, stringAtPointer)
+    printf(`"\tpush rbp\n\tmov rbp, rsp\n"`)
+    printf(`"\tsub rsp, %d\n"`, [ppdLocalVariableCount])
+    `
+
+    expectedToken = TOKEN_CODE ;
+    consumeToken ( ) ;
+
+    globalAllowVariableDeclaration = 0 ;
+    ppdReturnStatementCount = 0 ;
+    parseStatements ( ) ;
+
+    globalAllowVariableDeclaration = 1 ;
+    globalBoolParsingProcedure = 0 ;
+    globalProcedureId = globalProcedureId + 1 ;
+
+    expectedToken = TOKEN_END ;
+    consumeToken ( ) ;
+
+    if ppdReturnStatementCount == 0 then 
+        if ppdHasReturnValue == 1 then `
+            printf(`"Error: procedure %s has no return statement\n"`, stringAtPointer)
+            ExitProcess(1)`
+        end `
+        printf(`"\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
+    end
+
+    _ = addSymbol ( TYPE_PROCEDURE gvType ppdIdentifier paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ;
+
+    _ = readString ( ppdIdentifier ) ; `
+    printf(`"[Trace] Procedure declaration: %s with %d parameters\n"`, stringAtPointer, [paProArgumentCount])
+    printf(`"%s_end:\n"`, stringAtPointer)
+    printf(`";==== end proc %s ====\n"`, stringAtPointer)`
+endproc parseProcedureDeclaration
+
+uint64 prsIsEmptyResult = 0 ;
+proc parseReturnStatement ( )
+    expectedToken = TOKEN_RETURN ;
+    consumeToken ( ) ;
+
+    ppdReturnStatementCount = ppdReturnStatementCount + 1 ;
+
+    prsIsEmptyResult = 1 ;
+    if currentToken != [TOKEN_SEMICOLON] then
+        prsIsEmptyResult = 0 ;
+        parseLogicalOrExpression ( ) ;
+    end
+
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ; `
+    printf(`"[Trace] Return statement: RETURN\n"`)
+    `
+    if prsIsEmptyResult == 0 then `
+        ; has result
+        printf(`"\tpop rax\n\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
+    else `
+        ; no result
+        printf(`"\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
+    end 
+endproc parseReturnStatement
+
+uint64 ppcIdentifier = 0 ;
+uint64 ppcPrcArgumentCount = 0 ;
+uint64 ppcPrcCallArgumentCount = 0 ;
+uint64 ppcShadowSpace = 0 ;
+proc parseProcedureCall ( )
+    ppcIdentifier = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( ppcIdentifier ) ;
+
+    if fgsIndex == -1 then
+        _ = identifierUnknown ( ppcIdentifier ) ;
+    end
+
+    ppcPrcArgumentCount = gsValue ;
+    ppcShadowSpace = ppcPrcArgumentCount * 8 ;
+    ppdRbpOffset = 16 ;
+
+    expectedToken = TOKEN_LEFT_PARENTHESIS ;
+    consumeToken ( ) ;
+
+    if currentToken != [TOKEN_RIGHT_PARENTHESIS] then `
+        printf(`"\tsub rsp, %d\n\tpush rbp\n\tmov rbp, rsp\n"`, [ppcShadowSpace])`
+    end
+
+    ppcPrcCallArgumentCount = 0 ;
+    while currentToken != [TOKEN_RIGHT_PARENTHESIS] do
+        parseLogicalOrExpression ( ) ; `
+        printf(`"\tpop qword [rbp + %d]\n"`, [ppdRbpOffset])
+        `
+        ppcPrcCallArgumentCount = ppcPrcCallArgumentCount + 1 ;
+        ppdRbpOffset = ppdRbpOffset + 8 ;
+        if currentToken == [TOKEN_COMMA] then
+            expectedToken = TOKEN_COMMA ;
+            consumeToken ( ) ;
+        end
+    end
+
+    expectedToken = TOKEN_RIGHT_PARENTHESIS ;
+    consumeToken ( ) ; 
+    
+    if ppcPrcArgumentCount != [ppcPrcCallArgumentCount] then 
+        _ = i - tokenSize ;
+        _ = _ + 2 ;
+        errorAtLine = tokens [ _ ] ;
+        _ = i - tokenSize ;
+        _ = _ + 3 ;
+        errorAtColumn = tokens [ _ ] ; ` 
+        printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+        printf(`"procedure requires %d arguments, but %d arguments are provided\n"`, [ppcPrcArgumentCount], [ppcPrcCallArgumentCount])
+        ExitProcess(1)`
+    end
+
+    _ = readString ( ppdIdentifier ) ;
+
+    if ppcPrcArgumentCount != 0 then `
+        printf(`"\tmov rsp, rbp\n\tpop rbp\n\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])`
+    else `
+        printf(`"\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])`
+    end
+    `
+    printf(`"[Trace] Procedure call: %s with %d arguments\n"`, stringAtPointer, [ppcPrcArgumentCount])`
+endproc parseProcedureCall
+
+proc parseProcedureCallStatement ( )
+    parseProcedureCall ( ) ;
+
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ; 
+endproc parseProcedureCallStatement
+
+uint64 psbType = 0 ;
+uint64 psbIdentifier = 0 ;
+uint64 psbSizeOfStruct = 0 ;
+uint64 psbCurrentOffset = 0 ;
+proc parseStructBody ( )
+    psbSizeOfStruct = 0 ;
+    psbCurrentOffset = 0 ;
+    while true == 1 do 
+        if currentToken == [TOKEN_UINT8] then 
+                _ = i - tokenSize ;
+            _ = _ + 2 ;
+            errorAtLine = tokens [ _ ] ;
+            _ = i - tokenSize ;
+            _ = _ + 3 ;
+            errorAtColumn = tokens [ _ ] ; ` 
+            printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+            printf(`"valid struct member types are 'uint64' and 'pointer'\n"`)
+            ExitProcess(1)`
+        else if currentToken == [TOKEN_UINT64] then
+            psbType = parseType ( ) ;
+            psbSizeOfStruct = psbSizeOfStruct + 8 ;
+        else if currentToken == [TOKEN_POINTER] then
+            psbType = parseType ( ) ;
+            psbSizeOfStruct = psbSizeOfStruct + 8 ;
+        else
+            break ;
+        end end end
+
+        psbIdentifier = parseIdentifier ( ) ;
+
+        expectedToken = TOKEN_SEMICOLON ;
+        consumeToken ( ) ;
+
+        _ = addUserTypeField ( globalUserTypeId psbType psbIdentifier psbCurrentOffset ) ;
+
+        _ = readString ( psbIdentifier ) ; 
+
+        psbCurrentOffset = psbCurrentOffset + 8 ; `
+        printf(`"[Trace] Struct field: %s of type %d\n"`, stringAtPointer, [psbType])`
+    end
+endproc parseStructBody
+
+uint64 psdIdentifier = 0 ;
+proc parseStructDefinition ( )
+    expectedToken = TOKEN_STRUCT ;
+    consumeToken ( ) ;
+
+    psdIdentifier = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( psdIdentifier ) ;
+
+    if fgsIndex != -1 then
+        _ = indentifierRedeclared ( psdIdentifier ) ;
+    end
+
+    parseStructBody ( ) ;
+
+    expectedToken = TOKEN_END ;
+    consumeToken ( ) ;
+
+    _ = addSymbol ( TYPE_USER_DEFINED globalUserTypeId psdIdentifier psbSizeOfStruct VARIABLE_SCOPE_GLOBAL ) ; 
+
+    _ = readString ( psdIdentifier ) ; `
+    printf(`"[Trace] Struct definition: %s with %d bytes\n"`, stringAtPointer, [psbSizeOfStruct])
+    `
+    globalUserTypeId = globalUserTypeId + 1 ;
+endproc parseStructDefinition
+
+uint64 putvdTypeIdentifier = 0 ;
+uint64 putvdIdentifier = 0 ;
+proc parseUserTypeVariableDeclaration ( ) 
+    expectedToken = TOKEN_IDENTIFIER ;
+     _ = i + 1 ;
+    putvdTypeIdentifier = tokens [ _ ] ;
+    consumeToken ( ) ;
+
+    fgsIndex = findSymbol ( putvdTypeIdentifier ) ;
+
+    if fgsIndex == -1 then
+        _ = identifierUnknown ( putvdTypeIdentifier ) ;
+    end
+    putvdTypeIdentifier = gsSubType ;
+
+    putvdIdentifier = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( putvdIdentifier ) ;
+
+    if fgsIndex != -1 then
+        _ = indentifierRedeclared ( putvdIdentifier ) ;
+    end
+
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ;
+
+    _ = addVariable ( TYPE_USER_DEFINED putvdTypeIdentifier putvdIdentifier 0 VARIABLE_SCOPE_GLOBAL ) ;
+    _ = addSymbol ( TYPE_USER_DEFINED putvdTypeIdentifier putvdIdentifier 0 VARIABLE_SCOPE_GLOBAL ) ;
+
+    _ = readString ( putvdIdentifier ) ; `
+    printf(`"[Trace] Variable definition for user type: %s\n"`, stringAtPointer)`
+endproc parseUserTypeVariableDeclaration
+
+uint64 psIdentifier = 0 ;
+proc parseStatement ( )
+    if currentToken == [TOKEN_UINT8] then
+        parseVariableDeclaration ( ) ;
+    else if currentToken == [TOKEN_UINT64] then
+        parseVariableDeclaration ( ) ;
+    else if currentToken == [TOKEN_POINTER] then
+        parseVariableDeclaration ( ) ;
+    else if currentToken == [TOKEN_IDENTIFIER] then
+        _ = i + 1 ;
+        psIdentifier = tokens [ _ ] ;
+
+        fgsIndex = findSymbol ( psIdentifier ) ;
+        _ = readString ( psIdentifier ) ;
+
+        if fgsIndex != -1 then
+            if nextToken == [TOKEN_DOT] then
+                parseAssignmentStatement ( ) ;
+            else
+                if gsType == [TYPE_USER_DEFINED] then 
+                    parseUserTypeVariableDeclaration ( ) ;
+                else if nextToken == [TOKEN_LEFT_PARENTHESIS] then
+                    parseProcedureCallStatement ( ) ;
+                else
+                    parseAssignmentStatement ( ) ;
+                end end
+            end
+        else 
+            _ = identifierUnknown ( psIdentifier ) ;
+        end
+    else if currentToken == [TOKEN_IF] then
+        _ = parseIfStatement ( globalBlockId 0 0 ) ;
+    else if currentToken == [TOKEN_WHILE] then
+        _ = parseWhileStatement ( globalBlockId ) ;
+    else if currentToken == [TOKEN_BREAK] then
+        parseBreakStatement ( ) ;
+    else if currentToken == [TOKEN_CONTINUE] then
+        parseContinueStatement ( ) ;
+    else if currentToken == [TOKEN_PROC] then
+        parseProcedureDeclaration ( ) ;
+    else if currentToken == [TOKEN_RETURN] then
+        parseReturnStatement ( ) ;
+    else if currentToken == [TOKEN_STRUCT] then
+        parseStructDefinition ( ) ;
+    else
+        unexpectedToken ( ) ;
+    end end end end end end end end end end end
+endproc parseStatement
+
+proc parseStatements ( )
+    while true == 1 do 
+        if currentToken == [TOKEN_END] then
+            break ;
+        else if currentToken == [TOKEN_ELSE] then
+            break ;
+        else
+            parseStatement ( ) ;
+        end end 
+    end
+endproc parseStatements
+
+i = 0 ;
+
+while i < [tokenCount] do
+    currentToken = tokens [ i ] ;
+    parseStatement ( ) ;
+end
+
+i = 0 ;
+
+uint64 wsdIdentifier = 0 ;
+while i < [globalVariableCount] do
+    _ = gvTypeOffset + i * globalVariableSize ;
+    gvType = globalVariables [ _ ] ;
+    _ = gvSubTypeOffset + i * globalVariableSize ;
+    gvSubType = globalVariables [ _ ] ;
+    _ = gvNameOffset + i * globalVariableSize ;
+    gvNamePointer = globalVariables [ _ ] ;
+    _ = gvValueOffset + i * globalVariableSize ;
+    gvValue = globalVariables [ _ ] ;
+    _ = gvScopeOffset + i * globalVariableSize ;
+    gvScope = globalVariables [ _ ] ;
+
+    if gvScope != [VARIABLE_SCOPE_GLOBAL] then
+        i = i + 1 ;
+        continue ;
+    end
+
+    _ = readString ( gvNamePointer ) ; 
+    
+    if gvType == [TYPE_UINT8] then `
+        printf(`"section .data\r\n\t%s db %d\n"`, stringAtPointer, [gvValue])`
+    else if gvType == [TYPE_UINT64] then `
+        printf(`"section .data\r\n\t%s dq %d\n"`, stringAtPointer, [gvValue])`
+    else if gvType == [TYPE_POINTER] then `
+        printf(`"section .data\r\n\t%s dq %d\n"`, stringAtPointer, [gvValue])`
+    else if gvType == [TYPE_ARRAY] then 
+        if gvSubType == [TYPE_UINT8] then `
+            printf(`"section .bss\r\n\t%s resb %d\n"`, stringAtPointer, [gvValue])`
+        else if gvSubType == [TYPE_UINT64] then `
+            printf(`"section .bss\r\n\t%s resq %d\n"`, stringAtPointer, [gvValue])`
+        else if gvSubType == [TYPE_POINTER] then `
+            printf(`"section .bss\r\n\t%s resq %d\n"`, stringAtPointer, [gvValue])`
+        else `
+            printf(`"Error: unknown array type %d\n"`, [gvType])
+            ExitProcess(1)`
+        end end end
+    else if gvType == [TYPE_USER_DEFINED] then
+        wsdIdentifier = gvNamePointer ;
+
+        _ = findUserType ( gvSubType ) ;
+        if _ == -1 then `
+            printf(`"Error: unknown user type %d\n"`, [gvSubType])
+            ExitProcess(1)`
+        end 
+
+        _ = readString ( wsdIdentifier ) ; `
+        printf(`"section .bss\r\n\t%s resb %d\n"`, stringAtPointer, [gsValue])`
+    else `
+        printf(`"Error: unknown type %d\n"`, [gvType])
+        ExitProcess(1)`
+    end end end end end
+
+    i = i + 1 ;
+end
+`
     ExitProcess(0)`

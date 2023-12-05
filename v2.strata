@@ -3,4 +3,4 @@ struct Point
     uint64 y;
 end
 
-Point[] points;
+Point[100] points;
