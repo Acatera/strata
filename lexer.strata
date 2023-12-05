@@ -220,7 +220,7 @@ proc token_equals ( a ) `
     _ = readString ( a ) ; `
     mov rdi, token_at_pointer
 
-    printf(`"[Trace] Comparing strings: %s and %s\n"`, rsi, rdi)
+    ;printf(`"[Trace] Comparing strings: %s and %s\n"`, rsi, rdi)
 .loop:
     mov al, byte [rdi]
     mov bl, byte [rsi]
@@ -279,6 +279,30 @@ proc get_token_type ( )
         mov rax, 0`
     end
 endproc get_token_type
+
+uint64 tnNumber = 0 ;
+uint64 tnDigit = 0 ;
+uint64 tnChar = 0 ;
+uint64 tnIndex = 0 ;
+uint64 tnSuccess = 0 ;
+proc to_number ( )
+    tnNumber = 0 ;
+    tnIndex = 0 ;
+    tnSuccess = 1 ;
+    tnChar = token [ tnIndex ] ;
+    while tnChar != 0 do 
+        tnNumber = tnNumber * 10 ;
+        tnDigit = tnChar - 48 ;
+        if tnDigit > 9 then
+            tnSuccess = 0 ;
+            break;
+        end
+        
+        tnIndex = tnIndex + 1 ;
+        tnChar = token [ tnIndex ] ;
+    end `
+    mov rax, [tnSuccess]`
+endproc to_number
 
 proc isSpace ( )
     if c == 32 then `
@@ -455,11 +479,14 @@ uint64 token_type = 0 ;
 proc push_and_print_token ( ) `
     printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
     `
-    token_type = get_token_type ( ) ;
-    if token_type == 0 then 
-        token_type = TOKEN_IDENTIFIER ;
-        _ = push_token ( token_type 0 0 0 ) ;
-    else 
+        _ = to_number ( ) ;
+    if _ == 1 then 
+        token_type = TOKEN_CONSTANT_INTEGER ;
+    else
+        token_type = get_token_type ( ) ;
+        if token_type == 0 then 
+            token_type = TOKEN_IDENTIFIER ;
+        end 
         _ = push_token ( token_type 0 0 0 ) ;
     end `
     printf(`"[\#27[92mINFO\#27[0m] Token type: %d\n"`, [token_type])`
