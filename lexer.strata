@@ -21,8 +21,8 @@ array src = uint8 [ 1048576 ] ;
 uint64 bytesRead = 0 ;
 
 proc CreateFile ( ) `
-    printf(`"[\#27[92mINFO\#27[0m] Input file '%s'\r\n"`, cStrSourceFile)
-    printf(`"[\#27[92mINFO\#27[0m] Output file '%s'\r\n"`, cStrOutputFile)
+    printf(`"; Input file '%s'\r\n"`, cStrSourceFile)
+    printf(`"; Output file '%s'\r\n"`, cStrOutputFile)
 
     mov rcx, cStrSourceFile
     mov rdx, GENERIC_READ
@@ -53,11 +53,12 @@ if handle < 0 then `
     printf(`"[\#27[91mERROR\#27[0m] Failed to open input file '%s'\n"`, cStrSourceFile)
     ExitProcess(1) `
 else `
-    printf(`"[\#27[92mINFO\#27[0m] Successfully opened input file '%s'\n"`, cStrSourceFile)
-    printf(`"[\#27[92mINFO\#27[0m] Read %d bytes from input file\n"`, [bytesRead])`
+    printf(`"; Successfully opened input file '%s'\n"`, cStrSourceFile)
+    printf(`"; Read %d bytes from input file\n"`, [bytesRead])`
 end
 
 uint64 _ = 0 ;
+uint64 __ = 0 ;
 uint64 true = 1 ;
 
 uint8 c = 0 ;
@@ -171,7 +172,7 @@ uint64 TYPE_ARRAY                  = 4 ;
 uint64 TYPE_PROCEDURE              = 5 ;
 uint64 TYPE_USER_DEFINED           = 6 ;
 
-uint64 VARIABLE_SCOPE_GLB       = 0 ;
+uint64 VAR_SCOPE_GLB       = 0 ;
 
 uint64 VARTYPE_PARAMETER           = 1 ;
 uint64 VARTYPE_LOCAL               = 2 ;
@@ -844,21 +845,21 @@ while scIdx < [bytesRead] do
     scIdx = scIdx + 1 ;
 end
 `
-    printf(`"Token count: %d\n"`, [tokenCount])
+    printf(`"; Token count: %d\n"`, [tokenCount])
 `
 
 uint64 glbBlockId = 0 ;
-uint64 glbProcedureId = 1 ;
+uint64 glbProcId = 1 ;
 uint64 glbUserTypeId = 1 ;
-uint64 glbBoolParsingProcedure = 0 ;
-uint64 glbAllowVariableDecl = 1 ;
-uint64 ppdLocalVariableCount = 0 ;
+uint64 glbBoolParsingProc = 0 ;
+uint64 glbAllowVarDecl = 1 ;
+uint64 ppdLocalVarCount = 0 ;
 
 uint64 ppdRbpOffs = 0 ;
 
-array glbVariables = uint64 [ 10000 ] ;
-uint64 glbVariableCount = 0 ;
-uint64 glbVariableSize = 5 ;
+array glbVars = uint64 [ 10000 ] ;
+uint64 glbVarCount = 0 ;
+uint64 glbVarSize = 5 ;
 
 uint64 gvTypeOffs     = 0 ;
 uint64 gvSubTypeOffs  = 1 ;
@@ -872,19 +873,19 @@ uint64 gvNamePointer = 0 ;
 uint64 gvValue       = 0 ;
 uint64 gvScope       = 0 ;
 
-proc addVariable ( type subType namePointer value scope )
-    _ = gvTypeOffs + glbVariableCount * glbVariableSize ;
-    glbVariables [ _ ] = type ;
-    _ = gvSubTypeOffs + glbVariableCount * glbVariableSize ;
-    glbVariables [ _ ] = subType ;
-    _ = gvNameOffs + glbVariableCount * glbVariableSize ;
-    glbVariables [ _ ] = namePointer ;
-    _ = gvValueOffs + glbVariableCount * glbVariableSize ;
-    glbVariables [ _ ] = value ;
-    _ = gvScopeOffs + glbVariableCount * glbVariableSize ;
-    glbVariables [ _ ] = scope ;
-    glbVariableCount = glbVariableCount + 1 ;
-endproc addVariable
+proc addVar ( type subType namePointer value scope )
+    _ = gvTypeOffs + glbVarCount * glbVarSize ;
+    glbVars [ _ ] = type ;
+    _ = gvSubTypeOffs + glbVarCount * glbVarSize ;
+    glbVars [ _ ] = subType ;
+    _ = gvNameOffs + glbVarCount * glbVarSize ;
+    glbVars [ _ ] = namePointer ;
+    _ = gvValueOffs + glbVarCount * glbVarSize ;
+    glbVars [ _ ] = value ;
+    _ = gvScopeOffs + glbVarCount * glbVarSize ;
+    glbVars [ _ ] = scope ;
+    glbVarCount = glbVarCount + 1 ;
+endproc addVar
 
 array glbSymbolTable = uint64 [ 10000 ] ;
 uint64 glbSymbolsCount = 0 ;
@@ -989,9 +990,7 @@ proc findSymbol ( namePointer )
         _ = gsScopeOffs + fgsIndex * glbSymbolSize ;
         gsScope = glbSymbolTable [ _ ] ;
 
-        _ = gvValueOffs + fgsIndex * glbSymbolSize ;
-        `
-        printf(`"[Trace] Found glb symbol: #%d with value %d.\n"`, [fgsIndex], [_])
+        _ = gvValueOffs + fgsIndex * glbSymbolSize ; `
         mov rax, [_] `
     else
         gsType = 0 ;
@@ -1039,9 +1038,7 @@ proc findUserType ( userType )
         gsScope = glbSymbolTable [ _ ] ;
 
         _ = gvValueOffs + fgsIndex * glbSymbolSize ;
-        _ = glbSymbolTable [ _ ] ;
-        `
-        printf(`"[Trace] Found user type: #%d with value %d.\n"`, [fgsIndex], [_])
+        _ = glbSymbolTable [ _ ] ; `
         mov rax, [_] `
     else
         gsType = 0 ;
@@ -1157,7 +1154,7 @@ proc pushString ( )
     strPtrsTop = strPtrsTop + 1 ;
 endproc pushString
 
-array stringAtPointer = uint8 [ 256 ] ;
+array strAtPtr = uint8 [ 256 ] ;
 proc readStr ( index )
     freeStringIndex = 0 ;
     _ = index ;
@@ -1166,12 +1163,12 @@ proc readStr ( index )
     freeChar = strBuf [ sbIndex ] ;
 
     while freeChar != 0 do
-        stringAtPointer [ freeStringIndex ] = freeChar ;
+        strAtPtr [ freeStringIndex ] = freeChar ;
         freeStringIndex = freeStringIndex + 1 ;
         sbIndex = sbIndex + 1 ;
         freeChar = strBuf [ sbIndex ] ;
     end
-    stringAtPointer [ freeStringIndex ] = 0 ; `
+    strAtPtr [ freeStringIndex ] = 0 ; `
     mov rax, [_]`
 endproc readStr
 
@@ -1182,25 +1179,26 @@ uint64 i = 0 ;
 
 uint64 errLine = 0 ;
 uint64 errCol = 0 ;
-proc consumeTkn ( expected )
-    _ = expected ;
-    if currTkn == [_] then
+uint64 n = 0 ;
+proc consume ( expected )
+    n = expected ;
+    if currTkn == [n] then
         i = i + tknSize ;
         currTkn = tkns [ i ] ;
         i = i + tknSize ;
         nextToken = tkns [ i ] ;
         i = i - tknSize ;
     else
-        _ = i + 2 ;
-        errLine = tkns [ _ ] ;
-        _ = i + 3 ;
-        errCol = tkns [ _ ] ;
+        n = i + 2 ;
+        errLine = tkns [ n ] ;
+        n = i + 3 ;
+        errCol = tkns [ n ] ;
         `
         printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
         printf(`"expected token %d but got %d\n"`, [_], [currTkn])
         ExitProcess(1) `
     end
-endproc consumeTkn
+endproc consume
 
 
 proc indentifierRedeclared ( namePointer )
@@ -1212,7 +1210,7 @@ proc indentifierRedeclared ( namePointer )
     errCol = tkns [ _ ] ;
     _ = readStr ( namePointer ) ; `
     printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-    printf(`"ident redeclared: %s\n"`, stringAtPointer) ;
+    printf(`"ident redeclared: %s\n"`, strAtPtr) ;
     ExitProcess(1)`
 endproc indentifierRedeclared
 
@@ -1225,7 +1223,7 @@ proc identUnknown ( namePointer )
     errCol = tkns [ _ ] ;
     _ = readStr ( namePointer ) ; `
     printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-    printf(`"unknown ident: %s\n"`, stringAtPointer) ;
+    printf(`"unknown ident: %s\n"`, strAtPtr) ;
     ExitProcess(1)`
 endproc identUnknown
 
@@ -1243,14 +1241,14 @@ endproc unexpectedToken
 proc parseNumber ( )
     _ = i + 1 ;
     _ = tkns [ _ ] ;
-    _ = consumeTkn ( TK_CONSTANT_INTEGER ) ; `
+    __ = consume ( TK_CONSTANT_INTEGER ) ; `
     mov rax, [_]`
 endproc parseNumber
 
 proc parseIdent ( )
     _ = i + 1 ;
     _ = tkns [ _ ] ;
-    _ = consumeTkn ( TK_IDENT ) ; `
+    __ = consume ( TK_IDENT ) ; `
     mov rax, [_]`
 endproc parseIdent
 
@@ -1275,21 +1273,21 @@ proc parseType ( )
 endproc parseType
 
 proc parseArrayDecl ( )
-    if glbBoolParsingProcedure != 0 then
+    if glbBoolParsingProc != 0 then
         _ = i + 2 ;
         errLine = tkns [ _ ] ;
         _ = i + 3 ;
         errCol = tkns [ _ ] ;
         `
         printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-        printf(`"arrays decls are not allowed in procedures\n"`)`
+        printf(`"arrays decls are not allowed in procs\n"`)`
     end
 
-    _ = consumeTkn ( TK_LEFT_BRACKET ) ;
+    __ = consume ( TK_LEFT_BRACKET ) ;
 
     gvValue = parseNumber ( ) ;
 
-    _ = consumeTkn ( TK_RIGHT_BRACKET ) ;
+    __ = consume ( TK_RIGHT_BRACKET ) ;
 
     gvNamePointer = parseIdent ( ) ;
 
@@ -1299,8 +1297,8 @@ proc parseArrayDecl ( )
     `
     printf(`"[Trace] Array decl: type %d, subtype %d\n"`, [gvType], [gvSubType])
     `
-    _ = addVariable ( gvType gvSubType gvNamePointer gvValue VARIABLE_SCOPE_GLB ) ;
-    _ = addSymbol ( gvType gvSubType gvNamePointer gvValue VARIABLE_SCOPE_GLB ) ; `
+    _ = addVar ( gvType gvSubType gvNamePointer gvValue VAR_SCOPE_GLB ) ;
+    _ = addSymbol ( gvType gvSubType gvNamePointer gvValue VAR_SCOPE_GLB ) ; `
     printf(`"[Trace] Array decl: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseArrayDecl
 
@@ -1313,34 +1311,32 @@ proc parseIntegerDecl ( )
         _ = indentifierRedeclared ( gvNamePointer ) ;
     end
 
-    _ = consumeTkn ( TK_ASSIGNMENT ) ;
+    __ = consume ( TK_ASSIGNMENT ) ;
 
     gvValue = parseNumber ( ) ;
 
-    if glbBoolParsingProcedure == 0 then
-        _ = addVariable ( gvType 0 gvNamePointer gvValue VARIABLE_SCOPE_GLB ) ;
-        _ = addSymbol ( gvType 0 gvNamePointer 0 VARIABLE_SCOPE_GLB ) ;
+    if glbBoolParsingProc == 0 then
+        _ = addVar ( gvType 0 gvNamePointer gvValue VAR_SCOPE_GLB ) ;
+        _ = addSymbol ( gvType 0 gvNamePointer 0 VAR_SCOPE_GLB ) ;
     else
-        _ = addVariable ( gvType VARTYPE_LOCAL gvNamePointer gvValue glbProcedureId ) ;
-        _ = addSymbol ( gvType VARTYPE_LOCAL gvNamePointer ppdRbpOffs glbProcedureId ) ;
+        _ = addVar ( gvType VARTYPE_LOCAL gvNamePointer gvValue glbProcId ) ;
+        _ = addSymbol ( gvType VARTYPE_LOCAL gvNamePointer ppdRbpOffs glbProcId ) ;
         ppdRbpOffs = ppdRbpOffs + 8 ;
     end
-    `
-    printf(`"[Trace] Variable decl: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseIntegerDecl
 
-proc parseVariableDecl ( )
-    if glbAllowVariableDecl == 0 then
+proc parseVarDecl ( )
+    if glbAllowVarDecl == 0 then
         _ = i + 2 ;
         errLine = tkns [ _ ] ;
         _ = i + 3 ;
         errCol = tkns [ _ ] ;
         `
         printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-        printf(`"variable decls are not allowed in procedure code section\n"`)`
+        printf(`"var decls are not allowed in proc code section\n"`)`
     end
 
-    ppdLocalVariableCount = ppdLocalVariableCount + 1 ;
+    ppdLocalVarCount = ppdLocalVarCount + 1 ;
 
     gvType = parseType ( ) ;
 
@@ -1352,13 +1348,13 @@ proc parseVariableDecl ( )
         unexpectedToken ( ) ;
     end end
 
-    _ = consumeTkn ( TK_SEMICOLON ) ;
-endproc parseVariableDecl
+    __ = consume ( TK_SEMICOLON ) ;
+endproc parseVarDecl
 
 proc forward parseAdditiveExpr
 proc forward parseStmts
 proc forward parseArrayAccess
-proc forward parseProcedureCall
+proc forward parseProcCall
 proc forward parseStructAccess
 
 uint64 fpIdent = 0 ;
@@ -1367,11 +1363,11 @@ proc parseFactor ( )
         _ = parseNumber ( ) ; `
         printf(`"\tpush %d\n"`, [_])`
     else if currTkn == [TK_LEFT_PAREN] then
-        _ = consumeTkn ( TK_LEFT_PAREN ) ;
+        __ = consume ( TK_LEFT_PAREN ) ;
 
         parseAdditiveExpr ( ) ;
 
-        _ = consumeTkn ( TK_RIGHT_PAREN ) ;
+        __ = consume ( TK_RIGHT_PAREN ) ;
     else if currTkn == [TK_IDENT] then
         if nextToken == [TK_LEFT_BRACKET] then
             fpIdent = parseArrayAccess ( ) ;
@@ -1385,29 +1381,23 @@ proc parseFactor ( )
             _ = readStr ( fpIdent ) ;
 
             if gsSubType == [TYPE_UINT8] then `
-                printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
+                printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush [rax]\n"`, strAtPtr)`
             else if gsSubType == [TYPE_UINT64] then `
-                printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
+                printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, strAtPtr)`
             else if gsSubType == [TYPE_POINTER] then `
-                printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
+                printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, strAtPtr)`
             else `
                 printf(`"[Error] Error: unknown array type %d\n"`, [gsSubType])
                 ExitProcess(1)`
-            end end end `
-            printf(`"[Trace] Factor: array\n"`)`
+            end end end 
         else if nextToken == [TK_LEFT_PAREN] then
-            parseProcedureCall ( ) ; `
-            printf(`"[Trace] Factor: procedure call\n"`)
+            parseProcCall ( ) ; `
             printf(`"\tpush rax\n"`)`
         else if nextToken == [TK_DOT] then
-            parseStructAccess ( ) ; `
-            printf(`"[Trace] Factor: struct access\n"`)`
+            parseStructAccess ( ) ; 
         else
             _ = i + 1 ;
             _ = tkns [ _ ] ;
-            `
-            printf(`"[Trace] Factor: variable #%d\n"`, [_])
-            `
 
             fpIdent = parseIdent ( ) ;
 
@@ -1418,13 +1408,13 @@ proc parseFactor ( )
             end
 
             _ = readStr ( fpIdent ) ;
-            if gsScope == [VARIABLE_SCOPE_GLB] then
+            if gsScope == [VAR_SCOPE_GLB] then
                 if gsType == [TYPE_UINT8] then `
-                    printf(`"\tpush byte [%s]\n"`, stringAtPointer)`
+                    printf(`"\tpush byte [%s]\n"`, strAtPtr)`
                 else if gsType == [TYPE_UINT64] then `
-                    printf(`"\tpush qword [%s]\n"`, stringAtPointer)`
+                    printf(`"\tpush qword [%s]\n"`, strAtPtr)`
                 else if gsType == [TYPE_POINTER] then `
-                    printf(`"\tpush qword [%s]\n"`, stringAtPointer)`
+                    printf(`"\tpush qword [%s]\n"`, strAtPtr)`
                 else `
                     printf(`"[Error] Error: unknown type %d\n"`, [gsType])
                     ExitProcess(1)`
@@ -1449,17 +1439,17 @@ proc parseMultiplicativeExpr ( )
     parseFactor ( ) ;
     while true == 1 do
         if currTkn == [TK_MULTIPLY] then
-            _ = consumeTkn ( TK_MULTIPLY ) ;
+            __ = consume ( TK_MULTIPLY ) ;
             parseFactor ( ) ; `
             printf(`"[Trace] MULTIPLY *\n"`)
             printf(`"\tpop rbx\n\tpop rax\n\tmul rbx\n\tpush rax\n"`)`
         else if currTkn == [TK_DIVIDE] then
-            _ = consumeTkn ( TK_DIVIDE ) ;
+            __ = consume ( TK_DIVIDE ) ;
             parseFactor ( ) ; `
             printf(`"[Trace] DIVIDE /\n"`)
             printf(`"\tpop rbx\n\tpop rax\n\tdiv rbx\n\tpush rax\n"`)`
         else if currTkn == [TK_MODULO] then
-            _ = consumeTkn ( TK_MODULO ) ;
+            __ = consume ( TK_MODULO ) ;
             parseFactor ( ) ; `
             printf(`"[Trace] MODULO %%\n"`)
             printf(`"\tpop rbx\n\tpop rax\n\tdiv rbx\n\tpush rdx\n"`)`
@@ -1473,12 +1463,12 @@ proc parseAdditiveExpr ( )
     parseMultiplicativeExpr ( ) ;
     while true == 1 do
         if currTkn == [TK_PLUS] then
-            _ = consumeTkn ( TK_PLUS ) ;
+            __ = consume ( TK_PLUS ) ;
             parseMultiplicativeExpr ( ) ; `
-            printf(`"[Trace] PLUS +\n"`)
+            printf(`"; -- plus --\n"`)
             printf(`"\tpop rbx\n\tpop rax\n\tadd rax, rbx\n\tpush rax\n"`)`
         else if currTkn == [TK_MINUS] then
-            _ = consumeTkn ( TK_MINUS ) ;
+            __ = consume ( TK_MINUS ) ;
             parseMultiplicativeExpr ( ) ; `
             printf(`"[Trace] MINUS -\n"`)
             printf(`"\tpop rbx\n\tpop rax\n\tsub rax, rbx\n\tpush rax\n"`)`
@@ -1492,49 +1482,49 @@ uint64 preIndex = 0 ;
 proc parseRelationalExpr ( )
     parseAdditiveExpr ( ) ;
     if currTkn == [TK_LESS_THAN] then
-        _ = consumeTkn ( TK_LESS_THAN ) ;
+        __ = consume ( TK_LESS_THAN ) ;
         parseAdditiveExpr ( ) ; `
-        printf(`"[Trace] LESS_THAN <\n"`)
+        printf(`"; -- < --\n"`)
         printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjl .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
         printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
         `
         preIndex = preIndex + 1 ;
     else if currTkn == [TK_LESS_THAN_OR_EQUAL_TO] then
-        _ = consumeTkn ( TK_LESS_THAN_OR_EQUAL_TO ) ;
+        __ = consume ( TK_LESS_THAN_OR_EQUAL_TO ) ;
         parseAdditiveExpr ( ) ; `
-        printf(`"[Trace] LESS_THAN_OR_EQUAL_TO <=\n"`)
+        printf(`"; -- <= --\n"`)
         printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjle .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
         printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
         `
         preIndex = preIndex + 1 ;
     else if currTkn == [TK_GREATER_THAN] then
-        _ = consumeTkn ( TK_GREATER_THAN ) ;
+        __ = consume ( TK_GREATER_THAN ) ;
         parseAdditiveExpr ( ) ; `
-        printf(`"[Trace] GREATER_THAN >\n"`)
+        printf(`"; -- > --\n"`)
         printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjg .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
         printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
         `
         preIndex = preIndex + 1 ;
     else if currTkn == [TK_GREATER_THAN_OR_EQUAL_TO] then
-        _ = consumeTkn ( TK_GREATER_THAN_OR_EQUAL_TO ) ;
+        __ = consume ( TK_GREATER_THAN_OR_EQUAL_TO ) ;
         parseAdditiveExpr ( ) ; `
-        printf(`"[Trace] GREATER_THAN_OR_EQUAL_TO >=\n"`)
+        printf(`"; -- >= --\n"`)
         printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjge .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
         printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
         `
         preIndex = preIndex + 1 ;
     else if currTkn == [TK_EQUALS] then
-        _ = consumeTkn ( TK_EQUALS ) ;
+        __ = consume ( TK_EQUALS ) ;
         parseAdditiveExpr ( ) ; `
-        printf(`"[Trace] EQUALS ==\n"`)
+        printf(`"; -- == --\n"`)
         printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tje .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
         printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
         `
         preIndex = preIndex + 1 ;
     else if currTkn == [TK_NOT_EQUALS] then
-        _ = consumeTkn ( TK_NOT_EQUALS ) ;
+        __ = consume ( TK_NOT_EQUALS ) ;
         parseAdditiveExpr ( ) ; `
-        printf(`"[Trace] NOT_EQUALS !=\n"`)
+        printf(`"; -- != --\n"`)
         printf(`"\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjne .true_%d\n\tpush 0\n\tjmp .end_%d\n"`, [preIndex], [preIndex])
         printf(`".true_%d:\n\tpush 1\n.end_%d:\n"`, [preIndex], [preIndex])
         `
@@ -1546,7 +1536,7 @@ proc parseLogicalAndExpr ( )
     parseRelationalExpr ( ) ;
     while true == 1 do
         if currTkn == [TK_LOGICAL_AND] then
-            _ = consumeTkn ( TK_LOGICAL_AND ) ;
+            __ = consume ( TK_LOGICAL_AND ) ;
             parseRelationalExpr ( ) ; `
             printf(`"[Trace] LOGICAL_AND &&\n"`)
             printf(`"\tpop rbx\n\tpop rax\n\tand rax, rbx\n\tpush rax\n"`)`
@@ -1560,7 +1550,7 @@ proc parseLogicalOrExpr ( )
     parseLogicalAndExpr ( ) ;
     while true == 1 do
         if currTkn == [TK_LOGICAL_OR] then
-            _ = consumeTkn ( TK_LOGICAL_OR ) ;
+            __ = consume ( TK_LOGICAL_OR ) ;
             parseLogicalAndExpr ( ) ; `
             printf(`"[Trace] LOGICAL_OR ||\n"`)
             printf(`"\tpop rbx\n\tpop rax\n\tor rax, rbx\n\tpush rax\n"`)`
@@ -1573,9 +1563,9 @@ endproc parseLogicalOrExpr
 uint64 paaIdent = 0 ;
 proc parseArrayAccess ( )
     paaIdent = parseIdent ( ) ;
-    _ = consumeTkn ( TK_LEFT_BRACKET ) ;
+    __ = consume ( TK_LEFT_BRACKET ) ;
     parseAdditiveExpr ( ) ;
-    _ = consumeTkn ( TK_RIGHT_BRACKET ) ; `
+    __ = consume ( TK_RIGHT_BRACKET ) ; `
     mov rax, [paaIdent]`
 endproc parseArrayAccess
 
@@ -1594,10 +1584,10 @@ proc parseStructAccess ( )
     psaType = gsSubType ;
 
     _ = readStr ( psaIdent ) ; `
-    printf(`"[Trace] Assignable: variable\n"`)
-    printf(`"\tmov rax, %s\n\tpush rax\n"`, stringAtPointer)
+    printf(`"; var assignment\n"`)
+    printf(`"\tmov rax, %s\n\tpush rax\n"`, strAtPtr)
     `
-    _ = consumeTkn ( TK_DOT ) ;
+    __ = consume ( TK_DOT ) ;
 
     psaStructFieldIdent = parseIdent ( ) ;
 
@@ -1620,16 +1610,16 @@ proc parseAssignable ( )
         _ = readStr ( paIdent ) ;
 
         if gsSubType == [TYPE_UINT8] then `
-            printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush rax\n"`, stringAtPointer)`
+            printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush rax\n"`, strAtPtr)`
         else if gsSubType == [TYPE_UINT64] then `
-            printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush rax\n"`, stringAtPointer)`
+            printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush rax\n"`, strAtPtr)`
         else if gsSubType == [TYPE_POINTER] then `
-            printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush rax\n"`, stringAtPointer)`
+            printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush rax\n"`, strAtPtr)`
         else `
             printf(`"[Error] Error: unknown array type %d\n"`, [gsSubType])
             ExitProcess(1)`
         end end end `
-        printf(`"[Trace] Assignable: array, ct %d\n"`, [currTkn])`
+        printf(`"; array assignment ct %d\n"`, [currTkn])`
     else if nextToken == [TK_DOT] then
         parseStructAccess ( ) ;
     else
@@ -1640,7 +1630,7 @@ proc parseAssignable ( )
         if fgsIndex == -1 then
             _ = identUnknown ( paIdent ) ;
         end `
-        printf(`"[Trace] Assignable: variable\n"`)`
+        printf(`"; var assignment\n"`)`
     end end `
     mov rax, [paIdent]`
 endproc parseAssignable
@@ -1648,9 +1638,9 @@ endproc parseAssignable
 uint64 pasIdent = 0 ;
 proc parseAssignmentStmt ( )
     pasIdent = parseAssignable ( ) ;
-    _ = consumeTkn ( TK_ASSIGNMENT ) ;
+    __ = consume ( TK_ASSIGNMENT ) ;
     parseLogicalOrExpr ( ) ;
-    _ = consumeTkn ( TK_SEMICOLON ) ;
+    __ = consume ( TK_SEMICOLON ) ;
     fgsIndex = findSymbol ( pasIdent ) ;
 
     if fgsIndex == -1 then
@@ -1659,81 +1649,70 @@ proc parseAssignmentStmt ( )
     _ = readStr ( pasIdent ) ;
 
     if gsType == [TYPE_UINT8] then
-        if gsScope == [VARIABLE_SCOPE_GLB] then `
-            printf(`"[Debug] Assigning value to a uint8\n"`)
-            printf(`"\tpop rax\n\tmov byte [%s], al\n"`, stringAtPointer)`
+        if gsScope == [VAR_SCOPE_GLB] then `
+            printf(`"\tpop rax\n\tmov byte [%s], al\n"`, strAtPtr)`
         else if gsSubType == [VARTYPE_LOCAL] then `
-            printf(`"[Debug] Assigning value to a local uint8\n"`)
             printf(`"\tpop rax\n\tmov qword [rbp - %d], rax\n"`, [gsValue])`
         else if gsSubType == [VARTYPE_PARAMETER] then `
             printf(`"Cannot assign to a parameter\n"`)`
         end end end
     else if gsType == [TYPE_UINT64] then
-        if gsScope == [VARIABLE_SCOPE_GLB] then `
-            printf(`"[Debug] Assigning value to a uint64\n"`)
-            printf(`"\tpop rax\n\tmov qword [%s], rax\n"`, stringAtPointer)`
+        if gsScope == [VAR_SCOPE_GLB] then `
+            printf(`"\tpop rax\n\tmov qword [%s], rax\n"`, strAtPtr)`
         else if gsSubType == [VARTYPE_LOCAL] then `
-            printf(`"[Debug] Assigning value to a local uint64\n"`)
             printf(`"\tpop rax\n\tmov qword [rbp - %d], rax\n"`, [gsValue])`
         else if gsSubType == [VARTYPE_PARAMETER] then `
             printf(`"Cannot assign to a parameter\n"`)`
         end end end
     else if gsType == [TYPE_POINTER] then
-        if gsScope == [VARIABLE_SCOPE_GLB] then `
-            printf(`"[Debug] Assigning value to a uint64\n"`)
-            printf(`"\tpop rax\n\tmov qword [%s], rax\n"`, stringAtPointer)`
+        if gsScope == [VAR_SCOPE_GLB] then `
+            printf(`"\tpop rax\n\tmov qword [%s], rax\n"`, strAtPtr)`
         else if gsSubType == [VARTYPE_LOCAL] then `
-            printf(`"[Debug] Assigning value to a local uint64\n"`)
             printf(`"\tpop rax\n\tmov qword [rbp - %d], rax\n"`, [gsValue])`
         else if gsSubType == [VARTYPE_PARAMETER] then `
             printf(`"Cannot assign to a parameter\n"`)`
         end end end
     else if gsType == [TYPE_ARRAY] then
         if gsSubType == [TYPE_UINT8] then `
-            printf(`"[Debug] Assigning value to an array of uint8\n"`)
             printf(`"\tpop rbx\n\tpop rax\n\tmov byte [rax], bl\n"`)`
         else if gsSubType == [TYPE_UINT64] then `
-            printf(`"[Debug] Assigning value to an array of uint64\n"`)
             printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`)`
         else if gsSubType == [TYPE_POINTER] then `
-            printf(`"[Debug] Assigning value to an array of uint64\n"`)
             printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`)`
         else `
             printf(`"[Error] Error: unknown array type %d\n"`, [gsType])
             ExitProcess(1)`
         end end end
     else if gsType == [TYPE_USER_DEFINED] then `
-        printf(`"[Debug] Assigning value to a struct field\n"`)
         printf(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n"`)`
     else `
         printf(`"[Error] Error: unknown type %d\n"`, [gsType])
         ExitProcess(1)`
-    end end end end end `
-    printf(`"[Trace] Assignment stmt for: '%s'\n"`, stringAtPointer)`
+    end end end end end 
 endproc parseAssignmentStmt
 
 proc parseIfStmt ( blockId hasElse )
     glbBlockId = glbBlockId + 1 ;
-    _ = consumeTkn ( TK_IF ) ; `
+    __ = consume ( TK_IF ) ; `
     printf(`"; if stmt block id: %d\n"`, [rbp + 16])
     `
     parseLogicalOrExpr ( ) ;
 
-    _ = consumeTkn ( TK_THEN ) ; `
+    __ = consume ( TK_THEN ) ; `
     printf(`"\tpop rax\n\tcmp rax, 0\n\tjz .condition_false_%d\n; then stmt block id %d\n"`, [rbp + 16], [rbp + 16])
     `
     parseStmts ( ) ;
 
     if currTkn == [TK_ELSE] then
         hasElse = 1 ;
-        _ = consumeTkn ( TK_ELSE ) ; `
+        __ = consume ( TK_ELSE ) ; `
         printf(`"\tjmp .endif_%d:\n"`, [rbp + 16])
         printf(`".condition_false_%d:\n; else stmt block id %d\n"`, [rbp + 16], [rbp + 16])
         `
         parseStmts ( ) ;
     end
 
-    _ = consumeTkn ( TK_END ) ;
+    __ = consume ( TK_END ) ;
     _ = hasElse ;
     if _ == 1 then `
         printf(`".endif_%d:\n"`, [rbp + 16])`
@@ -1748,17 +1727,17 @@ proc parseWhileStmt ( blockId )
     _ = i + 1 ;
     tkns [ _ ] = wsBlockId ;
     glbBlockId = glbBlockId + 1 ;
-    _ = consumeTkn ( TK_WHILE ) ; `
+    __ = consume ( TK_WHILE ) ; `
     printf(`".while_%d:\n"`, [rbp + 16])
     `
     parseLogicalOrExpr ( ) ;
 
-    _ = consumeTkn ( TK_DO ) ; `
+    __ = consume ( TK_DO ) ; `
     printf(`"\tpop rax\n\tcmp rax, 0\n\tjz .endwhile_%d\n; do stmt %d\n"`, [rbp + 16], [rbp + 16])
     `
     parseStmts ( ) ;
 
-    _ = consumeTkn ( TK_END ) ; `
+    __ = consume ( TK_END ) ; `
     printf(`"\tjmp .while_%d\n"`, [rbp + 16])
     printf(`".endwhile_%d:\n"`, [rbp + 16])`
 endproc parseWhileStmt
@@ -1767,8 +1746,8 @@ uint64 pbsBlockId = 0 ;
 uint64 pbsIndex = 0 ;
 uint64 pbsCurrTkn = 0 ;
 proc parseBreakStmt ( )
-    _ = consumeTkn ( TK_BREAK ) ;
-    _ = consumeTkn ( TK_SEMICOLON ) ;
+    __ = consume ( TK_BREAK ) ;
+    __ = consume ( TK_SEMICOLON ) ;
 
     pbsIndex = i - tknSize - tknSize ;
     while pbsIndex >= 0 do
@@ -1787,8 +1766,8 @@ uint64 pcsBlockId = 0 ;
 uint64 pcsIndex = 0 ;
 uint64 pcsCurrTkn = 0 ;
 proc parseContinueStmt ( )
-    _ = consumeTkn ( TK_CONTINUE ) ;
-    _ = consumeTkn ( TK_SEMICOLON ) ;
+    __ = consume ( TK_CONTINUE ) ;
+    __ = consume ( TK_SEMICOLON ) ;
     pcsIndex = i - tknSize - tknSize ;
     while pcsIndex >= 0 do
         pcsCurrTkn = tkns [ pcsIndex ] ;
@@ -1802,38 +1781,38 @@ proc parseContinueStmt ( )
     end
 endproc parseContinueStmt
 
-uint64 paProArgumentCount = 0 ;
-proc parseArguments ( )
-    paProArgumentCount = 0 ;
+uint64 paProArgCount = 0 ;
+proc parseArgs ( )
+    paProArgCount = 0 ;
     gvType = parseType ( ) ;
     gvNamePointer = parseIdent ( ) ;
-    _ = addVariable ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffs glbProcedureId ) ;
-    _ = addSymbol ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffs glbProcedureId ) ;
+    _ = addVar ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffs glbProcId ) ;
+    _ = addSymbol ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffs glbProcId ) ;
     ppdRbpOffs = ppdRbpOffs + 8 ;
-    paProArgumentCount = paProArgumentCount + 1 ;
+    paProArgCount = paProArgCount + 1 ;
     while true == 1 do
         if currTkn == [TK_COMMA] then
-            _ = consumeTkn ( TK_COMMA ) ;
+            __ = consume ( TK_COMMA ) ;
 
             gvType = parseType ( ) ;
             gvNamePointer = parseIdent ( ) ;
-            _ = addVariable ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffs glbProcedureId ) ;
-            _ = addSymbol ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffs glbProcedureId ) ;
+            _ = addVar ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffs glbProcId ) ;
+            _ = addSymbol ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffs glbProcId ) ;
             ppdRbpOffs = ppdRbpOffs + 8 ;
-            paProArgumentCount = paProArgumentCount + 1 ;
+            paProArgCount = paProArgCount + 1 ;
         else
             break ;
         end
     end `
-    mov rax, [paProArgumentCount]`
-endproc parseArguments
+    mov rax, [paProArgCount]`
+endproc parseArgs
 
 uint64 ppdIdent = 0 ;
 
 uint64 ppdHasReturnValue = 0 ;
 uint64 ppdReturnStmtCount = 0 ;
-proc parseProcedureDecl ( )
-    if glbBoolParsingProcedure == 1 then
+proc parseProcDecl ( )
+    if glbBoolParsingProc == 1 then
         _ = i - tknSize ;
         _ = _ + 2 ;
         errLine = tkns [ _ ] ;
@@ -1841,12 +1820,12 @@ proc parseProcedureDecl ( )
         _ = _ + 3 ;
         errCol = tkns [ _ ] ; `
         printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-        printf(`"nested procedure decl is not allowed\n"`)
+        printf(`"nested proc decl is not allowed\n"`)
         ExitProcess(1)`
 
     end
 
-    _ = consumeTkn ( TK_PROC ) ;
+    __ = consume ( TK_PROC ) ;
 
     ppdIdent = parseIdent ( ) ;
 
@@ -1856,74 +1835,73 @@ proc parseProcedureDecl ( )
         _ = indentifierRedeclared ( ppdIdent ) ;
     end
 
-    _ = consumeTkn ( TK_LEFT_PAREN ) ;
+    __ = consume ( TK_LEFT_PAREN ) ;
 
     if currTkn != [TK_RIGHT_PAREN] then
         ppdRbpOffs = 16 ;
-        parseArguments ( ) ;
+        parseArgs ( ) ;
     end
 
-    _ = consumeTkn ( TK_RIGHT_PAREN ) ;
+    __ = consume ( TK_RIGHT_PAREN ) ;
 
     ppdHasReturnValue = 0 ;
     if currTkn == [TK_ARROW_RIGHT] then
-        _ = consumeTkn ( TK_ARROW_RIGHT ) ;
+        __ = consume ( TK_ARROW_RIGHT ) ;
         gvType = parseType ( ) ;
         ppdHasReturnValue = 1 ;
     end
 
-    glbBoolParsingProcedure = 1 ;
+    glbBoolParsingProc = 1 ;
     ppdRbpOffs = 8 ;
-    ppdLocalVariableCount = 0 ;
+    ppdLocalVarCount = 0 ;
 
     if currTkn == [TK_VARS] then
-        _ = consumeTkn ( TK_VARS ) ;
+        __ = consume ( TK_VARS ) ;
         while true == 1 do
-            parseVariableDecl ( ) ;
+            parseVarDecl ( ) ;
             if currTkn == [TK_CODE] then
                 break ;
             end
         end
     end
 
-    ppdLocalVariableCount = ppdLocalVariableCount * 8 ;
+    ppdLocalVarCount = ppdLocalVarCount * 8 ;
     _ = readStr ( ppdIdent ) ; `
-    printf(`";==== proc %s ====\n"`, stringAtPointer)
-    printf(`"\tjmp %s_end\n%s:\n"`, stringAtPointer, stringAtPointer)
+    printf(`"; == proc %s ==\n"`, strAtPtr)
+    printf(`"\tjmp %s_end\n%s:\n"`, strAtPtr, strAtPtr)
     printf(`"\tpush rbp\n\tmov rbp, rsp\n"`)
-    printf(`"\tsub rsp, %d\n"`, [ppdLocalVariableCount])
+    printf(`"\tsub rsp, %d\n"`, [ppdLocalVarCount])
     `
-    _ = consumeTkn ( TK_CODE ) ;
+    __ = consume ( TK_CODE ) ;
 
-    glbAllowVariableDecl = 0 ;
+    glbAllowVarDecl = 0 ;
     ppdReturnStmtCount = 0 ;
     parseStmts ( ) ;
 
-    glbAllowVariableDecl = 1 ;
-    glbBoolParsingProcedure = 0 ;
-    glbProcedureId = glbProcedureId + 1 ;
+    glbAllowVarDecl = 1 ;
+    glbBoolParsingProc = 0 ;
+    glbProcId = glbProcId + 1 ;
 
-    _ = consumeTkn ( TK_END ) ;
+    __ = consume ( TK_END ) ;
 
     if ppdReturnStmtCount == 0 then
         if ppdHasReturnValue == 1 then `
-            printf(`"Error: procedure %s has no return stmt\n"`, stringAtPointer)
+            printf(`"Error: proc %s has no return stmt\n"`, strAtPtr)
             ExitProcess(1)`
         end `
         printf(`"\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
     end
 
-    _ = addSymbol ( TYPE_PROCEDURE gvType ppdIdent paProArgumentCount VARIABLE_SCOPE_GLB ) ;
+    _ = addSymbol ( TYPE_PROCEDURE gvType ppdIdent paProArgCount VAR_SCOPE_GLB ) ;
 
     _ = readStr ( ppdIdent ) ; `
-    printf(`"[Trace] Procedure decl: %s with %d parameters\n"`, stringAtPointer, [paProArgumentCount])
-    printf(`"%s_end:\n"`, stringAtPointer)
-    printf(`";==== end proc %s ====\n"`, stringAtPointer)`
-endproc parseProcedureDecl
+    printf(`"%s_end:\n"`, strAtPtr)
+    printf(`"; == end proc %s ==\n"`, strAtPtr)`
+endproc parseProcDecl
 
 uint64 prsIsEmptyResult = 0 ;
 proc parseReturnStmt ( )
-    _ = consumeTkn ( TK_RETURN ) ;
+    __ = consume ( TK_RETURN ) ;
 
     ppdReturnStmtCount = ppdReturnStmtCount + 1 ;
 
@@ -1933,7 +1911,7 @@ proc parseReturnStmt ( )
         parseLogicalOrExpr ( ) ;
     end
 
-    _ = consumeTkn ( TK_SEMICOLON ) ; `
+    __ = consume ( TK_SEMICOLON ) ; `
     printf(`"[Trace] Return stmt: RETURN\n"`)
     `
     if prsIsEmptyResult == 0 then `
@@ -1946,10 +1924,10 @@ proc parseReturnStmt ( )
 endproc parseReturnStmt
 
 uint64 ppcIdent = 0 ;
-uint64 ppcPrcArgumentCount = 0 ;
-uint64 ppcPrcCallArgumentCount = 0 ;
+uint64 ppcPrcArgCount = 0 ;
+uint64 ppcPrcCallArgCount = 0 ;
 uint64 ppcShadowSpace = 0 ;
-proc parseProcedureCall ( )
+proc parseProcCall ( )
     ppcIdent = parseIdent ( ) ;
 
     fgsIndex = findSymbol ( ppcIdent ) ;
@@ -1958,31 +1936,31 @@ proc parseProcedureCall ( )
         _ = identUnknown ( ppcIdent ) ;
     end
 
-    ppcPrcArgumentCount = gsValue ;
-    ppcShadowSpace = ppcPrcArgumentCount * 8 ;
+    ppcPrcArgCount = gsValue ;
+    ppcShadowSpace = ppcPrcArgCount * 8 ;
     ppdRbpOffs = 16 ;
 
-    _ = consumeTkn ( TK_LEFT_PAREN ) ;
+    __ = consume ( TK_LEFT_PAREN ) ;
 
     if currTkn != [TK_RIGHT_PAREN] then `
         printf(`"\tsub rsp, %d\n\tpush rbp\n\tmov rbp, rsp\n"`, [ppcShadowSpace])`
     end
 
-    ppcPrcCallArgumentCount = 0 ;
+    ppcPrcCallArgCount = 0 ;
     while currTkn != [TK_RIGHT_PAREN] do
         parseLogicalOrExpr ( ) ; `
         printf(`"\tpop qword [rbp + %d]\n"`, [ppdRbpOffs])
         `
-        ppcPrcCallArgumentCount = ppcPrcCallArgumentCount + 1 ;
+        ppcPrcCallArgCount = ppcPrcCallArgCount + 1 ;
         ppdRbpOffs = ppdRbpOffs + 8 ;
         if currTkn == [TK_COMMA] then
-            _ = consumeTkn ( TK_COMMA ) ;
+            __ = consume ( TK_COMMA ) ;
         end
     end
 
-    _ = consumeTkn ( TK_RIGHT_PAREN ) ;
+    __ = consume ( TK_RIGHT_PAREN ) ;
 
-    if ppcPrcArgumentCount != [ppcPrcCallArgumentCount] then
+    if ppcPrcArgCount != [ppcPrcCallArgCount] then
         _ = i - tknSize ;
         _ = _ + 2 ;
         errLine = tkns [ _ ] ;
@@ -1990,26 +1968,26 @@ proc parseProcedureCall ( )
         _ = _ + 3 ;
         errCol = tkns [ _ ] ; `
         printf(`"parser.strata:%d:%d: "`, [errLine], [errCol])
-        printf(`"procedure requires %d arguments, but %d arguments are provided\n"`, [ppcPrcArgumentCount], [ppcPrcCallArgumentCount])
+        printf(`"proc requires %d args, but %d args are provided\n"`, [ppcPrcArgCount], [ppcPrcCallArgCount])
         ExitProcess(1)`
     end
 
     _ = readStr ( ppdIdent ) ;
 
-    if ppcPrcArgumentCount != 0 then `
-        printf(`"\tmov rsp, rbp\n\tpop rbp\n\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])`
+    if ppcPrcArgCount != 0 then `
+        printf(`"\tmov rsp, rbp\n\tpop rbp\n\tcall %s\n\tadd rsp, %d\n"`, strAtPtr, [ppcShadowSpace])`
     else `
-        printf(`"\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])`
+        printf(`"\tcall %s\n\tadd rsp, %d\n"`, strAtPtr, [ppcShadowSpace])`
     end
     `
-    printf(`"[Trace] Procedure call: %s with %d arguments\n"`, stringAtPointer, [ppcPrcArgumentCount])`
-endproc parseProcedureCall
+    printf(`"[Trace] Proc call: %s with %d args\n"`, strAtPtr, [ppcPrcArgCount])`
+endproc parseProcCall
 
-proc parseProcedureCallStmt ( )
-    parseProcedureCall ( ) ;
+proc parseProcCallStmt ( )
+    parseProcCall ( ) ;
 
-    _ = consumeTkn ( TK_SEMICOLON ) ;
-endproc parseProcedureCallStmt
+    __ = consume ( TK_SEMICOLON ) ;
+endproc parseProcCallStmt
 
 uint64 psbType = 0 ;
 uint64 psbIdent = 0 ;
@@ -2041,20 +2019,19 @@ proc parseStructBody ( )
 
         psbIdent = parseIdent ( ) ;
 
-        _ = consumeTkn ( TK_SEMICOLON ) ;
+        __ = consume ( TK_SEMICOLON ) ;
 
         _ = addUserTypeField ( glbUserTypeId psbType psbIdent psbCurrentOffs ) ;
 
         _ = readStr ( psbIdent ) ;
 
-        psbCurrentOffs = psbCurrentOffs + 8 ; `
-        printf(`"[Trace] Struct field: %s of type %d\n"`, stringAtPointer, [psbType])`
+        psbCurrentOffs = psbCurrentOffs + 8 ; 
     end
 endproc parseStructBody
 
 uint64 psdIdent = 0 ;
 proc parseStructDefinition ( )
-    _ = consumeTkn ( TK_STRUCT ) ;
+    __ = consume ( TK_STRUCT ) ;
 
     psdIdent = parseIdent ( ) ;
 
@@ -2066,21 +2043,19 @@ proc parseStructDefinition ( )
 
     parseStructBody ( ) ;
 
-    _ = consumeTkn ( TK_END ) ;
+    __ = consume ( TK_END ) ;
 
-    _ = addSymbol ( TYPE_USER_DEFINED glbUserTypeId psdIdent psbSizeOfStruct VARIABLE_SCOPE_GLB ) ;
+    _ = addSymbol ( TYPE_USER_DEFINED glbUserTypeId psdIdent psbSizeOfStruct VAR_SCOPE_GLB ) ;
 
-    _ = readStr ( psdIdent ) ; `
-    printf(`"[Trace] Struct definition: %s with %d bytes\n"`, stringAtPointer, [psbSizeOfStruct])
-    `
+    _ = readStr ( psdIdent ) ; 
     glbUserTypeId = glbUserTypeId + 1 ;
 endproc parseStructDefinition
 
 uint64 putvdTypeIdent = 0 ;
 uint64 putvdIdent = 0 ;
-proc parseUserTypeVariableDecl ( )
+proc parseUserTypeVarDecl ( )
      _ = i + 1 ;
-    _ = consumeTkn ( TK_IDENT ) ;
+    __ = consume ( TK_IDENT ) ;
 
     fgsIndex = findSymbol ( putvdTypeIdent ) ;
 
@@ -2097,23 +2072,22 @@ proc parseUserTypeVariableDecl ( )
         _ = indentifierRedeclared ( putvdIdent ) ;
     end
 
-    _ = consumeTkn ( TK_SEMICOLON ) ;
+    __ = consume ( TK_SEMICOLON ) ;
 
-    _ = addVariable ( TYPE_USER_DEFINED putvdTypeIdent putvdIdent 0 VARIABLE_SCOPE_GLB ) ;
-    _ = addSymbol ( TYPE_USER_DEFINED putvdTypeIdent putvdIdent 0 VARIABLE_SCOPE_GLB ) ;
+    _ = addVar ( TYPE_USER_DEFINED putvdTypeIdent putvdIdent 0 VAR_SCOPE_GLB ) ;
+    _ = addSymbol ( TYPE_USER_DEFINED putvdTypeIdent putvdIdent 0 VAR_SCOPE_GLB ) ;
 
-    _ = readStr ( putvdIdent ) ; `
-    printf(`"[Trace] Variable definition for user type: %s\n"`, stringAtPointer)`
-endproc parseUserTypeVariableDecl
+    _ = readStr ( putvdIdent ) ; 
+endproc parseUserTypeVarDecl
 
 uint64 psIdent = 0 ;
 proc parseStmt ( )
     if currTkn == [TK_UINT8] then
-        parseVariableDecl ( ) ;
+        parseVarDecl ( ) ;
     else if currTkn == [TK_UINT64] then
-        parseVariableDecl ( ) ;
+        parseVarDecl ( ) ;
     else if currTkn == [TK_POINTER] then
-        parseVariableDecl ( ) ;
+        parseVarDecl ( ) ;
     else if currTkn == [TK_IDENT] then
         _ = i + 1 ;
         psIdent = tkns [ _ ] ;
@@ -2126,9 +2100,9 @@ proc parseStmt ( )
                 parseAssignmentStmt ( ) ;
             else
                 if gsType == [TYPE_USER_DEFINED] then
-                    parseUserTypeVariableDecl ( ) ;
+                    parseUserTypeVarDecl ( ) ;
                 else if nextToken == [TK_LEFT_PAREN] then
-                    parseProcedureCallStmt ( ) ;
+                    parseProcCallStmt ( ) ;
                 else
                     parseAssignmentStmt ( ) ;
                 end end
@@ -2145,7 +2119,7 @@ proc parseStmt ( )
     else if currTkn == [TK_CONTINUE] then
         parseContinueStmt ( ) ;
     else if currTkn == [TK_PROC] then
-        parseProcedureDecl ( ) ;
+        parseProcDecl ( ) ;
     else if currTkn == [TK_RETURN] then
         parseReturnStmt ( ) ;
     else if currTkn == [TK_STRUCT] then
@@ -2174,6 +2148,64 @@ while i < [tokenCount] do
     parseStmt ( ) ;
 end
 
+
+i = 0 ;
+
+uint64 wsdIdentifier = 0 ;
+while i < [glbVarCount] do
+    _ = gvTypeOffs + i * glbVarSize ;
+    gvType = glbVars [ _ ] ;
+    _ = gvSubTypeOffs + i * glbVarSize ;
+    gvSubType = glbVars [ _ ] ;
+    _ = gvNameOffs + i * glbVarSize ;
+    gvNamePointer = glbVars [ _ ] ;
+    _ = gvValueOffs + i * glbVarSize ;
+    gvValue = glbVars [ _ ] ;
+    _ = gvScopeOffs + i * glbVarSize ;
+    gvScope = glbVars [ _ ] ;
+
+    if gvScope != [VAR_SCOPE_GLB] then
+        i = i + 1 ;
+        continue ;
+    end
+
+    _ = readStr ( gvNamePointer ) ; 
+    
+    if gvType == [TYPE_UINT8] then `
+        printf(`"section .data\r\n\t%s db %d\n"`, strAtPtr, [gvValue])`
+    else if gvType == [TYPE_UINT64] then `
+        printf(`"section .data\r\n\t%s dq %d\n"`, strAtPtr, [gvValue])`
+    else if gvType == [TYPE_POINTER] then `
+        printf(`"section .data\r\n\t%s dq %d\n"`, strAtPtr, [gvValue])`
+    else if gvType == [TYPE_ARRAY] then 
+        if gvSubType == [TYPE_UINT8] then `
+            printf(`"section .bss\r\n\t%s resb %d\n"`, strAtPtr, [gvValue])`
+        else if gvSubType == [TYPE_UINT64] then `
+            printf(`"section .bss\r\n\t%s resq %d\n"`, strAtPtr, [gvValue])`
+        else if gvSubType == [TYPE_POINTER] then `
+            printf(`"section .bss\r\n\t%s resq %d\n"`, strAtPtr, [gvValue])`
+        else `
+            printf(`"Error: unknown array type %d\n"`, [gvType])
+            ExitProcess(1)`
+        end end end
+    else if gvType == [TYPE_USER_DEFINED] then
+        wsdIdentifier = gvNamePointer ;
+
+        _ = findUserType ( gvSubType ) ;
+        if _ == -1 then `
+            printf(`"Error: unknown user type %d\n"`, [gvSubType])
+            ExitProcess(1)`
+        end 
+
+        _ = readStr ( wsdIdentifier ) ; `
+        printf(`"section .bss\r\n\t%s resb %d\n"`, strAtPtr, [gsValue])`
+    else `
+        printf(`"Error: unknown type %d\n"`, [gvType])
+        ExitProcess(1)`
+    end end end end end
+
+    i = i + 1 ;
+end
 `
 
     ExitProcess(0)`

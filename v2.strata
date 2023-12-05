@@ -1,4 +1,6 @@
-uint8 chr = 0;
-chr = 1;
-struct A 
+struct Point
+    uint64 x;
+    uint64 y;
 end
+
+Point[] points;

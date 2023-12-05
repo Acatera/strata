@@ -54,6 +54,7 @@ section .text
     extern GetStdHandle                 ; Declare external function 'GetStdHandle'.
     extern WriteConsoleA                ; Declare external function 'WriteConsoleA'.
     extern ExitProcess                  ; Declare external function 'ExitProcess'.
+    extern WriteFile                    ; Declare external function 'WriteFile'.
 
 %define STD_INPUT_HANDLE  -10
 %define STD_OUTPUT_HANDLE -11
@@ -663,7 +664,7 @@ strlen:
     mov rcx, printfBuffer
     call sprintf
     add rsp, 0x20
-    WriteConsoleA(%1, printfBuffer, rax, 0)
+    WriteFile(%1, printfBuffer, rax, 0)
     multipop rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
 %endmacro
 
@@ -680,7 +681,7 @@ strlen:
     mov rcx, printfBuffer
     call sprintf
     add rsp, 0x20
-    WriteConsoleA(%1, printfBuffer, rax, 0)
+    WriteFile(%1, printfBuffer, rax, 0)
     multipop rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
 %endmacro
 
@@ -698,7 +699,7 @@ strlen:
     mov rcx, printfBuffer
     call sprintf
     add rsp, 0x20
-    WriteConsoleA(%1, printfBuffer, rax, 0)
+    WriteFile(%1, printfBuffer, rax, 0)
     PopCallerSavedRegs()
 %endmacro
 
@@ -718,7 +719,7 @@ strlen:
     mov rcx, printfBuffer
     call sprintf
     add rsp, 0x20 + 8
-    WriteConsoleA(%1, printfBuffer, rax, 0)
+    WriteFile(%1, printfBuffer, rax, 0)
     multipop rax, rbx, rcx, rdx, r8, r9, r10, r11, r12
 %endmacro
 
