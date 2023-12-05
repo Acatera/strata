@@ -233,7 +233,6 @@ section .text
     global _start
     extern CreateFileA
     extern ReadFile
-    extern WriteFile
     extern CloseHandle
     extern DeleteFileA
     extern GetLastError
@@ -906,8 +905,8 @@ end end end end `
     mov [wScopedBlockCurrentId], r10
 
 %define currentToken.Type word [rdx + Token.TokenType]
-%define currentToken.Start dword [rdx + Token.TokenStart]
-%define currentToken.Length dword [rdx + Token.TokenLength]
+%define currentToken.Start qword [rdx + Token.TokenStart]
+%define currentToken.Length qword [rdx + Token.TokenLength]
 
 .while_counter_less_than_token_count:
     mov rbx, [tokenIndex]
@@ -945,11 +944,11 @@ end end end end `
         PushCallerSavedRegs()
   
         ; write asm code
-        mov r10d, currentToken.Start
+        mov r10, currentToken.Start
         mov r11, szSourceCode
         add r10, r11
         inc r10 ; skip leading '0x40'
-        mov r11d, currentToken.Length
+        mov r11, currentToken.Length
         dec r11 ; skip trailing '0x40'
 
         WriteFile([hndDestFile], r10, r11, dwBytesWritten)
@@ -1265,8 +1264,8 @@ end end end end `
         
         ; get identifier
         mov r12w, word [rbx + Token.TokenType]
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14`
 
@@ -1301,8 +1300,8 @@ end end end end `
         ; get value
         add rbx, Token.size
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptr2Buffer64, r13, r15)
@@ -1335,8 +1334,8 @@ end end end end `
         
         ; get identifier
         mov r12w, word [rbx + Token.TokenType]
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14`
 
@@ -1371,8 +1370,8 @@ end end end end `
         ; get value
         add rbx, Token.size
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptr2Buffer64, r13, r15)
@@ -1402,8 +1401,8 @@ end end end end `
         mov rbx, tokenList
         add rbx, rax
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptr3Buffer64, r13, r15) ; literal name
@@ -1437,8 +1436,8 @@ end end end end `
             ; read index
             add rbx, Token.size
             movzx r12, word [rbx + Token.TokenType]
-            movzx r13, word [rbx + Token.TokenStart]
-            movzx r14, word [rbx + Token.TokenLength]
+            mov r13, qword [rbx + Token.TokenStart]
+            mov r14, qword [rbx + Token.TokenLength]
             mov r15, szSourceCode
             add r15, r13
             mov r10, r12 ; store index type
@@ -1457,8 +1456,8 @@ end end end end `
             ; read value
             add rbx, Token.size
             movzx r12, word [rbx + Token.TokenType]
-            movzx r13, word [rbx + Token.TokenStart]
-            movzx r14, word [rbx + Token.TokenLength]
+            mov r13, qword [rbx + Token.TokenStart]
+            mov r14, qword [rbx + Token.TokenLength]
             mov r15, szSourceCode
             add r15, r13
 
@@ -1543,8 +1542,8 @@ end end end end `
             mov r12w, word [rbx + Token.TokenType]
 
             movzx r12, word [rbx + Token.TokenType]
-            movzx r13, word [rbx + Token.TokenStart]
-            movzx r14, word [rbx + Token.TokenLength]
+            mov r13, qword [rbx + Token.TokenStart]
+            mov r14, qword [rbx + Token.TokenLength]
             mov r15, szSourceCode
             add r15, r13
             strcpy(ptrBuffer64, r15, r14) 
@@ -1568,8 +1567,8 @@ end end end end `
                 
                 add rbx, Token.size
                 mov r12w, word [rbx + Token.TokenType]
-                movzx r13, word [rbx + Token.TokenStart]
-                movzx r14, word [rbx + Token.TokenLength]
+                mov r13, qword [rbx + Token.TokenStart]
+                mov r14, qword [rbx + Token.TokenLength]
                 mov r15, szSourceCode
                 add r15, r13
                 strcpy(ptr2Buffer64, r15, r14) 
@@ -1587,8 +1586,8 @@ end end end end `
                 ; go back to last argument
                 sub rbx, Token.size
                 mov r12w, word [rbx + Token.TokenType]
-                movzx r13, word [rbx + Token.TokenStart]
-                movzx r14, word [rbx + Token.TokenLength]
+                mov r13, qword [rbx + Token.TokenStart]
+                mov r14, qword [rbx + Token.TokenLength]
                 mov r15, szSourceCode
                 add r15, r13
                 strcpy(ptr2Buffer64, r15, r14)
@@ -1619,8 +1618,8 @@ end end end end `
                     end `
                     sub rbx, Token.size
                     mov r12w, word [rbx + Token.TokenType]
-                    movzx r13, word [rbx + Token.TokenStart]
-                    movzx r14, word [rbx + Token.TokenLength]
+                    mov r13, qword [rbx + Token.TokenStart]
+                    mov r14, qword [rbx + Token.TokenLength]
                     mov r15, szSourceCode
                     add r15, r13
                     strcpy(ptr2Buffer64, r15, r14) 
@@ -1667,8 +1666,8 @@ end end end end `
                         ; todo - verify that the next token is a '['
                         add rbx, Token.size * 2
                         movzx r12, word [rbx + Token.TokenType]
-                        movzx r13, word [rbx + Token.TokenStart]
-                        movzx r14, word [rbx + Token.TokenLength]
+                        mov r13, qword [rbx + Token.TokenStart]
+                        mov r14, qword [rbx + Token.TokenLength]
                         mov r15, szSourceCode
                         add r15, r13
                         strcpy(ptr2Buffer64, r15, r14) `
@@ -1708,8 +1707,8 @@ end end end end `
                 end end end `
                 add rbx, Token.size
                 movzx r12, word [rbx + Token.TokenType]
-                movzx r13, word [rbx + Token.TokenStart]
-                movzx r14, word [rbx + Token.TokenLength]
+                mov r13, qword [rbx + Token.TokenStart]
+                mov r14, qword [rbx + Token.TokenLength]
                 mov r15, szSourceCode
                 add r15, r13
                 strcpy(ptrBuffer64, r15, r14)
@@ -1774,8 +1773,8 @@ end end end end `
         ; todo - check if assignment operator is present
 
         movzx r12, word [rbx + Token.TokenType]
-        movzx r13, word [rbx + Token.TokenStart]
-        movzx r14, word [rbx + Token.TokenLength]
+        mov r13, qword [rbx + Token.TokenStart]
+        mov r14, qword [rbx + Token.TokenLength]
         mov r15, szSourceCode
         add r15, r13
         strcpy(ptrBuffer64, r15, r14) 
@@ -1799,8 +1798,8 @@ end end end end `
             end end end `
             add rbx, Token.size
             movzx r12, word [rbx + Token.TokenType]
-            movzx r13, word [rbx + Token.TokenStart]
-            movzx r14, word [rbx + Token.TokenLength]
+            mov r13, qword [rbx + Token.TokenStart]
+            mov r14, qword [rbx + Token.TokenLength]
             mov r15, szSourceCode
             add r15, r13
             strcpy(ptrBuffer64, r15, r14)
@@ -1832,8 +1831,8 @@ end end end end `
         ; look ahead for identifier
         add rbx, Token.size
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptrBuffer64, r13, r15) ; literal name
@@ -1873,8 +1872,8 @@ end end end end `
             jmp .exit`
         end `
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptr2Buffer64, r13, r15) ; array size
@@ -1939,8 +1938,8 @@ end end end end `
             inc qword [dqStatementOpCount]`
         end `
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptrBuffer64, r13, r15) ; name of the procedure`
@@ -2021,8 +2020,8 @@ end end end end `
         `
         while r12w != defParenClose do `
             ; get argument name
-            mov r14w, word [rbx + Token.TokenStart]
-            mov r15w, word [rbx + Token.TokenLength]
+            mov r14, qword [rbx + Token.TokenStart]
+            mov r15, qword [rbx + Token.TokenLength]
             mov r13, szSourceCode
             add r13, r14
             strcpy(ptr2Buffer64, r13, r15) ; name of the argument
@@ -2066,8 +2065,8 @@ end end end end `
         ; look ahead for identifier
         add rbx, Token.size
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptrBuffer64, r13, r15) ; literal name
@@ -2094,8 +2093,8 @@ end end end end `
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
         pop rdx
 
-        mov ecx, currentToken.Start
-        mov edx, currentToken.Length
+        mov rcx, currentToken.Start
+        mov rdx, currentToken.Length
         call push_string_literal
 
         PopCallerSavedRegs()
@@ -2104,8 +2103,8 @@ end end end end `
     end `
 
     mov r10w, currentToken.Type
-    mov r11d, currentToken.Start
-    mov r12d, currentToken.Length
+    mov r11, currentToken.Start
+    mov r12, currentToken.Length
 
 %ifdef DEBUG
     printf(`"[DEBUG] Token type %x; start: %d; length: %d\r\n"`, r10, r11, r12)
