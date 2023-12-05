@@ -194,8 +194,6 @@ proc register_token_type ( token_type )
     token_dictionary_pointers_top = token_dictionary_pointers_top + 1 ;
 endproc register_token_type 
 
-// there's a bug somewhere, it's comparing the wrong strings
-
 array token_at_pointer = uint8 [ 256 ] ;
 proc readString ( index )
     freeStringIndex = 0 ;
@@ -212,7 +210,7 @@ proc readString ( index )
         freeChar = token_dictionary [ sbIndex ] ;
     end 
     token_at_pointer [ freeStringIndex ] = 0 ; `
-    printf(`"[Trace] Read string: #%d with length %d.\n"`, [rbp + 16], [freeStringIndex])
+    ;printf(`"[Trace] Read string: #%d with length %d.\n"`, [rbp + 16], [freeStringIndex])
     mov rax, [_]`
 endproc readString
 
@@ -220,10 +218,8 @@ proc token_equals ( a ) `
     mov rsi, token
     `
     _ = readString ( a ) ; `
-    mov rdi, rax
-    mov rax, token_at_pointer
-    add rdi, rax
-.t:
+    mov rdi, token_at_pointer
+
     printf(`"[Trace] Comparing strings: %s and %s\n"`, rsi, rdi)
 .loop:
     mov al, byte [rdi]
@@ -257,25 +253,26 @@ proc token_equals ( a ) `
 .end: `
 endproc token_equals
 
+uint64 gttCount = 0 ;
 uint64 gttIndex = 0 ;
-uint64 gttNamePointer = 0 ;
 uint64 gttEqual = 0 ;
-proc get_token_type (  )
+proc get_token_type ( )
+    gttCount = 0 ;
     gttIndex = 0 ;
     gttEqual = 0 ;
-    while gttIndex < [token_dictionary_pointers_top] do
-        gttNamePointer = token_dictionary_pointers [ gttIndex ] ;
-        gttEqual = token_equals ( gttNamePointer ) ;
+    while gttCount < [token_dictionary_pointers_top] do
+        gttEqual = token_equals ( gttIndex ) ;
 
         if gttEqual != 0 then
             break ;
         end
 
-        gttIndex = gttIndex + 2 ;
+        gttCount = gttCount + 2 ;
+        gttIndex = gttIndex + 1 ;
     end
 
     if gttEqual == [true] then 
-        _ = 1 + gttIndex ;
+        _ = 1 + gttCount ;
         _ = token_dictionary_pointers [ _ ] ; `
         mov rax, [_]` 
     else `
