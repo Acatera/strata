@@ -3,4 +3,10 @@ struct Point
     uint64 y;
 end
 
+uint64 n = 0;
 Point[100] points;
+
+Point point;
+
+point.x = points[n].x + 1;
+point.y = points[n].y + 2;

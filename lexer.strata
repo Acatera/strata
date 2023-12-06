@@ -1458,6 +1458,8 @@ proc forward parseArrayAccess
 proc forward parseProcedureCall
 proc forward parseStructAccess
 
+uint64 pfStructFieldIdentifier = 0 ;
+uint64 pfType = 0 ;
 uint64 fpIdentifier = 0 ;
 proc parseFactor ( ) 
     if currentToken == [TOKEN_CONSTANT_INTEGER] then
@@ -1481,18 +1483,41 @@ proc parseFactor ( )
                 _ = identifierUnknown ( fpIdentifier ) ;
             end 
            
-            _ = readString ( fpIdentifier ) ; 
+            if gsKind == [VAR_KIND_PRIMITIVE] then
+                _ = readString ( fpIdentifier ) ; 
+                if gsSubType == [TYPE_UINT8] then `
+                    printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
+                else if gsSubType == [TYPE_UINT64] then `
+                    printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
+                else if gsSubType == [TYPE_POINTER] then `
+                    printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
+                else ` 
+                    printf(`"[Error] Error: unknown array type %d\n"`, [gsSubType])
+                    ExitProcess(1)`
+                end end end
+            else 
+                pfType = gsSubType ;
+                _ = findUserType ( gsSubType ) ;
+                if _ == -1 then `
+                    printf(`"Error: unknown user type %d\n"`, [gsSubType])
+                    ExitProcess(1)`
+                end 
+                _ = readString ( fpIdentifier ) ; `
+                printf(`"\tpop rax\n\tmov rbx, %s\n\tmov rdx, %d\n\tmul rdx\n\tadd rax, rbx\n"`, stringAtPointer, [gsValue])
+                `
+                if currentToken == [TOKEN_DOT] then
+                    expectedToken = TOKEN_DOT ;
+                    consumeToken ( ) ;
 
-            if gsSubType == [TYPE_UINT8] then `
-                printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
-            else if gsSubType == [TYPE_UINT64] then `
-                printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
-            else if gsSubType == [TYPE_POINTER] then `
-                printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
-            else ` 
-                printf(`"[Error] Error: unknown array type %d\n"`, [gsSubType])
-                ExitProcess(1)`
-            end end end `
+                    pfStructFieldIdentifier = parseIdentifier ( ) ; 
+
+                    fgsIndex = findUserTypeField ( pfType pfStructFieldIdentifier ) ; `
+                    printf(`"\tadd rax, %d\n\tpush [rax]\n"`, [utOffset])`
+                else `
+                    printf(`"\tpush [rax]\n"`)`
+                end
+            end
+             `
             printf(`"[Trace] Factor: array\n"`)`
         else if nextToken == [TOKEN_LEFT_PARENTHESIS] then
             parseProcedureCall ( ) ; `
@@ -1709,7 +1734,7 @@ proc parseStructAccess ( )
 
     _ = readString ( psaIdentifier ) ; `
     printf(`"[Trace] Assignable: variable\n"`)
-    printf(`"\tmov rax, %s\n\tpush rax\n"`, stringAtPointer)
+    printf(`"\tmov rax, %s\n"`, stringAtPointer)
     `
     expectedToken = TOKEN_DOT ;
     consumeToken ( ) ;
@@ -1717,7 +1742,7 @@ proc parseStructAccess ( )
     psaStructFieldIdentifier = parseIdentifier ( ) ; 
 
     fgsIndex = findUserTypeField ( psaType psaStructFieldIdentifier ) ; `
-    printf(`"\tpop rax\n\tadd rax, %d\n\tpush rax\n"`, [utOffset])`
+    printf(`"\tadd rax, %d\n\tpush rax\n"`, [utOffset])`
 endproc parseStructAccess
 
 uint64 paIdentifier = 0 ;
