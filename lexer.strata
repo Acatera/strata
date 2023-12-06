@@ -176,8 +176,9 @@ uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
 uint64 TYPE_POINTER                = 3 ;
 uint64 TYPE_ARRAY                  = 4 ;
-uint64 TYPE_PROCEDURE              = 5 ;
-uint64 TYPE_USER_DEFINED           = 6 ;
+uint64 TYPE_STRING                 = 5 ;
+uint64 TYPE_PROCEDURE              = 6 ;
+uint64 TYPE_USER_DEFINED           = 7 ;
 
 uint64 VARIABLE_SCOPE_GLOBAL       = 0 ;
 
@@ -551,7 +552,7 @@ while scIndex < [bytesRead] do
             
         end
         col = 1 + scIndex - line_start - 1 ; `
-        printf(`"---------------SCIndex: %d, col: %d\n"`, [scIndex], [col])
+        ;printf(`"---------------SCIndex: %d, col: %d\n"`, [scIndex], [col])
         `
     else if c == 34 then 
         if tokenIndex > 0 then 
@@ -625,7 +626,8 @@ while scIndex < [bytesRead] do
         token [ tokenIndex ] = 0 ; `
         printf(`"[\#27[92mINFO\#27[0m] Token: [!] '%s'\n"`, token)
         `
-        _ = push_token ( TOKEN_CONSTANT_STRING 0 line col ) ;
+        _ = push_token ( TOKEN_CONSTANT_STRING stringPointersTop line col ) ;
+        push_identifier ( ) ;
         col = 2 + scIndex - line_start - 1 ;
         tokenIndex = 0 ;
     else if isSep == 1 then
@@ -1007,7 +1009,7 @@ proc stringsEqual ( a b )
     mov rax, stringBuffer
     add rdi, rax
 .t:
-    printf(`"[Trace] Comparing strings: %s and %s\n"`, rsi, rdi)
+    ;printf(`"[Trace] Comparing strings: %s and %s\n"`, rsi, rdi)
 .loop:
     mov al, byte [rdi]
     mov bl, byte [rsi]
@@ -1062,6 +1064,8 @@ proc findSymbol ( namePointer )
         gsType = globalSymbolTable [ _ ] ;
         _ = gsSubTypeOffset + fgsIndex * globalSymbolSize ;
         gsSubType = globalSymbolTable [ _ ] ;
+        _ = gsKindOffset + fgsIndex * globalSymbolSize ;
+        gsKind = globalSymbolTable [ _ ] ;
         _ = gsNameOffset + fgsIndex * globalSymbolSize ;
         gsNamePointer = globalSymbolTable [ _ ] ;
         _ = gsValueOffset + fgsIndex * globalSymbolSize ;
@@ -1094,7 +1098,7 @@ proc findUserType ( userType )
         _ = gsTypeOffset + fgsIndex * globalSymbolSize ;
         _ = globalSymbolTable [ _ ] ;
         if _ != [TYPE_USER_DEFINED] then
-            fgsIndex = fgsIndex - 1 ;
+            fgsIndex = fgsIndex + 1 ;
             continue ;
         end
 
@@ -1114,6 +1118,8 @@ proc findUserType ( userType )
         gsType = globalSymbolTable [ _ ] ;
         _ = gsSubTypeOffset + fgsIndex * globalSymbolSize ;
         gsSubType = globalSymbolTable [ _ ] ;
+        _ = gsKindOffset + fgsIndex * globalSymbolSize ;
+        gsKind = globalSymbolTable [ _ ] ;
         _ = gsNameOffset + fgsIndex * globalSymbolSize ;
         gsNamePointer = globalSymbolTable [ _ ] ;
         _ = gsValueOffset + fgsIndex * globalSymbolSize ;
@@ -1330,7 +1336,7 @@ proc parseNumber ( )
     _ = i + 1 ;
     _ = tokens [ _ ] ;
     consumeToken ( ) ; `
-    printf(`"[Trace] Number: %d\n"`, [_])
+    ;printf(`"[Trace] Number: %d\n"`, [_])
     ; set result
     mov rax, [_]`
 endproc parseNumber
@@ -1340,7 +1346,7 @@ proc parseIdentifier ( )
     _ = i + 1 ;
     _ = tokens [ _ ] ;
     consumeToken ( ) ; `
-    printf(`"[Trace] Identifier: #%d\n"`, [_])
+    ;printf(`"[Trace] Identifier: #%d\n"`, [_])
     ; set result
     mov rax, [_]`
 endproc parseIdentifier
@@ -1366,6 +1372,16 @@ proc parseType ( )
     mov rax, [_]`
 endproc parseType
 
+proc parseString ( )
+    expectedToken = TOKEN_CONSTANT_STRING ;
+    _ = i + 1 ;
+    _ = tokens [ _ ] ;
+    consumeToken ( ) ; `
+    ;printf(`"[Trace] Identifier: #%d\n"`, [_])
+    ; set result
+    mov rax, [_]`
+endproc parseString
+
 proc parseArrayDeclaration ( )
     if globalBoolParsingProcedure != 0 then 
         _ = i + 2 ;
@@ -1380,22 +1396,42 @@ proc parseArrayDeclaration ( )
     expectedToken = TOKEN_LEFT_BRACKET ;
     consumeToken ( ) ;
 
-    gvValue = parseNumber ( ) ;
+    if currentToken == [TOKEN_CONSTANT_INTEGER] then
+        gvValue = parseNumber ( ) ;
 
-    expectedToken = TOKEN_RIGHT_BRACKET ;
-    consumeToken ( ) ;
+        expectedToken = TOKEN_RIGHT_BRACKET ;
+        consumeToken ( ) ;
 
-    gvNamePointer = parseIdentifier ( ) ;
+        gvNamePointer = parseIdentifier ( ) ;
 
-    gvSubType = gvType ;
-    gvType = TYPE_ARRAY ;
+        gvSubType = gvType ;
+        gvType = TYPE_ARRAY ;
 
-    `
-    printf(`"[Trace] Array declaration: type %d, subtype %d\n"`, [gvType], [gvSubType])
-    `
-    _ = addVariable ( gvType gvSubType VAR_KIND_PRIMITIVE gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
-    _ = addSymbol ( gvType gvSubType VAR_KIND_PRIMITIVE gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ; `
-    printf(`"[Trace] Array declaration: type %d, value %d\n"`, [gvType], [gvValue])`
+        `
+        printf(`"[Trace] Array declaration: type %d, subtype %d\n"`, [gvType], [gvSubType])
+        `
+        _ = addVariable ( gvType gvSubType VAR_KIND_PRIMITIVE gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
+        _ = addSymbol ( gvType gvSubType VAR_KIND_PRIMITIVE gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ; `
+        printf(`"[Trace] Array declaration: type %d, value %d\n"`, [gvType], [gvValue])`
+    else 
+        expectedToken = TOKEN_RIGHT_BRACKET ;
+        consumeToken ( ) ;
+
+        gvNamePointer = parseIdentifier ( ) ;
+
+        gvSubType = TYPE_STRING ;
+        gvType = TYPE_ARRAY ;
+
+        expectedToken = TOKEN_ASSIGNMENT ;
+        consumeToken ( ) ;
+
+        gvValue = parseString ( ) ; `
+        printf(`"[Trace] String declaration: type %d, subtype %d\n"`, [gvType], [gvSubType])
+        `
+        _ = addVariable ( gvType gvSubType VAR_KIND_PRIMITIVE gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
+        _ = addSymbol ( gvType gvSubType VAR_KIND_PRIMITIVE gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ; `
+        printf(`"[Trace] String declaration: type %d, value %d\n"`, [gvType], [gvValue])`
+    end
 endproc parseArrayDeclaration
 
 proc parseIntegerDeclaration ( )
@@ -1483,7 +1519,10 @@ proc parseFactor ( )
                 _ = identifierUnknown ( fpIdentifier ) ;
             end 
            
-            if gsKind == [VAR_KIND_PRIMITIVE] then
+            if gsKind == [VAR_KIND_PRIMITIVE] then 
+                `
+                printf(`"Array VAR_KIND_PRIMITIVE\n"`)
+                `
                 _ = readString ( fpIdentifier ) ; 
                 if gsSubType == [TYPE_UINT8] then `
                     printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
@@ -1491,13 +1530,18 @@ proc parseFactor ( )
                     printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
                 else if gsSubType == [TYPE_POINTER] then `
                     printf(`"\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
+                else if gsSubType == [TYPE_STRING] then `
+                    printf(`"\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush [rax]\n"`, stringAtPointer)`
                 else ` 
                     printf(`"[Error] Error: unknown array type %d\n"`, [gsSubType])
                     ExitProcess(1)`
-                end end end
+                end end end end
             else 
                 pfType = gsSubType ;
                 _ = findUserType ( gsSubType ) ;
+                `
+                printf(`"Array NOT VAR_KIND_PRIMITIVE\n"`)
+                `
                 if _ == -1 then `
                     printf(`"Error: unknown user type %d\n"`, [gsSubType])
                     ExitProcess(1)`
@@ -1730,9 +1774,12 @@ endproc parseLogicalOrExpression
 uint64 paaIdentifier = 0 ;
 proc parseArrayAccess ( ) 
     paaIdentifier = parseIdentifier ( ) ; 
+
     expectedToken = TOKEN_LEFT_BRACKET ;
     consumeToken ( ) ;
+
     parseAdditiveExpression ( ) ;
+
     expectedToken = TOKEN_RIGHT_BRACKET ;
     consumeToken ( ) ; `
     mov rax, [paaIdentifier]`
@@ -2476,14 +2523,23 @@ while i < [globalVariableCount] do
                 printf(`"section .bss\r\n\t%s resq %d\n"`, stringAtPointer, [gvValue])`
             else if gvSubType == [TYPE_POINTER] then `
                 printf(`"section .bss\r\n\t%s resq %d\n"`, stringAtPointer, [gvValue])`
+            else if gvSubType == [TYPE_STRING] then `
+                printf(`"section .data\r\n\t%s"`, stringAtPointer)
+                `
+                _ = readString ( gvValue ) ; `
+                printf(`" db %s, 0\n"`, stringAtPointer)`
             else `
                 printf(`"Error: unknown array type %d\n"`, [gvType])
                 ExitProcess(1)`
-            end end end
-        else
+            end end end end
+        else 
+
             wsdIdentifier = gvNamePointer ;
 
             _ = findUserType ( gvSubType ) ;
+            `
+            printf(`"ARRAY TYPE_USER_DEFINED\n"`)
+            `
             if _ == -1 then `
                 printf(`"Error: unknown user type %d\n"`, [gvSubType])
                 ExitProcess(1)`
@@ -2493,7 +2549,9 @@ while i < [globalVariableCount] do
             _ = readString ( wsdIdentifier ) ; `
             printf(`"section .bss\r\n\t%s resb %d\n"`, stringAtPointer, [gvValue])`
         end
-    else if gvType == [TYPE_USER_DEFINED] then
+    else if gvType == [TYPE_USER_DEFINED] then `
+        printf(`"TYPE_USER_DEFINED\n"`)
+        `
         wsdIdentifier = gvNamePointer ;
 
         _ = findUserType ( gvSubType ) ;
