@@ -2224,7 +2224,7 @@ proc parseProcedureCall ( )
         ExitProcess(1)`
     end
 
-    _ = readString ( ppdIdentifier ) ;
+    _ = readString ( ppcIdentifier ) ;
 
     if ppcPrcArgumentCount != 0 then `
         printf(`"\tmov rsp, rbp\n\tpop rbp\n\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])`
