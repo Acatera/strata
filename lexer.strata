@@ -184,6 +184,9 @@ uint64 VARIABLE_SCOPE_GLOBAL       = 0 ;
 uint64 VARTYPE_PARAMETER           = 1 ;
 uint64 VARTYPE_LOCAL               = 2 ;
 
+uint64 VAR_KIND_PRIMITIVE          = 1 ;
+uint64 VAR_KIND_USER_DEFINED       = 2 ;
+
 uint64 i = 0 ;
 
 array token_dictionary = uint8 [ 5000 ] ;
@@ -924,16 +927,18 @@ uint64 ppdRbpOffset = 0 ;
 
 array globalVariables = uint64 [ 10000 ] ;
 uint64 globalVariableCount = 0 ;
-uint64 globalVariableSize = 5 ;
+uint64 globalVariableSize = 6 ;
 
 uint64 gvTypeOffset     = 0 ;
 uint64 gvSubTypeOffset  = 1 ;
-uint64 gvNameOffset     = 2 ;
-uint64 gvValueOffset    = 3 ;
-uint64 gvScopeOffset    = 4 ;
+uint64 gvKindOffset     = 2 ;
+uint64 gvNameOffset     = 3 ;
+uint64 gvValueOffset    = 4 ;
+uint64 gvScopeOffset    = 5 ;
 
 uint64 gvType        = 0 ;
 uint64 gvSubType     = 0 ;
+uint64 gvKind        = 0 ;
 uint64 gvNamePointer = 0 ;
 uint64 gvValue       = 0 ;
 uint64 gvScope       = 0 ;
@@ -941,11 +946,13 @@ uint64 gvScope       = 0 ;
 proc forward readString
 
 
-proc addVariable ( type subType namePointer value scope )
+proc addVariable ( type subType kind namePointer value scope )
     _ = gvTypeOffset + globalVariableCount * globalVariableSize ;
     globalVariables [ _ ] = type ;
     _ = gvSubTypeOffset + globalVariableCount * globalVariableSize ;
     globalVariables [ _ ] = subType ;
+    _ = gvKindOffset + globalVariableCount * globalVariableSize ;
+    globalVariables [ _ ] = kind ;
     _ = gvNameOffset + globalVariableCount * globalVariableSize ;
     globalVariables [ _ ] = namePointer ;
     _ = gvValueOffset + globalVariableCount * globalVariableSize ;
@@ -957,25 +964,29 @@ endproc addVariable
 
 array globalSymbolTable = uint64 [ 10000 ] ;
 uint64 globalSymbolsCount = 0 ;
-uint64 globalSymbolSize = 5 ;
+uint64 globalSymbolSize = 6 ;
 
 uint64 gsType        = 0 ;
 uint64 gsSubType     = 0 ;
+uint64 gsKind        = 0 ;
 uint64 gsNamePointer = 0 ;
 uint64 gsValue       = 0 ;
 uint64 gsScope       = 0 ;
 
 uint64 gsTypeOffset     = 0 ;
 uint64 gsSubTypeOffset  = 1 ;
-uint64 gsNameOffset     = 2 ;
-uint64 gsValueOffset    = 3 ;
-uint64 gsScopeOffset    = 4 ;
+uint64 gsKindOffset     = 2 ;
+uint64 gsNameOffset     = 3 ;
+uint64 gsValueOffset    = 4 ;
+uint64 gsScopeOffset    = 5 ;
 
-proc addSymbol ( type subType namePointer value scope )
+proc addSymbol ( type subType kind namePointer value scope )
     _ = gvTypeOffset + globalSymbolsCount * globalSymbolSize ;
     globalSymbolTable [ _ ] = type ;
     _ = gvSubTypeOffset + globalSymbolsCount * globalSymbolSize ;
     globalSymbolTable [ _ ] = subType ;
+    _ = gvKindOffset + globalSymbolsCount * globalSymbolSize ;
+    globalSymbolTable [ _ ] = kind ;
     _ = gvNameOffset + globalSymbolsCount * globalSymbolSize ;
     globalSymbolTable [ _ ] = namePointer ;
     _ = gvValueOffset + globalSymbolsCount * globalSymbolSize ;
@@ -1382,8 +1393,8 @@ proc parseArrayDeclaration ( )
     `
     printf(`"[Trace] Array declaration: type %d, subtype %d\n"`, [gvType], [gvSubType])
     `
-    _ = addVariable ( gvType gvSubType gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
-    _ = addSymbol ( gvType gvSubType gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ; `
+    _ = addVariable ( gvType gvSubType VAR_KIND_PRIMITIVE gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
+    _ = addSymbol ( gvType gvSubType VAR_KIND_PRIMITIVE gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ; `
     printf(`"[Trace] Array declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseArrayDeclaration
 
@@ -1402,11 +1413,11 @@ proc parseIntegerDeclaration ( )
     gvValue = parseNumber ( ) ;
     
     if globalBoolParsingProcedure == 0 then
-        _ = addVariable ( gvType 0 gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
-        _ = addSymbol ( gvType 0 gvNamePointer 0 VARIABLE_SCOPE_GLOBAL ) ; 
+        _ = addVariable ( gvType 0 VAR_KIND_PRIMITIVE gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
+        _ = addSymbol ( gvType 0 VAR_KIND_PRIMITIVE gvNamePointer 0 VARIABLE_SCOPE_GLOBAL ) ; 
     else 
-        _ = addVariable ( gvType VARTYPE_LOCAL gvNamePointer gvValue globalProcedureId ) ;
-        _ = addSymbol ( gvType VARTYPE_LOCAL gvNamePointer ppdRbpOffset globalProcedureId ) ; 
+        _ = addVariable ( gvType VARTYPE_LOCAL VAR_KIND_PRIMITIVE gvNamePointer gvValue globalProcedureId ) ;
+        _ = addSymbol ( gvType VARTYPE_LOCAL VAR_KIND_PRIMITIVE gvNamePointer ppdRbpOffset globalProcedureId ) ; 
         ppdRbpOffset = ppdRbpOffset + 8 ;
     end
     `
@@ -1938,8 +1949,8 @@ proc parseArguments ( )
     paProArgumentCount = 0 ;
     gvType = parseType ( ) ;
     gvNamePointer = parseIdentifier ( ) ;
-    _ = addVariable ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffset globalProcedureId ) ;
-    _ = addSymbol ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffset globalProcedureId ) ;
+    _ = addVariable ( gvType VARTYPE_PARAMETER VAR_KIND_PRIMITIVE gvNamePointer ppdRbpOffset globalProcedureId ) ;
+    _ = addSymbol ( gvType VARTYPE_PARAMETER VAR_KIND_PRIMITIVE gvNamePointer ppdRbpOffset globalProcedureId ) ;
     ppdRbpOffset = ppdRbpOffset + 8 ;
     paProArgumentCount = paProArgumentCount + 1 ;
     while true == 1 do
@@ -1949,8 +1960,8 @@ proc parseArguments ( )
 
             gvType = parseType ( ) ;
             gvNamePointer = parseIdentifier ( ) ;
-            _ = addVariable ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffset globalProcedureId ) ;
-            _ = addSymbol ( gvType VARTYPE_PARAMETER gvNamePointer ppdRbpOffset globalProcedureId ) ;
+            _ = addVariable ( gvType VARTYPE_PARAMETER VAR_KIND_PRIMITIVE gvNamePointer ppdRbpOffset globalProcedureId ) ;
+            _ = addSymbol ( gvType VARTYPE_PARAMETER VAR_KIND_PRIMITIVE gvNamePointer ppdRbpOffset globalProcedureId ) ;
             ppdRbpOffset = ppdRbpOffset + 8 ;
             paProArgumentCount = paProArgumentCount + 1 ;
         else 
@@ -2054,7 +2065,7 @@ proc parseProcedureDeclaration ( )
         printf(`"\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
     end
 
-    _ = addSymbol ( TYPE_PROCEDURE gvType ppdIdentifier paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ;
+    _ = addSymbol ( TYPE_PROCEDURE gvType VAR_KIND_USER_DEFINED ppdIdentifier paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ;
 
     _ = readString ( ppdIdentifier ) ; `
     printf(`"[Trace] Procedure declaration: %s with %d parameters\n"`, stringAtPointer, [paProArgumentCount])
@@ -2218,7 +2229,7 @@ proc parseStructDefinition ( )
     expectedToken = TOKEN_END ;
     consumeToken ( ) ;
 
-    _ = addSymbol ( TYPE_USER_DEFINED globalUserTypeId psdIdentifier psbSizeOfStruct VARIABLE_SCOPE_GLOBAL ) ; 
+    _ = addSymbol ( TYPE_USER_DEFINED globalUserTypeId VAR_KIND_PRIMITIVE psdIdentifier psbSizeOfStruct VARIABLE_SCOPE_GLOBAL ) ; 
 
     _ = readString ( psdIdentifier ) ; `
     printf(`"[Trace] Struct definition: %s with %d bytes\n"`, stringAtPointer, [psbSizeOfStruct])
@@ -2241,22 +2252,49 @@ proc parseUserTypeVariableDeclaration ( )
     end
     putvdTypeIdentifier = gsSubType ;
 
-    putvdIdentifier = parseIdentifier ( ) ;
+    if currentToken == [TOKEN_LEFT_BRACKET] then
+        expectedToken = TOKEN_LEFT_BRACKET ;
+        consumeToken ( ) ;
 
-    fgsIndex = findSymbol ( putvdIdentifier ) ;
+        gvValue = parseNumber ( ) ;
 
-    if fgsIndex != -1 then
-        _ = indentifierRedeclared ( putvdIdentifier ) ;
+        expectedToken = TOKEN_RIGHT_BRACKET ;
+        consumeToken ( ) ;
+
+        putvdIdentifier = parseIdentifier ( ) ;
+
+        fgsIndex = findSymbol ( putvdIdentifier ) ;
+
+        if fgsIndex != -1 then
+            _ = indentifierRedeclared ( putvdIdentifier ) ;
+        end
+
+        expectedToken = TOKEN_SEMICOLON ;
+        consumeToken ( ) ;
+
+        _ = addVariable ( TYPE_ARRAY putvdTypeIdentifier VAR_KIND_USER_DEFINED putvdIdentifier gvValue VARIABLE_SCOPE_GLOBAL ) ;
+        _ = addSymbol ( TYPE_ARRAY putvdTypeIdentifier VAR_KIND_USER_DEFINED putvdIdentifier gvValue VARIABLE_SCOPE_GLOBAL ) ;
+
+        _ = readString ( putvdIdentifier ) ; `
+        printf(`"[Trace] Variable definition for user type array: %s\n"`, stringAtPointer)`
+    else
+        putvdIdentifier = parseIdentifier ( ) ;
+
+        fgsIndex = findSymbol ( putvdIdentifier ) ;
+
+        if fgsIndex != -1 then
+            _ = indentifierRedeclared ( putvdIdentifier ) ;
+        end
+
+        expectedToken = TOKEN_SEMICOLON ;
+        consumeToken ( ) ;
+
+        _ = addVariable ( TYPE_USER_DEFINED putvdTypeIdentifier VAR_KIND_PRIMITIVE putvdIdentifier 0 VARIABLE_SCOPE_GLOBAL ) ;
+        _ = addSymbol ( TYPE_USER_DEFINED putvdTypeIdentifier VAR_KIND_PRIMITIVE putvdIdentifier 0 VARIABLE_SCOPE_GLOBAL ) ;
+
+        _ = readString ( putvdIdentifier ) ; `
+        printf(`"[Trace] Variable definition for user type: %s\n"`, stringAtPointer)`
     end
-
-    expectedToken = TOKEN_SEMICOLON ;
-    consumeToken ( ) ;
-
-    _ = addVariable ( TYPE_USER_DEFINED putvdTypeIdentifier putvdIdentifier 0 VARIABLE_SCOPE_GLOBAL ) ;
-    _ = addSymbol ( TYPE_USER_DEFINED putvdTypeIdentifier putvdIdentifier 0 VARIABLE_SCOPE_GLOBAL ) ;
-
-    _ = readString ( putvdIdentifier ) ; `
-    printf(`"[Trace] Variable definition for user type: %s\n"`, stringAtPointer)`
 endproc parseUserTypeVariableDeclaration
 
 uint64 psIdentifier = 0 ;
@@ -2335,6 +2373,8 @@ while i < [globalVariableCount] do
     gvType = globalVariables [ _ ] ;
     _ = gvSubTypeOffset + i * globalVariableSize ;
     gvSubType = globalVariables [ _ ] ;
+    _ = gvKindOffset + i * globalVariableSize ;
+    gvKind = globalVariables [ _ ] ;
     _ = gvNameOffset + i * globalVariableSize ;
     gvNamePointer = globalVariables [ _ ] ;
     _ = gvValueOffset + i * globalVariableSize ;
@@ -2356,16 +2396,30 @@ while i < [globalVariableCount] do
     else if gvType == [TYPE_POINTER] then `
         printf(`"section .data\r\n\t%s dq %d\n"`, stringAtPointer, [gvValue])`
     else if gvType == [TYPE_ARRAY] then 
-        if gvSubType == [TYPE_UINT8] then `
+        if gvKind == [VAR_KIND_PRIMITIVE] then
+            if gvSubType == [TYPE_UINT8] then `
+                printf(`"section .bss\r\n\t%s resb %d\n"`, stringAtPointer, [gvValue])`
+            else if gvSubType == [TYPE_UINT64] then `
+                printf(`"section .bss\r\n\t%s resq %d\n"`, stringAtPointer, [gvValue])`
+            else if gvSubType == [TYPE_POINTER] then `
+                printf(`"section .bss\r\n\t%s resq %d\n"`, stringAtPointer, [gvValue])`
+            else `
+                printf(`"Error: unknown array type %d\n"`, [gvType])
+                ExitProcess(1)`
+            end end end
+        else
+            wsdIdentifier = gvNamePointer ;
+
+            _ = findUserType ( gvSubType ) ;
+            if _ == -1 then `
+                printf(`"Error: unknown user type %d\n"`, [gvSubType])
+                ExitProcess(1)`
+            end 
+
+            gvValue = gvValue * gsValue ;
+            _ = readString ( wsdIdentifier ) ; `
             printf(`"section .bss\r\n\t%s resb %d\n"`, stringAtPointer, [gvValue])`
-        else if gvSubType == [TYPE_UINT64] then `
-            printf(`"section .bss\r\n\t%s resq %d\n"`, stringAtPointer, [gvValue])`
-        else if gvSubType == [TYPE_POINTER] then `
-            printf(`"section .bss\r\n\t%s resq %d\n"`, stringAtPointer, [gvValue])`
-        else `
-            printf(`"Error: unknown array type %d\n"`, [gvType])
-            ExitProcess(1)`
-        end end end
+        end
     else if gvType == [TYPE_USER_DEFINED] then
         wsdIdentifier = gvNamePointer ;
 
