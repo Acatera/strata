@@ -1,13 +1,19 @@
 uint8[] str = "Hello, World!";
 uint64 i = 0;
 
+uint64[1024] memory;
+
 struct Point
     uint64 x;
     uint64 y;
 end
 
-Point[100] points;
+Point[10000] points;
+
+Point point;
 
 while points[i].y != 0 do
     i = i + 1;
 end
+
+point = memory[0];

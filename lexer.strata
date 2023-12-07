@@ -77,14 +77,19 @@ array tokens = uint64 [ 10000 ] ;
 uint64 tokenCount = 0 ;
 uint64 tokenSize = 4 ;
 
+uint64 pt_ = 0 ;
 proc push_token ( tokenType value line col )
-    tokens [ tokenCount ] = tokenType ;
+    pt_ = tokenType ;
+    tokens [ tokenCount ] = pt_ ;
     _ = tokenCount + 1 ;
-    tokens [ _ ] = value ;
+    pt_ = value ;
+    tokens [ _ ] = pt_ ;
     _ = tokenCount + 2 ;
-    tokens [ _ ] = line ;
+    pt_ = line ;
+    tokens [ _ ] = pt_ ;
     _ = tokenCount + 3 ;
-    tokens [ _ ] = col ;
+    pt_ = col ;
+    tokens [ _ ] = pt_ ;
     tokenCount = tokenCount + tokenSize ; `
     ;printf(`"[Trace] Pushed token: %d %d"`, [rbp+16], [rbp+24])
     ;printf(`" %d %d\n"`, [rbp+32], [rbp+40])`
@@ -306,7 +311,7 @@ endproc get_token_type
 
 uint64 tnNumber = 0 ;
 uint64 tnDigit = 0 ;
-uint64 tnChar = 0 ;
+uint8 tnChar = 0 ;
 uint64 tnIndex = 0 ;
 uint64 tnSuccess = 0 ;
 proc to_number ( )
@@ -315,8 +320,9 @@ proc to_number ( )
     tnSuccess = 1 ;
     tnChar = token [ tnIndex ] ;
     while tnChar != 0 do 
-        tnNumber = tnNumber * 10 ;
-        tnDigit = tnChar - 48 ;
+        tnNumber = tnNumber * 10 ; 
+        tnDigit = token [ tnIndex ] ;
+        tnDigit = tnDigit - 48 ;
 
         if tnDigit > 9 then
             tnSuccess = 0 ;
@@ -947,20 +953,26 @@ uint64 gvScope       = 0 ;
 
 proc forward readString
 
-
+uint64 _av = 0 ;
 proc addVariable ( type subType kind namePointer value scope )
     _ = gvTypeOffset + globalVariableCount * globalVariableSize ;
-    globalVariables [ _ ] = type ;
+    _av = type ;
+    globalVariables [ _ ] = _av ;
     _ = gvSubTypeOffset + globalVariableCount * globalVariableSize ;
-    globalVariables [ _ ] = subType ;
+    _av = subType ;
+    globalVariables [ _ ] = _av ;
     _ = gvKindOffset + globalVariableCount * globalVariableSize ;
-    globalVariables [ _ ] = kind ;
+    _av = kind ;
+    globalVariables [ _ ] = _av ;
     _ = gvNameOffset + globalVariableCount * globalVariableSize ;
-    globalVariables [ _ ] = namePointer ;
+    _av = namePointer ;
+    globalVariables [ _ ] = _av ;
     _ = gvValueOffset + globalVariableCount * globalVariableSize ;
-    globalVariables [ _ ] = value ; 
+    _av = value ;
+    globalVariables [ _ ] = _av ; 
     _ = gvScopeOffset + globalVariableCount * globalVariableSize ;
-    globalVariables [ _ ] = scope ;
+    _av = scope ;
+    globalVariables [ _ ] = _av ;
     globalVariableCount = globalVariableCount + 1 ;
 endproc addVariable
 
@@ -982,19 +994,26 @@ uint64 gsNameOffset     = 3 ;
 uint64 gsValueOffset    = 4 ;
 uint64 gsScopeOffset    = 5 ;
 
+uint64 _as = 0 ;
 proc addSymbol ( type subType kind namePointer value scope )
     _ = gvTypeOffset + globalSymbolsCount * globalSymbolSize ;
-    globalSymbolTable [ _ ] = type ;
+    _as = type ;
+    globalSymbolTable [ _ ] = _as ;
     _ = gvSubTypeOffset + globalSymbolsCount * globalSymbolSize ;
-    globalSymbolTable [ _ ] = subType ;
+    _as = subType ;
+    globalSymbolTable [ _ ] = _as ;
     _ = gvKindOffset + globalSymbolsCount * globalSymbolSize ;
-    globalSymbolTable [ _ ] = kind ;
+    _as = kind ;
+    globalSymbolTable [ _ ] = _as ;
     _ = gvNameOffset + globalSymbolsCount * globalSymbolSize ;
-    globalSymbolTable [ _ ] = namePointer ;
+    _as = namePointer ;
+    globalSymbolTable [ _ ] = _as ;
     _ = gvValueOffset + globalSymbolsCount * globalSymbolSize ;
-    globalSymbolTable [ _ ] = value ; 
+    _as = value ;
+    globalSymbolTable [ _ ] = _as ; 
     _ = gvScopeOffset + globalSymbolsCount * globalSymbolSize ;
-    globalSymbolTable [ _ ] = scope ;
+    _as = scope ;
+    globalSymbolTable [ _ ] = _as ;
     globalSymbolsCount = globalSymbolsCount + 1 ;
 endproc addSymbol
 
@@ -1336,7 +1355,7 @@ proc parseNumber ( )
     _ = i + 1 ;
     _ = tokens [ _ ] ;
     consumeToken ( ) ; `
-    ;printf(`"[Trace] Number: %d\n"`, [_])
+    printf(`"[Trace] Number: %d\n"`, [_])
     ; set result
     mov rax, [_]`
 endproc parseNumber
@@ -1397,7 +1416,9 @@ proc parseArrayDeclaration ( )
     consumeToken ( ) ;
 
     if currentToken == [TOKEN_CONSTANT_INTEGER] then
-        gvValue = parseNumber ( ) ;
+        gvValue = parseNumber ( ) ; `
+        printf(`"gvValue: %d\n"`, [gvValue])
+        `
 
         expectedToken = TOKEN_RIGHT_BRACKET ;
         consumeToken ( ) ;
