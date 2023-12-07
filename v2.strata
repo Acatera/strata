@@ -18,6 +18,76 @@ end
 MyStruct var_struct;
 MyStruct[1000] var_struct_array;
 
+// assignments to primitives
 var_8 = 1;
 var_64 = 2;
+var_p = 3;
 
+// assignments to arrays of primitives
+var_8_array[0] = 1;
+var_64_array[0] = 2;
+var_p_array[0] = 3;
+var_string[0] = 72; // ascii code for 'H' is 72
+
+// assignments to structs
+var_struct.b = 1;
+
+// assignments to arrays of structs
+var_struct_array[0].b = 2;
+
+// math operations
+var_8 = 1 * 2 - 3 / 4 + 5 % 6;
+
+// comparisons
+var_8 = 1 == 2 and 3 != 4 or 5 < 6 and 7 <= 8 or 9 > 10 and 11 >= 12;
+
+// array access
+var_8 = var_8_array[0];
+var_64 = var_64_array[0];
+var_p = var_p_array[0];
+var_8 = var_string[0];
+
+// struct access
+var_64 = var_struct.c;
+
+// array of struct access
+var_64 = var_struct_array[0].c;
+
+// procedures
+proc MyProcedure(uint64 a, pointer b) -> uint64
+vars
+    uint8 var = 0;
+code
+    var = a + b;
+    var = var + var_8;
+    var_64 = var;
+    var_p = var + 1;
+    return var;
+end
+
+// procedure calls
+MyProcedure(1, 2);
+var_64 = MyProcedure(3, 4);
+
+// if statements
+proc MyIfStatement(uint64 b) -> uint64
+vars
+    uint8 var = 0;
+code
+    if b == 1 then
+        var = 1;
+    else
+        var = 2;
+    end
+    return var;
+end
+
+// while loops
+while MyIfStatement(1) == 1 do
+    // var_8 = var_8 + 1;
+    // if var_8 == 10 then
+    //     break;
+    // else
+    //     continue;
+    // end
+end
