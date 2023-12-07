@@ -38,6 +38,8 @@ section .bss
     _internal_printf_std_out resq 1
     _internal_printf_buffer resb DEFAULT_BUFFER_SIZE
     _internal_printf_output_buffer resb DEFAULT_BUFFER_SIZE
+    _internal_output_file_handle resq 1
+    _internal_output_file_buffer resb DEFAULT_BUFFER_SIZE
     itoh_buffer resb 64
     sprintfBuffer resb 64
     printfBuffer resb 128
@@ -95,11 +97,37 @@ section .text
     add %4, rax
 %endmacro
 
+%define SetOutputFile(hFile) _SetOutputFile_ hFile
+%macro _SetOutputFile_ 1
+    mov rax, [%1]
+    mov [_internal_output_file_handle], rax
+%endmacro
+
+
+%define WriteToFile(fmt) _WriteToFile1_ fmt
+%define WriteToFile(fmt, arg1) _WriteToFile2_ fmt, arg1
+%define WriteToFile(fmt, arg1, arg2) _WriteToFile3_ fmt, arg1, arg2
+
+%macro _WriteToFile1_ 1
+    _sprintf2_ _internal_output_file_buffer, %1
+    _WriteFile_ [_internal_output_file_handle], _internal_output_file_buffer, rax, 0, 0
+%endmacro
+
+%macro _WriteToFile2_ 2
+    _sprintf3_ _internal_output_file_buffer, %1, %2
+    _WriteFile_ [_internal_output_file_handle], _internal_output_file_buffer, rax, 0, 0
+%endmacro
+
+%macro _WriteToFile3_ 3
+    _sprintf4_ _internal_output_file_buffer, %1, %2, %3
+    _WriteFile_ [_internal_output_file_handle], _internal_output_file_buffer, rax, 0, 0
+%endmacro
+
 ; advance pointer by one element
 %define array_next(type, result) add result, type%+.size
-
-%define WriteFile(hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten,lpOverlapped) _WriteFile_ hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten,lpOverlapped
+%define WriteFile(hFile,lpBuffer,nNumberOfBytesToWrite) _WriteFile_ hFile,lpBuffer,nNumberOfBytesToWrite,0, 0
 %define WriteFile(hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten) _WriteFile_ hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten, 0
+%define WriteFile(hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten,lpOverlapped) _WriteFile_ hFile,lpBuffer,nNumberOfBytesToWrite,lpNumberOfBytesWritten,lpOverlapped
 %macro _WriteFile_ 5
     PushCallerSavedRegs()
     mov rcx, %1

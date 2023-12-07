@@ -1,19 +1,23 @@
-uint8[] str = "Hello, World!";
-uint64 i = 0;
+// primitives
+uint8 var_8 = 0;
+uint64 var_64 = 0;
+pointer var_p = 0;
 
-uint64[1024] memory;
+// arrays
+uint8[1000] var_8_array;
+uint64[1000] var_64_array;
+pointer[1000] var_p_array;
+uint8[] var_string = "hello world";
 
-struct Point
-    uint64 x;
-    uint64 y;
+// structs and arrays of structs
+struct MyStruct 
+    uint64 b;
+    pointer c;
 end
 
-Point[10000] points;
+MyStruct var_struct;
+MyStruct[1000] var_struct_array;
 
-Point point;
+var_8 = 1;
+var_64 = 2;
 
-while points[i].y != 0 do
-    i = i + 1;
-end
-
-point = memory[0];
