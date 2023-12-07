@@ -375,21 +375,55 @@ uint64 tnDigit = 0 ;
 uint8 tnChar = 0 ;
 uint64 tnIndex = 0 ;
 uint64 tnSuccess = 0 ;
+uint64 tnIsHex = 0 ;
+uint64 tnBase = 10 ;
 proc to_number ( )
     tnNumber = 0 ;
+    tnIsHex = 0 ;
     tnIndex = 0 ;
+    tnBase = 10 ;
     tnSuccess = 1 ;
     tnChar = token [ tnIndex ] ;
-    while tnChar != 0 do 
-        tnNumber = tnNumber * 10 ; 
-        tnDigit = token [ tnIndex ] ;
-        tnDigit = tnDigit - 48 ;
-
-        if tnDigit > 9 then
-            tnSuccess = 0 ;
-            break;
+    if tnChar != 0 then
+        _ = tnIndex + 1 ;
+        _ = token [ _ ] ;
+        if _ == 88 then 
+            tnIsHex = 1 ;
         end
-        
+        if _ == 120 then
+            tnIsHex = 1 ;
+        end
+    end
+    if tnIsHex == 1 then
+        tnBase = 16 ;
+        tnIndex = 2 ;
+        tnChar = token [ tnIndex ] ;
+    end
+    while tnChar != 0 do 
+        tnNumber = tnNumber * tnBase ; 
+        tnDigit = token [ tnIndex ] ;
+        if tnDigit > 96 then
+            if tnDigit < 103 then
+                tnDigit = tnDigit - 87 ;
+            else
+                tnSuccess = 0 ;
+                break ;
+            end
+        else if tnDigit > 64 then
+            if tnDigit < 71 then
+                tnDigit = tnDigit - 55 ;
+            else
+                tnSuccess = 0 ;
+                break ;
+            end
+        else if tnDigit > 47 then
+            if tnDigit < 58 then
+                tnDigit = tnDigit - 48 ;
+            else
+                tnSuccess = 0 ;
+                break ;
+            end 
+        end end end 
         tnNumber = tnNumber + tnDigit ;
         tnIndex = tnIndex + 1 ;
         tnChar = token [ tnIndex ] ;
@@ -2249,6 +2283,7 @@ proc parseProcedureDeclaration ( )
     expectedToken = TOKEN_LEFT_PARENTHESIS ;
     consumeToken ( ) ; 
 
+    paProArgumentCount = 0 ;
     if currentToken != [TOKEN_RIGHT_PARENTHESIS] then
         ppdRbpOffset = 16 ;
         parseArguments ( ) ;
@@ -2357,6 +2392,9 @@ proc parseProcedureCall ( )
     ppcIdentifier = parseIdentifier ( ) ;
 
     fgsIndex = findSymbol ( ppcIdentifier ) ;
+    _ = readString ( ppcIdentifier ) ; `
+    printf(`"[Trace] Procedure call: %s\n"`, stringAtPointer)
+    `
 
     if fgsIndex == -1 then
         _ = identifierUnknown ( ppcIdentifier ) ;
@@ -2637,6 +2675,7 @@ proc parseExternDeclaration ( )
     expectedToken = TOKEN_LEFT_PARENTHESIS ;
     consumeToken ( ) ;
 
+    paProArgumentCount = 0 ;
     if currentToken != [TOKEN_RIGHT_PARENTHESIS] then
         ppdRbpOffset = 16 ;
         parseArguments ( ) ;
