@@ -1,93 +1,149 @@
-// primitives
-uint8 var_8 = 0;
-uint64 var_64 = 0;
-pointer var_p = 0;
+// // primitives
+// uint8 var_8 = 0;
+// uint64 var_64 = 0;
+// pointer var_p = 0;
 
-// arrays
-uint8[1000] var_8_array;
-uint64[1000] var_64_array;
-pointer[1000] var_p_array;
-uint8[] var_string = "hello world";
+// // arrays
+// uint8[1000] var_8_array;
+// uint64[1000] var_64_array;
+// pointer[1000] var_p_array;
+// uint8[] var_string = "hello world";
 
-// structs and arrays of structs
-struct MyStruct 
-    uint64 b;
-    pointer c;
+// // structs and arrays of structs
+// struct MyStruct 
+//     uint64 b;
+//     pointer c;
+// end
+
+// MyStruct var_struct;
+// MyStruct[1000] var_struct_array;
+
+// // assignments to primitives
+// var_8 = 1;
+// var_64 = 2;
+// var_p = 3;
+
+// // assignments to arrays of primitives
+// var_8_array[0] = 1;
+// var_64_array[0] = 2;
+// var_p_array[0] = 3;
+// var_string[0] = 72; // ascii code for 'H' is 72
+
+// // assignments to structs
+// var_struct.b = 1;
+
+// // assignments to arrays of structs
+// var_struct_array[0].b = 2;
+
+// // math operations
+// var_8 = 1 * 2 - 3 / 4 + 5 % 6;
+
+// // comparisons
+// var_8 = 1 == 2 and 3 != 4 or 5 < 6 and 7 <= 8 or 9 > 10 and 11 >= 12;
+
+// // array access
+// var_8 = var_8_array[0];
+// var_64 = var_64_array[0];
+// var_p = var_p_array[0];
+// var_8 = var_string[0];
+
+// // struct access
+// var_64 = var_struct.c;
+
+// // array of struct access
+// var_64 = var_struct_array[0].c;
+
+// // procedures
+// proc MyProcedure(uint64 a, pointer b) -> uint64
+// vars
+//     uint8 var = 0;
+// code
+//     var = a + b;
+//     var = var + var_8;
+//     var_64 = var;
+//     var_p = var + 1;
+//     return var;
+// end
+
+// // procedure calls
+// MyProcedure(1, 2);
+// var_64 = MyProcedure(3, 4);
+
+// // if statements
+// proc MyIfStatement(uint64 b) -> uint64
+// vars
+//     uint8 var = 0;
+// code
+//     if b == 1 then
+//         var = 1;
+//     else
+//         var = 2;
+//     end
+//     return var;
+// end
+
+// // while loops
+// while MyIfStatement(1) == 1 do
+//     // var_8 = var_8 + 1;
+//     // if var_8 == 10 then
+//     //     break;
+//     // else
+//     //     continue;
+//     // end
+// end
+
+uint8[2] new_line;
+new_line[0] = 10;
+new_line[1] = 0;
+uint64 handle = 0;
+uint8[] message = "Hello world";
+extern proc GetStdHandle(uint64 nStdHandle) -> pointer;
+extern proc WriteFile(pointer hFile, pointer lpBuffer, uint64 nNumberOfBytesToWrite, pointer lpNumberOfBytesWritten) -> uint64;
+extern proc WriteConsoleA(pointer hConsoleOutput, pointer lpBuffer, uint64 nNumberOfCharsToWrite, pointer lpNumberOfCharsWritten) -> uint64;
+
+handle = GetStdHandle(18446744073709551605);
+WriteConsoleA(handle, message, 11, 0);
+WriteConsoleA(handle, new_line, 1, 0);
+
+extern proc CreateFileA(pointer lpFileName, 
+                        uint64 dwDesiredAccess, 
+                        uint64 dwShareMode, 
+                        pointer lpSecurityAttributes, 
+                        uint64 dwCreationDisposition, 
+                        uint64 dwFlagsAndAttributes, 
+                        pointer hTemplateFile) -> pointer;
+    extern proc GetLastError(uint64 a) -> uint64;
+
+uint64 file_handle = 0;
+uint8[] file_name = "src.strata";
+uint64 GENERIC_READ = 2147483648;
+uint64 FILE_SHARE_READ = 1; 
+uint64 OPEN_EXISTING = 3; 
+uint64 FILE_ATTRIBUTE_NORMAL = 128;
+uint64 bla = 0;
+bla = 34359738371;
+// 0x0000080 in hex is 
+
+file_handle = CreateFileA(
+    file_name, GENERIC_READ, 
+    FILE_SHARE_READ, 0, 3, 128, 0
+);
+uint8[] create_file_error = "CreateFileA failed";
+uint64 last_error = 0;
+if file_handle < 0 then
+    WriteConsoleA(handle, create_file_error, 18, 0);
 end
 
-MyStruct var_struct;
-MyStruct[1000] var_struct_array;
+extern proc ReadFile(pointer hFile, 
+                     pointer lpBuffer, 
+                     uint64 nNumberOfBytesToRead, 
+                     pointer lpNumberOfBytesRead, 
+                     pointer lpOverlapped) -> uint64;
 
-// assignments to primitives
-var_8 = 1;
-var_64 = 2;
-var_p = 3;
+uint8[100000] buffer;
+uint64[1] bytes_read;
 
-// assignments to arrays of primitives
-var_8_array[0] = 1;
-var_64_array[0] = 2;
-var_p_array[0] = 3;
-var_string[0] = 72; // ascii code for 'H' is 72
+ReadFile(file_handle, buffer, 100000, bytes_read, 0);
 
-// assignments to structs
-var_struct.b = 1;
-
-// assignments to arrays of structs
-var_struct_array[0].b = 2;
-
-// math operations
-var_8 = 1 * 2 - 3 / 4 + 5 % 6;
-
-// comparisons
-var_8 = 1 == 2 and 3 != 4 or 5 < 6 and 7 <= 8 or 9 > 10 and 11 >= 12;
-
-// array access
-var_8 = var_8_array[0];
-var_64 = var_64_array[0];
-var_p = var_p_array[0];
-var_8 = var_string[0];
-
-// struct access
-var_64 = var_struct.c;
-
-// array of struct access
-var_64 = var_struct_array[0].c;
-
-// procedures
-proc MyProcedure(uint64 a, pointer b) -> uint64
-vars
-    uint8 var = 0;
-code
-    var = a + b;
-    var = var + var_8;
-    var_64 = var;
-    var_p = var + 1;
-    return var;
-end
-
-// procedure calls
-MyProcedure(1, 2);
-var_64 = MyProcedure(3, 4);
-
-// if statements
-proc MyIfStatement(uint64 b) -> uint64
-vars
-    uint8 var = 0;
-code
-    if b == 1 then
-        var = 1;
-    else
-        var = 2;
-    end
-    return var;
-end
-
-// while loops
-while MyIfStatement(1) == 1 do
-    // var_8 = var_8 + 1;
-    // if var_8 == 10 then
-    //     break;
-    // else
-    //     continue;
-    // end
-end
+WriteConsoleA(handle, buffer, bytes_read[0], 0);
+last_error = GetLastError(1);

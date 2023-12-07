@@ -187,53 +187,55 @@ uint64 TOKEN_UINT64                   =  2 ;
 uint64 TOKEN_POINTER                  =  3 ;
 uint64 TOKEN_IDENTIFIER               =  4 ;
 uint64 TOKEN_ASSIGNMENT               =  5 ;
+
 uint64 TOKEN_CONSTANT_INTEGER         =  6 ;
+uint64 TOKEN_CONSTANT_STRING          =  7 ;
 
-uint64 TOKEN_SEMICOLON                =  7 ;
-uint64 TOKEN_COMMA                    =  8 ;
+uint64 TOKEN_SEMICOLON                =  8 ;
+uint64 TOKEN_COMMA                    =  9 ;
 
-uint64 TOKEN_LEFT_PARENTHESIS         =  9 ;
-uint64 TOKEN_RIGHT_PARENTHESIS        = 10 ;
+uint64 TOKEN_LEFT_PARENTHESIS         = 10 ;
+uint64 TOKEN_RIGHT_PARENTHESIS        = 11 ;
 
-uint64 TOKEN_LEFT_BRACKET             = 11 ;
-uint64 TOKEN_RIGHT_BRACKET            = 12 ;
+uint64 TOKEN_LEFT_BRACKET             = 12 ;
+uint64 TOKEN_RIGHT_BRACKET            = 13 ;
 
-uint64 TOKEN_PLUS                     = 13 ;
-uint64 TOKEN_MINUS                    = 14 ;
-uint64 TOKEN_MULTIPLY                 = 15 ;
-uint64 TOKEN_DIVIDE                   = 16 ;
-uint64 TOKEN_MODULO                   = 17 ;
+uint64 TOKEN_PLUS                     = 14 ;
+uint64 TOKEN_MINUS                    = 15 ;
+uint64 TOKEN_MULTIPLY                 = 16 ;
+uint64 TOKEN_DIVIDE                   = 17 ;
+uint64 TOKEN_MODULO                   = 18 ;
 
-uint64 TOKEN_LESS_THAN                = 18 ;
-uint64 TOKEN_LESS_THAN_OR_EQUAL_TO    = 19 ;
-uint64 TOKEN_GREATER_THAN             = 20 ;
-uint64 TOKEN_GREATER_THAN_OR_EQUAL_TO = 21 ;
-uint64 TOKEN_EQUALS                   = 22 ;
-uint64 TOKEN_NOT_EQUALS               = 23 ;
+uint64 TOKEN_LESS_THAN                = 19 ;
+uint64 TOKEN_LESS_THAN_OR_EQUAL_TO    = 20 ;
+uint64 TOKEN_GREATER_THAN             = 21 ;
+uint64 TOKEN_GREATER_THAN_OR_EQUAL_TO = 22 ;
+uint64 TOKEN_EQUALS                   = 23 ;
+uint64 TOKEN_NOT_EQUALS               = 24 ;
 
-uint64 TOKEN_LOGICAL_AND              = 24 ;
-uint64 TOKEN_LOGICAL_OR               = 25 ;
+uint64 TOKEN_LOGICAL_AND              = 25 ;
+uint64 TOKEN_LOGICAL_OR               = 26 ;
 
-uint64 TOKEN_IF                       = 26 ;
-uint64 TOKEN_THEN                     = 27 ;
-uint64 TOKEN_ELSE                     = 28 ;
-uint64 TOKEN_END                      = 29 ;
+uint64 TOKEN_IF                       = 27 ;
+uint64 TOKEN_THEN                     = 28 ;
+uint64 TOKEN_ELSE                     = 29 ;
+uint64 TOKEN_END                      = 30 ;
 
-uint64 TOKEN_WHILE                    = 30 ;
-uint64 TOKEN_DO                       = 31 ;
-uint64 TOKEN_BREAK                    = 32 ;
-uint64 TOKEN_CONTINUE                 = 33 ;
+uint64 TOKEN_WHILE                    = 31 ;
+uint64 TOKEN_DO                       = 32 ;
+uint64 TOKEN_BREAK                    = 33 ;
+uint64 TOKEN_CONTINUE                 = 34 ;
 
-uint64 TOKEN_PROC                     = 34 ;
-uint64 TOKEN_ARROW_RIGHT              = 35 ;
-uint64 TOKEN_VARS                     = 36 ;
-uint64 TOKEN_CODE                     = 37 ;
-uint64 TOKEN_RETURN                   = 38 ;
+uint64 TOKEN_EXTERN                   = 35 ;
 
-uint64 TOKEN_STRUCT                   = 39 ;
-uint64 TOKEN_DOT                      = 40 ;
+uint64 TOKEN_PROC                     = 36 ;
+uint64 TOKEN_ARROW_RIGHT              = 37 ;
+uint64 TOKEN_VARS                     = 38 ;
+uint64 TOKEN_CODE                     = 39 ;
+uint64 TOKEN_RETURN                   = 40 ;
 
-uint64 TOKEN_CONSTANT_STRING          = 41 ;
+uint64 TOKEN_STRUCT                   = 41 ;
+uint64 TOKEN_DOT                      = 42 ;
 
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
@@ -241,7 +243,8 @@ uint64 TYPE_POINTER                = 3 ;
 uint64 TYPE_ARRAY                  = 4 ;
 uint64 TYPE_STRING                 = 5 ;
 uint64 TYPE_PROCEDURE              = 6 ;
-uint64 TYPE_USER_DEFINED           = 7 ;
+uint64 TYPE_EXTERNAL_PROCEDURE     = 7 ;
+uint64 TYPE_USER_DEFINED           = 8 ;
 
 uint64 VARIABLE_SCOPE_GLOBAL       = 0 ;
 
@@ -522,6 +525,15 @@ stringToPush [ 6 ] = 117 ;
 stringToPush [ 7 ] = 101 ;
 stringToPush [ 8 ] = 0 ;
 _ = register_token_type ( TOKEN_CONTINUE ) ;
+
+stringToPush [ 0 ] = 101 ;
+stringToPush [ 1 ] = 120 ;
+stringToPush [ 2 ] = 116 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 114 ;
+stringToPush [ 5 ] = 110 ;
+stringToPush [ 6 ] = 0 ;
+_ = register_token_type ( TOKEN_EXTERN ) ;
 
 stringToPush [ 0 ] = 112 ;
 stringToPush [ 1 ] = 114 ;
@@ -1588,8 +1600,12 @@ uint64 pfType = 0 ;
 uint64 fpIdentifier = 0 ;
 proc parseFactor ( ) 
     if currentToken == [TOKEN_CONSTANT_INTEGER] then
-        _ = parseNumber ( ) ; `
-        WriteToFile(`"\tpush %d\n"`, [_])`
+        _ = parseNumber ( ) ;
+        if _ > 2147483647 then `
+            WriteToFile(`"\tmov rax, %d\n\tpush rax\n"`, [_])`
+        else `
+            WriteToFile(`"\tpush %d\n"`, [_])`
+        end
     else if currentToken == [TOKEN_LEFT_PARENTHESIS] then
         expectedToken = TOKEN_LEFT_PARENTHESIS ;
         consumeToken ( ) ;
@@ -1702,10 +1718,12 @@ proc parseFactor ( )
                     WriteToFile(`"\tpush qword [%s]\n"`, stringAtPointer)`
                 else if gsType == [TYPE_POINTER] then ` 
                     WriteToFile(`"\tpush qword [%s]\n"`, stringAtPointer)`
+                else if gsType == [TYPE_ARRAY] then ` 
+                    WriteToFile(`"\tmov rax, %s\n\tpush rax\n"`, stringAtPointer)`
                 else ` 
-                    printf(`"[Error] Error: unknown type %d\n"`, [gsType])
+                    printf(`"[Error] Error: unknown type %d in 'parseFactor'\n"`, [gsType])
                     ExitProcess(1)`
-                end end end
+                end end end end
             else 
                 if gsSubType == [VARTYPE_PARAMETER] then ` 
                     WriteToFile(`"\tpush qword [rbp + %d]\n"`, [gsValue])`
@@ -2055,7 +2073,7 @@ proc parseAssignmentStatement ( ) `
         WriteToFile(`"; assigning value to a struct field\n"`)
         WriteToFile(`"\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n\n"`)`
     else `
-        printf(`"[Error] Error: unknown type %d\n"`, [gsType])
+        printf(`"[Error] Error: unknown type %d in 'parseAssignmentStatement'\n"`, [gsType])
         ExitProcess(1)`
     end end end end end `
     ;printf(`"[Trace] Assignment statement for: '%s'\n"`, stringAtPointer)`
@@ -2332,7 +2350,10 @@ uint64 ppcIdentifier = 0 ;
 uint64 ppcPrcArgumentCount = 0 ;
 uint64 ppcPrcCallArgumentCount = 0 ;
 uint64 ppcShadowSpace = 0 ;
+uint64 ppcIndex = 0 ;
+uint64 ppcCallCounter = 0 ;
 proc parseProcedureCall ( )
+    ppcCallCounter = ppcCallCounter + 1 ;
     ppcIdentifier = parseIdentifier ( ) ;
 
     fgsIndex = findSymbol ( ppcIdentifier ) ;
@@ -2341,54 +2362,125 @@ proc parseProcedureCall ( )
         _ = identifierUnknown ( ppcIdentifier ) ;
     end
 
-    ppcPrcArgumentCount = gsValue ;
-    ppcShadowSpace = ppcPrcArgumentCount * 8 ;
-    ppdRbpOffset = 8 ;
+    if gsType == [TYPE_PROCEDURE] then 
+        ppcPrcArgumentCount = gsValue ;
+        ppcShadowSpace = ppcPrcArgumentCount * 8 ;
+        ppdRbpOffset = 8 ;
 
-    expectedToken = TOKEN_LEFT_PARENTHESIS ;
-    consumeToken ( ) ;
+        expectedToken = TOKEN_LEFT_PARENTHESIS ;
+        consumeToken ( ) ;
 
-    if currentToken != [TOKEN_RIGHT_PARENTHESIS] then `
-        WriteToFile(`"; -- procedure call --\n"`)
-        WriteToFile(`"\tsub rsp, %d\n\tpush rbp\n\tmov rbp, rsp\n"`, [ppcShadowSpace])`
-    end
-
-    ppcPrcCallArgumentCount = 0 ;
-    while currentToken != [TOKEN_RIGHT_PARENTHESIS] do
-        parseLogicalOrExpression ( ) ; `
-        WriteToFile(`"\tpop qword [rbp + %d]\n"`, [ppdRbpOffset])
-        `
-        ppcPrcCallArgumentCount = ppcPrcCallArgumentCount + 1 ;
-        ppdRbpOffset = ppdRbpOffset + 8 ;
-        if currentToken == [TOKEN_COMMA] then
-            expectedToken = TOKEN_COMMA ;
-            consumeToken ( ) ;
+        if currentToken != [TOKEN_RIGHT_PARENTHESIS] then `
+            WriteToFile(`"; -- procedure call --\n"`)
+            WriteToFile(`"\tsub rsp, %d\n\tpush rbp\n\tmov rbp, rsp\n"`, [ppcShadowSpace])`
         end
-    end
 
-    expectedToken = TOKEN_RIGHT_PARENTHESIS ;
-    consumeToken ( ) ; 
-    
-    if ppcPrcArgumentCount != [ppcPrcCallArgumentCount] then 
-        _ = i - tokenSize ;
-        _ = _ + 2 ;
-        errorAtLine = tokens [ _ ] ;
-        _ = i - tokenSize ;
-        _ = _ + 3 ;
-        errorAtColumn = tokens [ _ ] ; ` 
-        printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
-        printf(`"procedure requires %d arguments, but %d arguments are provided\n"`, [ppcPrcArgumentCount], [ppcPrcCallArgumentCount])
-        ExitProcess(1)`
-    end
+        ppcPrcCallArgumentCount = 0 ;
+        while currentToken != [TOKEN_RIGHT_PARENTHESIS] do
+            parseLogicalOrExpression ( ) ; `
+            WriteToFile(`"\tpop qword [rbp + %d]\n"`, [ppdRbpOffset])
+            `
+            ppcPrcCallArgumentCount = ppcPrcCallArgumentCount + 1 ;
+            ppdRbpOffset = ppdRbpOffset + 8 ;
+            if currentToken == [TOKEN_COMMA] then
+                expectedToken = TOKEN_COMMA ;
+                consumeToken ( ) ;
+            end
+        end
 
-    _ = readString ( ppcIdentifier ) ;
+        expectedToken = TOKEN_RIGHT_PARENTHESIS ;
+        consumeToken ( ) ; 
+        
+        if ppcPrcArgumentCount != [ppcPrcCallArgumentCount] then 
+            _ = i - tokenSize ;
+            _ = _ + 2 ;
+            errorAtLine = tokens [ _ ] ;
+            _ = i - tokenSize ;
+            _ = _ + 3 ;
+            errorAtColumn = tokens [ _ ] ; ` 
+            printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+            printf(`"procedure requires %d arguments, but %d arguments are provided\n"`, [ppcPrcArgumentCount], [ppcPrcCallArgumentCount])
+            ExitProcess(1)`
+        end
 
-    if ppcPrcArgumentCount != 0 then `
-        WriteToFile(`"\tmov rsp, rbp\n\tpop rbp\n\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])`
+        _ = readString ( ppcIdentifier ) ; 
+
+        if ppcPrcArgumentCount != 0 then `
+            WriteToFile(`"\tmov rsp, rbp\n\tpop rbp\n\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])`
+        else `
+            WriteToFile(`"\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])`
+        end `
+        WriteToFile(`"; procedure call: %s with %d arguments\n\n"`, stringAtPointer, [ppcPrcArgumentCount])`
+    else if gsType == [TYPE_EXTERNAL_PROCEDURE] then
+        ppcPrcArgumentCount = gsValue ;
+        ppcShadowSpace = ppcPrcArgumentCount * 8 ;
+        if ppcShadowSpace < 32 then
+            ppcShadowSpace = 32 ;
+        end 
+        expectedToken = TOKEN_LEFT_PARENTHESIS ;
+        consumeToken ( ) ;
+
+        `
+        WriteToFile(`"; -- external procedure call --\n"`)
+        WriteToFile(`"\tsub rsp, %d\n\tpush rbp\n\tmov rbp, rsp\n"`, [ppcShadowSpace])
+        `
+
+        ppcPrcCallArgumentCount = 0 ;
+        ppdRbpOffset = 8 ;
+        while currentToken != [TOKEN_RIGHT_PARENTHESIS] do
+            parseLogicalOrExpression ( ) ; `
+            ;WriteToFile(`"\tpop qword [rbp + %d]\n"`, [ppdRbpOffset])
+            `
+            ppcPrcCallArgumentCount = ppcPrcCallArgumentCount + 1 ;
+            ppdRbpOffset = ppdRbpOffset + 8 ;
+            if currentToken == [TOKEN_COMMA] then
+                expectedToken = TOKEN_COMMA ;
+                consumeToken ( ) ;
+            end
+        end
+
+        ppcIndex = ppcPrcCallArgumentCount ;
+        ppdRbpOffset = ppdRbpOffset - 8 ;
+        
+        while ppcIndex >= 0 do 
+            if ppcIndex > 4 then `
+                WriteToFile(`"\tpop qword [rbp + %d]\n"`, [ppdRbpOffset])`
+            else if ppcIndex == 4 then `
+                WriteToFile(`"\tpop r9\n"`, [ppdRbpOffset])`
+            else if ppcIndex == 3 then `
+                WriteToFile(`"\tpop r8\n"`, [ppdRbpOffset])`
+            else if ppcIndex == 2 then `
+                WriteToFile(`"\tpop rdx\n"`, [ppdRbpOffset])`
+            else if ppcIndex == 1 then `
+                WriteToFile(`"\tpop rcx\n"`, [ppdRbpOffset])`
+            end end end end end
+            ppcIndex = ppcIndex - 1 ;
+            ppdRbpOffset = ppdRbpOffset - 8 ;
+        end 
+
+        expectedToken = TOKEN_RIGHT_PARENTHESIS ;
+        consumeToken ( ) ; 
+
+        if ppcPrcArgumentCount != [ppcPrcCallArgumentCount] then 
+            _ = i - tokenSize ;
+            _ = _ + 2 ;
+            errorAtLine = tokens [ _ ] ;
+            _ = i - tokenSize ;
+            _ = _ + 3 ;
+            errorAtColumn = tokens [ _ ] ; ` 
+            printf(`"parser.strata:%d:%d: "`, [errorAtLine], [errorAtColumn])
+            printf(`"external procedure requires %d arguments, but %d arguments are provided\n"`, [ppcPrcArgumentCount], [ppcPrcCallArgumentCount])
+            ExitProcess(1)`
+        end
+
+        _ = readString ( ppcIdentifier ) ; `
+        WriteToFile(`"external_%s_%d:\n"`, stringAtPointer, [ppcCallCounter])
+        WriteToFile(`"\tmov rsp, rbp\n\tpop rbp\n\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])
+        WriteToFile(`"; external procedure call: %s with %d arguments\n\n"`, stringAtPointer, [ppcPrcArgumentCount])`
     else `
-        WriteToFile(`"\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])`
-    end `
-    WriteToFile(`"; procedure call: %s with %d arguments\n\n"`, stringAtPointer, [ppcPrcArgumentCount])`
+        printf(`"NOT A PROCEDURE\n"`)
+        ExitProcess(1)`
+    end end
 endproc parseProcedureCall
 
 proc parseProcedureCallStatement ( )
@@ -2526,6 +2618,47 @@ proc parseUserTypeVariableDeclaration ( )
     end
 endproc parseUserTypeVariableDeclaration
 
+uint64 pedIdentifier = 0 ;
+proc parseExternDeclaration ( )
+    expectedToken = TOKEN_EXTERN ;
+    consumeToken ( ) ;
+
+    expectedToken = TOKEN_PROC ;
+    consumeToken ( ) ;
+
+    pedIdentifier = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( pedIdentifier ) ;
+
+    if fgsIndex != -1 then
+        _ = indentifierRedeclared ( pedIdentifier ) ;
+    end
+
+    expectedToken = TOKEN_LEFT_PARENTHESIS ;
+    consumeToken ( ) ;
+
+    if currentToken != [TOKEN_RIGHT_PARENTHESIS] then
+        ppdRbpOffset = 16 ;
+        parseArguments ( ) ;
+    end
+
+    expectedToken = TOKEN_RIGHT_PARENTHESIS ;
+    consumeToken ( ) ;
+
+    if currentToken == [TOKEN_ARROW_RIGHT] then
+        expectedToken = TOKEN_ARROW_RIGHT ;
+        consumeToken ( ) ;
+        gvType = parseType ( ) ;
+    end
+
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ;
+
+    _ = addSymbol ( TYPE_EXTERNAL_PROCEDURE gvType VAR_KIND_USER_DEFINED pedIdentifier paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ; 
+    _ = readString ( pedIdentifier ) ; `
+    WriteToFile(`"section .text\n\textern %s\n"`, stringAtPointer)`
+endproc parseExternDeclaration
+
 uint64 psIdentifier = 0 ;
 proc parseStatement ( )
     if currentToken == [TOKEN_UINT8] then
@@ -2570,9 +2703,11 @@ proc parseStatement ( )
         parseReturnStatement ( ) ;
     else if currentToken == [TOKEN_STRUCT] then
         parseStructDefinition ( ) ;
+    else if currentToken == [TOKEN_EXTERN] then
+        parseExternDeclaration ( ) ;
     else
         unexpectedToken ( ) ;
-    end end end end end end end end end end end
+    end end end end end end end end end end end end
 endproc parseStatement
 
 proc parseStatements ( )
@@ -2674,7 +2809,7 @@ while i < [globalVariableCount] do
         _ = readString ( wsdIdentifier ) ; `
         WriteToFile(`"section .bss\r\n\t%s resb %d\n"`, stringAtPointer, [gsValue])`
     else `
-        printf(`"Error: unknown type %d\n"`, [gvType])
+        printf(`"Error: unknown type %d\n in 'parseStatement'"`, [gvType])
         ExitProcess(1)`
     end end end end end
 
