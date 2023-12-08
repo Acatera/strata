@@ -24,26 +24,36 @@ struct Node
     uint64 type;
     pointer next;
 end
-Node program_node;
 
-process_heap = GetProcessHeap();
-if process_heap == NULL then
-    exit(1);
+@define NODE_TYPE_INTEGER 1
+@define NODE_TYPE_ADDITION 2
+
+@define OPERATOR_ADD 1
+@define OPERATOR_SUBTRACT 2
+
+struct NodeInteger
+    uint64 type;
+    uint64 value;
 end
-Node* node_pointer;
-node_pointer = HeapAlloc(process_heap, 0, 16);
-if node_pointer == NULL then 
-    WriteConsoleA(std_handle, alloc_error, 16, 0);
-    exit(1);
+
+struct NodeBinary
+    uint64 type;
+    uint64 operator;
+    pointer left;
+    pointer right;
 end
 
-WriteConsoleA(std_handle, alloc_success, 20, 0);
+uint64 size = 0;
+size = sizeof(NodeInteger);
 
-program_node.type = NODE_TYPE_PROGRAM;
-program_node.next = node_pointer;
+// process_heap = GetProcessHeap();
+// if process_heap == NULL then 
+//     WriteConsoleA(std_handle, alloc_error, 16, NULL);
+//     exit(1);
+// end
 
-node_pointer.type = NODE_TYPE_STATEMENTS;
-node_pointer.next = NULL;
+// NodeInteger* node_int_1;
+// node_int_1 = HeapAlloc(process_heap, 0, sizeof(NodeInteger));
 
 // Uint16, uint32, int8, int16, uint32, int64
 // sizeof() intrinsic

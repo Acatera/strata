@@ -243,6 +243,7 @@ uint64 TOKEN_DEFINE                   = 44 ;
 uint64 TOKEN_AMPERSAND                = 45 ;
 
 uint64 TOKEN_EXIT                     = 46 ;
+uint64 TOKEN_SIZEOF                   = 47 ;
 
 uint64 TYPE_UINT8                  =  1 ;
 uint64 TYPE_UINT64                 =  2 ;
@@ -636,6 +637,15 @@ stringToPush [ 4 ] = 110 ;
 stringToPush [ 5 ] = 101 ;
 stringToPush [ 6 ] = 0 ;
 _ = register_token_type ( TOKEN_DEFINE ) ;
+
+stringToPush [ 0 ] = 115 ;
+stringToPush [ 1 ] = 105 ;
+stringToPush [ 2 ] = 122 ;
+stringToPush [ 3 ] = 101 ;
+stringToPush [ 4 ] = 111 ;
+stringToPush [ 5 ] = 102 ;
+stringToPush [ 6 ] = 0 ;
+_ = register_token_type ( TOKEN_SIZEOF ) ;
 
 `
 ;printf(`"Token dictionary count: %d\n"`, [token_dictionary_pointers_top])
@@ -1735,6 +1745,29 @@ proc forward parseArrayAccess
 proc forward parseProcedureCall
 proc forward parseStructAccess
 
+uint64 psosIdentifier = 0 ;
+proc parseSizeOfStatement ( )
+    expectedToken = TOKEN_SIZEOF ;
+    consumeToken ( ) ;
+
+    expectedToken = TOKEN_LEFT_PARENTHESIS ;
+    consumeToken ( ) ;
+
+    psosIdentifier = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( psosIdentifier ) ;
+
+    if fgsIndex == -1 then
+        _ = identifierUnknown ( psosIdentifier ) ;
+    end
+
+    expectedToken = TOKEN_RIGHT_PARENTHESIS ;
+    consumeToken ( ) ; 
+    _ = readString ( psosIdentifier ) ; `
+    WriteToFile(`"\tpush %d ; sizeof %s\n"`, [gsValue], stringAtPointer)`
+
+endproc parseSizeOfStatement
+
 uint64 pfStructFieldIdentifier = 0 ;
 uint64 pfType = 0 ;
 uint64 fpIdentifier = 0 ;
@@ -1936,9 +1969,11 @@ proc parseFactor ( )
                 ExitProcess(1)`
             end end 
         end
+    else if currentToken == [TOKEN_SIZEOF] then
+        parseSizeOfStatement ( ) ;
     else
         unexpectedToken ( ) ;
-    end end end end end
+    end end end end end end
 endproc parseFactor
 
 proc parseMultiplicativeExpression ( ) 
@@ -3003,7 +3038,7 @@ proc parseStatement ( )
         parseAssignmentStatement ( ) ;
     else
         unexpectedToken ( ) ;
-    end end end end end end end end end end end end end end end
+    end end end end end end end end end end end end end end end 
 endproc parseStatement
 
 proc parseStatements ( )
