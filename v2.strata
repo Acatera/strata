@@ -1,4 +1,4 @@
-extern proc GetStdHandle(uint64 nStdHandle) -> pointer;
+extern proc GetStdHandle(uint64 nStdHandle) -> uint64;
 extern proc WriteConsoleA(pointer hConsoleOutput, pointer lpBuffer, uint64 nNumberOfCharsToWrite, pointer lpNumberOfCharsWritten) -> uint64;
 
 extern proc GetProcessHeap() -> pointer;
@@ -6,18 +6,21 @@ extern proc HeapAlloc(uint64 hHeap, uint64 flags, uint64 size) -> pointer;
 
 uint64 std_handle = 0;
 uint64 process_heap = 0;
-uint8[] alloc_error = "HeapAlloc failed";
-uint8[] alloc_success = "HeapAlloc succeeded";
+uint8[] alloc_error = "HeapAlloc failed\n";
+uint8[] alloc_success = "HeapAlloc succeeded\n";
 pointer mem = 0;
 
 std_handle = GetStdHandle(0xFFFFFFF5);
 process_heap = GetProcessHeap();
 
-if process_heap != 0 then
-    mem = HeapAlloc(process_heap, 0, 1024);
-    if mem == 0 then 
-        WriteConsoleA(std_handle, alloc_error, 16, 0);
-    else
-        WriteConsoleA(std_handle, alloc_success, 19, 0);
-    end
+if process_heap == 0 then
+    exit(1);
 end
+
+mem = HeapAlloc(process_heap, 0, 1024);
+if mem == 0 then 
+    WriteConsoleA(std_handle, alloc_error, 16, 0);
+    exit(1);
+end
+
+WriteConsoleA(std_handle, alloc_success, 20, 0);
