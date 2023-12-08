@@ -36,26 +36,11 @@ end
 
 NodeProgram node;
 
-pointer p = 0;
-
 proc print(pointer p) -> uint64
 code
     WriteConsoleA(std_handle, p, 5, 0);
     return 0;
 end
-
-p = &node;
-p = &test2;
-
-uint8 char = 0;
-uint8[] mystr = "Is char t\n";
-char = *p;
-// proc str
-if char == 116 then
-    WriteConsoleA(std_handle, mystr, 13, 0);
-end
-// *p = 84;
-// print(p);
 
 struct String
     uint64 length;
@@ -95,7 +80,15 @@ String s;
 
 // WriteConsoleA(std_handle, *string, s.length, 0);
 
-// String* p_struct = 0;
+String* p_struct;
+p_struct = &s;
+
+*p_struct.data = &hello;
+*p_struct.length = 13;
+WriteConsoleA(std_handle, s.data, s.length, 0);
+uint8 character = 0;
+character = *p_struct.data;
+
 
 // Uint16, uint32, int8, int16, uint32, int64
 // sizeof() intrinsic

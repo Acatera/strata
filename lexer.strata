@@ -244,15 +244,16 @@ uint64 TOKEN_AMPERSAND                = 45 ;
 
 uint64 TOKEN_EXIT                     = 46 ;
 
-uint64 TYPE_UINT8                  = 1 ;
-uint64 TYPE_UINT64                 = 2 ;
-uint64 TYPE_POINTER                = 3 ;
-uint64 TYPE_ARRAY                  = 4 ;
-uint64 TYPE_STRING                 = 5 ;
-uint64 TYPE_PROCEDURE              = 6 ;
-uint64 TYPE_EXTERNAL_PROCEDURE     = 7 ;
-uint64 TYPE_USER_DEFINED           = 8 ;
-uint64 TYPE_DEFINE                 = 9 ;
+uint64 TYPE_UINT8                  =  1 ;
+uint64 TYPE_UINT64                 =  2 ;
+uint64 TYPE_POINTER                =  3 ;
+uint64 TYPE_ARRAY                  =  4 ;
+uint64 TYPE_STRING                 =  5 ;
+uint64 TYPE_PROCEDURE              =  6 ;
+uint64 TYPE_EXTERNAL_PROCEDURE     =  7 ;
+uint64 TYPE_USER_DEFINED           =  8 ;
+uint64 TYPE_DEFINE                 =  9 ;
+uint64 TYPE_STRUCT_POINTER         = 10 ;
 
 uint64 VARIABLE_SCOPE_GLOBAL       = 0 ;
 
@@ -1901,13 +1902,38 @@ proc parseFactor ( )
         if fgsIndex == -1 then
             _ = identifierUnknown ( fpIdentifier ) ;
         end 
+        `
+        printf(`"[Trace] parseFactor, gsType: %d\n"`, [gsType])
+        `   
 
         _ = readString ( fpIdentifier ) ; 
-        if gsSubType == [TYPE_UINT8] then `
-            WriteToFile(`"\tmov rbx, [%s]\n\tmovzx rax, byte [rbx]\n\tpush qword rax\n"`, stringAtPointer)`
-        else `
-            WriteToFile(`"\tmov rax, [%s]\n\tpush qword [rax]\n"`, stringAtPointer)`
-        end 
+        if gsType == [TYPE_STRUCT_POINTER] then 
+        `
+        printf(`"[Trace] Factor: dereference\n"`)
+        `   
+            pfType = gsSubType ;
+
+            _ = readString ( fpIdentifier ) ; `
+            WriteToFile(`"; -- accessing struct field value --\n"`)
+            WriteToFile(`"\tmov rax, [%s]\n"`, stringAtPointer)
+            `
+            expectedToken = TOKEN_DOT ;
+            consumeToken ( ) ;
+
+            pfStructFieldIdentifier = parseIdentifier ( ) ; 
+
+            fgsIndex = findUserTypeField ( pfType pfStructFieldIdentifier ) ; `
+            WriteToFile(`"\tadd rax, %d\n\tmov rbx, [rax]\n\tpush qword [rbx]\n"`, [utOffset])`
+        else 
+            if gsSubType == [TYPE_UINT8] then `
+                WriteToFile(`"\tmov rbx, [%s]\n\tmovzx rax, byte [rbx]\n\tpush qword rax\n"`, stringAtPointer)`
+            else if gsSubType == [TYPE_UINT64] then `
+                WriteToFile(`"\tmov rax, [%s]\n\tpush qword [rax]\n"`, stringAtPointer)`
+            else `
+                printf(`"[Error] Error: unknown type %d in 'parseFactor*'\n"`, [gsType])
+                ExitProcess(1)`
+            end end 
+        end
     else
         unexpectedToken ( ) ;
     end end end end end
@@ -2081,10 +2107,14 @@ proc parseStructAccess ( )
 
     psaType = gsSubType ;
 
-    _ = readString ( psaIdentifier ) ; `
-    WriteToFile(`"; -- accessing struct field --\n"`)
-    WriteToFile(`"\tmov rax, %s\n"`, stringAtPointer)
-    `
+    _ = readString ( psaIdentifier ) ; 
+    if gsType == [TYPE_STRUCT_POINTER] then `
+        WriteToFile(`"; -- accessing struct pointer field --\n"`)
+        WriteToFile(`"\tmov rax, [%s]\n"`, stringAtPointer)`
+    else `
+        WriteToFile(`"; -- accessing struct field --\n"`)
+        WriteToFile(`"\tmov rax, %s\n"`, stringAtPointer)`
+    end
     expectedToken = TOKEN_DOT ;
     consumeToken ( ) ;
 
@@ -2236,6 +2266,14 @@ proc parseAssignmentStatement ( )
         else if gsSubType == [VARTYPE_PARAMETER] then `
             printf(`"Cannot assign to a parameter\n"`)`
         end end end
+    else if gsType == [TYPE_STRUCT_POINTER] then
+        if pasIsDereference == 1 then `
+            WriteToFile(`"; -- (struct pointer) set value of '%s' --\n"`, stringAtPointer)
+            WriteToFile(`"\tpop rax\n\tpop rbx\n\tmov [rbx], rax\n\n"`, stringAtPointer)`
+        else `
+            WriteToFile(`"; -- (struct pointer) set value of '%s' --\n"`, stringAtPointer)
+            WriteToFile(`"\tpop rax\n\tmov qword [%s], rax\n\n"`, stringAtPointer)`
+        end
     else if gsType == [TYPE_ARRAY] then
         if gsKind == [VAR_KIND_PRIMITIVE] then
             if gsSubType == [TYPE_UINT8] then `
@@ -2267,7 +2305,7 @@ proc parseAssignmentStatement ( )
     else `
         printf(`"[Error] Error: unknown type %d in 'parseAssignmentStatement'\n"`, [gsType])
         ExitProcess(1)`
-    end end end end end `
+    end end end end end end `
     ;printf(`"[Trace] Assignment statement for: '%s'\n"`, stringAtPointer)`
 endproc parseAssignmentStatement
 
@@ -2794,6 +2832,23 @@ proc parseUserTypeVariableDeclaration ( )
 
         _ = readString ( putvdIdentifier ) ; `
         ;printf(`"[Trace] Variable definition for user type array: %s\n"`, stringAtPointer)`
+    else if currentToken == [TOKEN_MULTIPLY] then 
+        expectedToken = TOKEN_MULTIPLY ;
+        consumeToken ( ) ;
+
+        putvdIdentifier = parseIdentifier ( ) ;
+
+        fgsIndex = findSymbol ( putvdIdentifier ) ;
+
+        if fgsIndex != -1 then
+            _ = indentifierRedeclared ( putvdIdentifier ) ;
+        end
+
+        expectedToken = TOKEN_SEMICOLON ;
+        consumeToken ( ) ;
+
+        _ = addVariable ( TYPE_STRUCT_POINTER putvdTypeIdentifier VAR_KIND_PRIMITIVE putvdIdentifier 0 VARIABLE_SCOPE_GLOBAL ) ;
+        _ = addSymbol ( TYPE_STRUCT_POINTER putvdTypeIdentifier VAR_KIND_PRIMITIVE putvdIdentifier 0 VARIABLE_SCOPE_GLOBAL ) ;
     else
         putvdIdentifier = parseIdentifier ( ) ;
 
@@ -2811,7 +2866,7 @@ proc parseUserTypeVariableDeclaration ( )
 
         _ = readString ( putvdIdentifier ) ; `
         ;printf(`"[Trace] Variable definition for user type: %s\n"`, stringAtPointer)`
-    end
+    end end
 endproc parseUserTypeVariableDeclaration
 
 uint64 pedIdentifier = 0 ;
@@ -3051,6 +3106,8 @@ while i < [globalVariableCount] do
         WriteToFile(`"section .data\r\n\t%s dq %d\n"`, stringAtPointer, [gvValue])`
     else if gvType == [TYPE_POINTER] then `
         WriteToFile(`"section .data\r\n\t%s dq %d\n"`, stringAtPointer, [gvValue])`
+    else if gvType == [TYPE_STRUCT_POINTER] then `
+        WriteToFile(`"section .bss\r\n\t%s resq 1\n"`, stringAtPointer)`
     else if gvType == [TYPE_ARRAY] then 
         if gvKind == [VAR_KIND_PRIMITIVE] then
             if gvSubType == [TYPE_UINT8] then `
@@ -3095,9 +3152,9 @@ while i < [globalVariableCount] do
         _ = readString ( wsdIdentifier ) ; `
         WriteToFile(`"section .bss\r\n\t%s resb %d\n"`, stringAtPointer, [gsValue])`
     else `
-        printf(`"Error: unknown type %d\n in 'parseStatement'"`, [gvType])
+        printf(`"Error: unknown type %d in 'writeVars'"`, [gvType])
         ExitProcess(1)`
-    end end end end end
+    end end end end end end
 
     i = i + 1 ;
 end
