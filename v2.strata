@@ -1,11 +1,16 @@
 @define STD_OUTPUT_HANDLE 0xFFFFFFF5
 @define NULL 0
 
+@define NODE_TYPE_PROGRAM       1
+@define NODE_TYPE_STATEMENTS    2
+
+
 extern proc GetStdHandle(uint64 nStdHandle) -> uint64;
 extern proc WriteConsoleA(pointer hConsoleOutput, pointer lpBuffer, uint64 nNumberOfCharsToWrite, pointer lpNumberOfCharsWritten) -> uint64;
 
 extern proc GetProcessHeap() -> pointer;
 extern proc HeapAlloc(uint64 hHeap, uint64 flags, uint64 size) -> pointer;
+
 
 uint64 std_handle = 0;
 uint64 process_heap = 0;
@@ -13,89 +18,38 @@ uint8[] alloc_error = "HeapAlloc failed\n";
 uint8[] alloc_success = "HeapAlloc succeeded\n";
 uint8[] test2 = "test\n";
 uint8[] hello = "Hello, World!\n";
-pointer mem = 0;
 std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-process_heap = GetProcessHeap();
 
+struct Node
+    uint64 type;
+    pointer next;
+end
+Node program_node;
+
+process_heap = GetProcessHeap();
 if process_heap == NULL then
     exit(1);
 end
-
-mem = HeapAlloc(process_heap, 0, 1024);
-if mem == NULL then 
+Node* node_pointer;
+node_pointer = HeapAlloc(process_heap, 0, 16);
+if node_pointer == NULL then 
     WriteConsoleA(std_handle, alloc_error, 16, 0);
     exit(1);
 end
 
 WriteConsoleA(std_handle, alloc_success, 20, 0);
 
-struct NodeProgram
-    uint64 type;
-    uint64 next;
-end
+program_node.type = NODE_TYPE_PROGRAM;
+program_node.next = node_pointer;
 
-NodeProgram node;
-
-proc print(pointer p) -> uint64
-code
-    WriteConsoleA(std_handle, p, 5, 0);
-    return 0;
-end
-
-struct String
-    uint64 length;
-    pointer data;
-end
-
-String s;
-// s.length = 13;
-// s.data = &hello;
-// pointer string = 0;
-// string = &s;
-// string = string + 8;
-
-// WriteConsoleA(std_handle, *string, s.length, 0);
-
-// uint8* pChar = 0;
-
-// pChar = &hello;
-
-// *pChar = 104;
-
-// proc strlen(pointer p) -> uint64
-// vars
-//     uint64 len = 0;
-// code
-//     pChar = p;
-//     while *pChar != 0 do
-//         len = len + 1;
-//         pChar = pChar + 1;
-//     end
-//     return len;
-// end
-
-// uint64* p_int = 0;
-// p_int = &s;
-// *p_int = strlen(&hello);
-
-// WriteConsoleA(std_handle, *string, s.length, 0);
-
-String* p_struct;
-p_struct = &s;
-
-*p_struct.data = &hello;
-*p_struct.length = 13;
-WriteConsoleA(std_handle, s.data, s.length, 0);
-uint8 character = 0;
-character = *p_struct.data;
-
+node_pointer.type = NODE_TYPE_STATEMENTS;
+node_pointer.next = NULL;
 
 // Uint16, uint32, int8, int16, uint32, int64
 // sizeof() intrinsic
 // offsetof() intrinsic
 // Strings - compare, index, read, write
 // Characters - convert to uint8
-// Pointers
 // Variadic procedures
 // Macros
 // String literals

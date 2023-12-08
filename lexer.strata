@@ -1858,6 +1858,8 @@ proc parseFactor ( )
                     WriteToFile(`"\tpush qword [%s]\n"`, stringAtPointer)`
                 else if gsType == [TYPE_POINTER] then `
                     WriteToFile(`"\tpush qword [%s]\n"`, stringAtPointer)`
+                else if gsType == [TYPE_STRUCT_POINTER] then `
+                    WriteToFile(`"\tpush qword [%s]\n"`, stringAtPointer)`                    
                 else if gsType == [TYPE_ARRAY] then ` 
                     WriteToFile(`"\tmov rax, %s\n\tpush rax\n"`, stringAtPointer)`
                 else if gsType == [TYPE_DEFINE] then `
@@ -1865,7 +1867,7 @@ proc parseFactor ( )
                 else ` 
                     printf(`"[Error] Error: unknown type %d in 'parseFactor'\n"`, [gsType])
                     ExitProcess(1)`
-                end end end end end
+                end end end end end end
             else 
                 if gsSubType == [VARTYPE_PARAMETER] then ` 
                     WriteToFile(`"\tpush qword [rbp + %d]\n"`, [gsValue])`

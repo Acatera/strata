@@ -147,3 +147,61 @@ ReadFile(file_handle, buffer, 100000, bytes_read, 0);
 
 WriteConsoleA(handle, buffer, bytes_read[0], 0);
 last_error = GetLastError(1);
+
+
+
+
+
+
+proc print(pointer p) -> uint64
+code
+    WriteConsoleA(std_handle, p, 5, 0);
+    return 0;
+end
+
+struct String
+    uint64 length;
+    pointer data;
+end
+
+String s;
+// s.length = 13;
+// s.data = &hello;
+// pointer string = 0;
+// string = &s;
+// string = string + 8;
+
+// WriteConsoleA(std_handle, *string, s.length, 0);
+
+// uint8* pChar = 0;
+
+// pChar = &hello;
+
+// *pChar = 104;
+
+// proc strlen(pointer p) -> uint64
+// vars
+//     uint64 len = 0;
+// code
+//     pChar = p;
+//     while *pChar != 0 do
+//         len = len + 1;
+//         pChar = pChar + 1;
+//     end
+//     return len;
+// end
+
+// uint64* p_int = 0;
+// p_int = &s;
+// *p_int = strlen(&hello);
+
+// WriteConsoleA(std_handle, *string, s.length, 0);
+
+String* p_struct;
+p_struct = &s;
+
+*p_struct.data = &hello;
+*p_struct.length = 13;
+WriteConsoleA(std_handle, s.data, s.length, 0);
+uint8 character = 0;
+character = *p_struct.data;
