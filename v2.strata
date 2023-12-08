@@ -1,3 +1,5 @@
+@define STD_OUTPUT_HANDLE 0xFFFFFFF5
+
 extern proc GetStdHandle(uint64 nStdHandle) -> uint64;
 extern proc WriteConsoleA(pointer hConsoleOutput, pointer lpBuffer, uint64 nNumberOfCharsToWrite, pointer lpNumberOfCharsWritten) -> uint64;
 
@@ -9,10 +11,11 @@ uint64 process_heap = 0;
 uint8[] alloc_error = "HeapAlloc failed\n";
 uint8[] alloc_success = "HeapAlloc succeeded\n";
 pointer mem = 0;
-
-std_handle = GetStdHandle(0xFFFFFFF5);
+std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 process_heap = GetProcessHeap();
-
+@define MAX_COUNT 256
+uint64[MAX_COUNT] arr;
+arr[0] = MAX_COUNT * 2;
 if process_heap == 0 then
     exit(1);
 end
@@ -24,3 +27,23 @@ if mem == 0 then
 end
 
 WriteConsoleA(std_handle, alloc_success, 20, 0);
+
+// Uint16, uint32, int8, int16, uint32, int64
+// sizeof() intrinsic
+// offsetof() intrinsic
+// Strings - compare, index, read, write
+// Characters - convert to uint8
+// Pointers
+// Variadic procedures
+// Macros
+// 
+// Defines
+// Includes
+// 
+// For loops
+// Generate byte code
+// Dead code elimination
+// Constant folding 
+// Tests - edit some simple examples and develop a C# app to run them. Compare output
+// Type check 
+// 
