@@ -1,4 +1,5 @@
 @define STD_OUTPUT_HANDLE 0xFFFFFFF5
+@define NULL 0
 
 extern proc GetStdHandle(uint64 nStdHandle) -> uint64;
 extern proc WriteConsoleA(pointer hConsoleOutput, pointer lpBuffer, uint64 nNumberOfCharsToWrite, pointer lpNumberOfCharsWritten) -> uint64;
@@ -10,23 +11,91 @@ uint64 std_handle = 0;
 uint64 process_heap = 0;
 uint8[] alloc_error = "HeapAlloc failed\n";
 uint8[] alloc_success = "HeapAlloc succeeded\n";
+uint8[] test2 = "test\n";
+uint8[] hello = "Hello, World!\n";
 pointer mem = 0;
 std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 process_heap = GetProcessHeap();
-@define MAX_COUNT 256
-uint64[MAX_COUNT] arr;
-arr[0] = MAX_COUNT * 2;
-if process_heap == 0 then
+
+if process_heap == NULL then
     exit(1);
 end
 
 mem = HeapAlloc(process_heap, 0, 1024);
-if mem == 0 then 
+if mem == NULL then 
     WriteConsoleA(std_handle, alloc_error, 16, 0);
     exit(1);
 end
 
 WriteConsoleA(std_handle, alloc_success, 20, 0);
+
+struct NodeProgram
+    uint64 type;
+    uint64 next;
+end
+
+NodeProgram node;
+
+pointer p = 0;
+
+proc print(pointer p) -> uint64
+code
+    WriteConsoleA(std_handle, p, 5, 0);
+    return 0;
+end
+
+p = &node;
+p = &test2;
+
+uint8 char = 0;
+uint8[] mystr = "Is char t\n";
+char = *p;
+// proc str
+if char == 116 then
+    WriteConsoleA(std_handle, mystr, 13, 0);
+end
+// *p = 84;
+// print(p);
+
+struct String
+    uint64 length;
+    pointer data;
+end
+
+String s;
+// s.length = 13;
+// s.data = &hello;
+// pointer string = 0;
+// string = &s;
+// string = string + 8;
+
+// WriteConsoleA(std_handle, *string, s.length, 0);
+
+// uint8* pChar = 0;
+
+// pChar = &hello;
+
+// *pChar = 104;
+
+// proc strlen(pointer p) -> uint64
+// vars
+//     uint64 len = 0;
+// code
+//     pChar = p;
+//     while *pChar != 0 do
+//         len = len + 1;
+//         pChar = pChar + 1;
+//     end
+//     return len;
+// end
+
+// uint64* p_int = 0;
+// p_int = &s;
+// *p_int = strlen(&hello);
+
+// WriteConsoleA(std_handle, *string, s.length, 0);
+
+// String* p_struct = 0;
 
 // Uint16, uint32, int8, int16, uint32, int64
 // sizeof() intrinsic
@@ -36,9 +105,11 @@ WriteConsoleA(std_handle, alloc_success, 20, 0);
 // Pointers
 // Variadic procedures
 // Macros
-// 
-// Defines
+// String literals
+// `test`, `str` is not a valid identifier because it is a keyword in assembly
+// number parsing always treats the number as hex, resulting in identifier ceed being parsed as 0xceed
 // Includes
+// Asserts
 // 
 // For loops
 // Generate byte code

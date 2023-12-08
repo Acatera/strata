@@ -240,7 +240,9 @@ uint64 TOKEN_DOT                      = 42 ;
 uint64 TOKEN_AT_SIGN                  = 43 ;
 uint64 TOKEN_DEFINE                   = 44 ;
 
-uint64 TOKEN_EXIT                     = 44 ;
+uint64 TOKEN_AMPERSAND                = 45 ;
+
+uint64 TOKEN_EXIT                     = 46 ;
 
 uint64 TYPE_UINT8                  = 1 ;
 uint64 TYPE_UINT64                 = 2 ;
@@ -468,9 +470,11 @@ proc isSeparator ( )
         mov rax, 1`
     else if c == 64 then `
         mov rax, 1`
+    else if c == 38 then `
+        mov rax, 1`
     else `
         mov rax, 0`
-    end end end end end end end end
+    end end end end end end end end end
 endproc isSeparator
 
 stringToPush [ 0 ] = 117 ;
@@ -796,7 +800,9 @@ while scIndex < [bytesRead] do
             _ = push_token ( TOKEN_DOT 0 line col ) ;
         else if c == 64 then
             _ = push_token ( TOKEN_AT_SIGN 0 line col ) ;
-        end end end end end end end end
+        else if c == 38 then
+            _ = push_token ( TOKEN_AMPERSAND 0 line col ) ;
+        end end end end end end end end end
         tokenIndex = 0 ;
         col = 1 + scIndex - line_start - 1 ;
     else if c == 61 then
@@ -1204,14 +1210,19 @@ proc findSymbol ( namePointer )
     while fgsIndex >= 0 do
         _ = gvNameOffset + fgsIndex * globalSymbolSize ;
         fgsNamePointer = globalSymbolTable [ _ ] ;
+        _ = gvScopeOffset + fgsIndex * globalSymbolSize ;
+        fgsScope = globalSymbolTable [ _ ] ;
         if globalBoolParsingProcedure == 1 then
-            _ = gvScopeOffset + fgsIndex * globalSymbolSize ;
-            fgsScope = globalSymbolTable [ _ ] ;
             if fgsScope != [globalProcedureId] then
                 if fgsScope != [VARIABLE_SCOPE_GLOBAL] then
                     fgsIndex = fgsIndex - 1 ;
                     continue ;
                 end
+            end
+        else 
+            if fgsScope != [VARIABLE_SCOPE_GLOBAL] then
+                fgsIndex = fgsIndex - 1 ;
+                continue ;
             end
         end
         fgsEqual = stringsEqual ( namePointer fgsNamePointer ) ;
@@ -1661,6 +1672,32 @@ proc parseIntegerDeclaration ( )
     ;printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
 endproc parseIntegerDeclaration 
     
+proc parsePointerDeclaration ( )
+    expectedToken = TOKEN_MULTIPLY ;
+    consumeToken ( ) ;
+
+    gvNamePointer = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( gvNamePointer ) ;
+
+    if fgsIndex != -1 then
+        _ = indentifierRedeclared ( gvNamePointer ) ;
+    end
+
+    expectedToken = TOKEN_ASSIGNMENT ;
+    consumeToken ( ) ;
+
+    gvValue = parseNumber ( ) ;
+    
+    if globalBoolParsingProcedure == 0 then
+        _ = addVariable ( TYPE_POINTER gvType VAR_KIND_PRIMITIVE gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
+        _ = addSymbol ( TYPE_POINTER gvType VAR_KIND_PRIMITIVE gvNamePointer 0 VARIABLE_SCOPE_GLOBAL ) ; 
+    else `
+        printf(`"[Error] Error: pointer declaration in procedures is not supported\n"`)
+        ExitProcess(1)`
+    end `
+    ;printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
+endproc parsePointerDeclaration
 
 proc parseVariableDeclaration ( )
     if globalAllowVariableDeclaration == 0 then
@@ -1681,9 +1718,11 @@ proc parseVariableDeclaration ( )
         parseArrayDeclaration ( ) ;
     else if currentToken == [TOKEN_IDENTIFIER] then
         parseIntegerDeclaration ( ) ;
+    else if currentToken == [TOKEN_MULTIPLY] then
+        parsePointerDeclaration ( ) ;
     else
         unexpectedToken ( ) ;
-    end end
+    end end end
 
     expectedToken = TOKEN_SEMICOLON ;
     consumeToken ( ) ; 
@@ -1816,7 +1855,7 @@ proc parseFactor ( )
                     WriteToFile(`"\tmovzx rax, byte [%s]\n\tpush rax\n"`, stringAtPointer)`
                 else if gsType == [TYPE_UINT64] then ` 
                     WriteToFile(`"\tpush qword [%s]\n"`, stringAtPointer)`
-                else if gsType == [TYPE_POINTER] then ` 
+                else if gsType == [TYPE_POINTER] then `
                     WriteToFile(`"\tpush qword [%s]\n"`, stringAtPointer)`
                 else if gsType == [TYPE_ARRAY] then ` 
                     WriteToFile(`"\tmov rax, %s\n\tpush rax\n"`, stringAtPointer)`
@@ -1837,9 +1876,41 @@ proc parseFactor ( )
                 end end
             end
         end end end
+    else if currentToken == [TOKEN_AMPERSAND] then
+        expectedToken = TOKEN_AMPERSAND ;
+        consumeToken ( ) ;
+
+        fpIdentifier = parseIdentifier ( ) ;
+
+        fgsIndex = findSymbol ( fpIdentifier ) ;
+
+        if fgsIndex == -1 then
+            _ = identifierUnknown ( fpIdentifier ) ;
+        end 
+
+        _ = readString ( fpIdentifier ) ; `
+        WriteToFile(`"\tmov rax, %s\n\tpush rax\n"`, stringAtPointer)`
+    else if currentToken == [TOKEN_MULTIPLY] then 
+        expectedToken = TOKEN_MULTIPLY ;
+        consumeToken ( ) ;
+
+        fpIdentifier = parseIdentifier ( ) ;
+
+        fgsIndex = findSymbol ( fpIdentifier ) ;
+
+        if fgsIndex == -1 then
+            _ = identifierUnknown ( fpIdentifier ) ;
+        end 
+
+        _ = readString ( fpIdentifier ) ; 
+        if gsSubType == [TYPE_UINT8] then `
+            WriteToFile(`"\tmov rbx, [%s]\n\tmovzx rax, byte [rbx]\n\tpush qword rax\n"`, stringAtPointer)`
+        else `
+            WriteToFile(`"\tmov rax, [%s]\n\tpush qword [rax]\n"`, stringAtPointer)`
+        end 
     else
         unexpectedToken ( ) ;
-    end end end
+    end end end end end
 endproc parseFactor
 
 proc parseMultiplicativeExpression ( ) 
@@ -2096,9 +2167,16 @@ proc parseAssignable ( )
 endproc parseAssignable
 
 uint64 pasIdentifier = 0 ;
-proc parseAssignmentStatement ( ) `
-    WriteToFile(`"; -- assignment statement --\n"`)
-    `
+uint64 pasIsDereference = 0 ;
+proc parseAssignmentStatement ( ) 
+    pasIsDereference = 0 ; `
+    WriteToFile(`"; -- assignment statement --\n"`)`
+    if currentToken == [TOKEN_MULTIPLY] then
+        expectedToken = TOKEN_MULTIPLY ;
+        consumeToken ( ) ;
+        pasIsDereference = 1 ;
+    end
+    
     pasIdentifier = parseAssignable ( ) ;
 
     expectedToken = TOKEN_ASSIGNMENT ;
@@ -2137,9 +2215,21 @@ proc parseAssignmentStatement ( ) `
             printf(`"Cannot assign to a parameter\n"`)`
         end end end
     else if gsType == [TYPE_POINTER] then 
-        if gsScope == [VARIABLE_SCOPE_GLOBAL] then `
-            WriteToFile(`"; -- (pointer) set value of '%s' --\n"`, stringAtPointer)
-            WriteToFile(`"\tpop rax\n\tmov qword [%s], rax\n\n"`, stringAtPointer)`
+        if gsScope == [VARIABLE_SCOPE_GLOBAL] then
+            if pasIsDereference == 1 then `
+                WriteToFile(`"; -- (pointer deref) set value of '%s' subtype %d --\n"`, stringAtPointer, [gsSubType])`
+                if gsSubType == [TYPE_UINT8] then `
+                    WriteToFile(`"\tmov rbx, [%s]\n\tpop rax\n\tmov [rbx], al\n\n"`, stringAtPointer)`
+                else if gsSubType == [TYPE_UINT64] then `
+                    WriteToFile(`"\tmov rbx, [%s]\n\tpop rax\n\tmov [rbx], rax\n\n"`, stringAtPointer)`
+                else `
+                    printf(`"[Error] Error: unknown pointer type %d\n"`, [gsSubType])
+                    ExitProcess(1)`
+                end end
+            else `
+                WriteToFile(`"; -- (pointer) set value of '%s' --\n"`, stringAtPointer)
+                WriteToFile(`"\tpop rax\n\tmov qword [%s], rax\n\n"`, stringAtPointer)`
+            end
         else if gsSubType == [VARTYPE_LOCAL] then `
             WriteToFile(`"; assigning value to a local pointer\n"`)
             WriteToFile(`"\tpop rax\n\tmov qword [rbp - %d], rax\n\n"`, [gsValue])`
@@ -2528,14 +2618,14 @@ proc parseProcedureCall ( )
 
         `
         WriteToFile(`"; -- external procedure call --\n"`)
-        WriteToFile(`"\tsub rsp, %d\n\tpush rbp\n\tmov rbp, rsp\n"`, [ppcShadowSpace])
+        WriteToFile(`"\tsub rsp, %d\n\tpush r15\n\tmov r15, rsp\n"`, [ppcShadowSpace])
         `
 
         ppcPrcCallArgumentCount = 0 ;
         ppdRbpOffset = 8 ;
         while currentToken != [TOKEN_RIGHT_PARENTHESIS] do
             parseLogicalOrExpression ( ) ; `
-            ;WriteToFile(`"\tpop qword [rbp + %d]\n"`, [ppdRbpOffset])
+            ;WriteToFile(`"\tpop qword [r15 + %d]\n"`, [ppdRbpOffset])
             `
             ppcPrcCallArgumentCount = ppcPrcCallArgumentCount + 1 ;
             ppdRbpOffset = ppdRbpOffset + 8 ;
@@ -2550,7 +2640,7 @@ proc parseProcedureCall ( )
         
         while ppcIndex >= 0 do 
             if ppcIndex > 4 then `
-                WriteToFile(`"\tpop qword [rbp + %d]\n"`, [ppdRbpOffset])`
+                WriteToFile(`"\tpop qword [r15 + %d]\n"`, [ppdRbpOffset])`
             else if ppcIndex == 4 then `
                 WriteToFile(`"\tpop r9\n"`, [ppdRbpOffset])`
             else if ppcIndex == 3 then `
@@ -2581,7 +2671,7 @@ proc parseProcedureCall ( )
 
         _ = readString ( ppcIdentifier ) ; `
         WriteToFile(`"external_%s_%d:\n"`, stringAtPointer, [ppcCallCounter])
-        WriteToFile(`"\tmov rsp, rbp\n\tpop rbp\n\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])
+        WriteToFile(`"\tmov rsp, r15\n\tpop r15\n\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])
         WriteToFile(`"; external procedure call: %s with %d arguments\n\n"`, stringAtPointer, [ppcPrcArgumentCount])`
     else `
         printf(`"NOT A PROCEDURE\n"`)
@@ -2852,9 +2942,11 @@ proc parseStatement ( )
         parseExitStatement ( ) ;
     else if currentToken == [TOKEN_AT_SIGN] then
         parsePreprocessorDirective ( ) ;
+    else if currentToken == [TOKEN_MULTIPLY] then 
+        parseAssignmentStatement ( ) ;
     else
         unexpectedToken ( ) ;
-    end end end end end end end end end end end end end end
+    end end end end end end end end end end end end end end end
 endproc parseStatement
 
 proc parseStatements ( )
