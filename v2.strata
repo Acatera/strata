@@ -20,11 +20,6 @@ uint8[] test2 = "test\n";
 uint8[] hello = "Hello, World!\n";
 std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 
-struct Node
-    uint64 type;
-    pointer next;
-end
-
 @define NODE_TYPE_INTEGER 1
 @define NODE_TYPE_ADDITION 2
 
@@ -43,14 +38,46 @@ struct NodeBinary
     pointer right;
 end
 
-uint64 size = 0;
-size = sizeof(NodeInteger);
 
-// process_heap = GetProcessHeap();
-// if process_heap == NULL then 
-//     WriteConsoleA(std_handle, alloc_error, 16, NULL);
-//     exit(1);
-// end
+process_heap = GetProcessHeap();
+if process_heap == NULL then 
+    WriteConsoleA(std_handle, alloc_error, 16, NULL);
+    exit(1);
+end
+
+NodeInteger* node_int_1;
+
+node_int_1 = HeapAlloc(process_heap, 0, sizeof(NodeInteger));
+if node_int_1 == NULL then 
+    WriteConsoleA(std_handle, alloc_error, 16, NULL);
+    exit(1);
+end
+
+*node_int_1.type = NODE_TYPE_INTEGER;
+*node_int_1.value = 34;
+
+NodeInteger* node_int_2;
+node_int_2 = HeapAlloc(process_heap, 0, sizeof(NodeInteger));
+if node_int_2 == NULL then 
+    WriteConsoleA(std_handle, alloc_error, 16, NULL);
+    exit(1);
+end
+
+*node_int_2.type = NODE_TYPE_INTEGER;
+*node_int_2.value = 35;
+
+NodeBinary* node_addition;
+node_addition = HeapAlloc(process_heap, 0, sizeof(NodeBinary));
+if node_addition == NULL then 
+    WriteConsoleA(std_handle, alloc_error, 16, NULL);
+    exit(1);
+end
+
+*node_addition.type = NODE_TYPE_ADDITION;
+*node_addition.operator = OPERATOR_ADD;
+*node_addition.left = node_int_1;
+*node_addition.right = node_int_2;
+
 
 // NodeInteger* node_int_1;
 // node_int_1 = HeapAlloc(process_heap, 0, sizeof(NodeInteger));
