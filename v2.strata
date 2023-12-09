@@ -1,89 +1,73 @@
+extern proc GetStdHandle(uint64 nStdHandle) -> uint64;
+extern proc WriteConsoleA(pointer hConsoleOutput, pointer lpBuffer, uint64 nNumberOfCharsToWrite, pointer lpNumberOfCharsWritten) -> uint64;
+extern proc GetProcessHeap() -> pointer;
+extern proc HeapAlloc(uint64 hHeap, uint64 flags, uint64 size) -> pointer;
+extern proc GetLastError() -> uint64;
+extern proc CreateFileA(pointer lpFileName, uint64 dwDesiredAccess, uint64 dwShareMode, pointer lpSecurityAttributes, uint64 dwCreationDisposition, uint64 dwFlagsAndAttributes, pointer hTemplateFile) -> pointer;
+extern proc GetFileSizeEx(pointer hFile, pointer lpFileSize) -> uint64;
+extern proc ReadFile(pointer hFile, pointer lpBuffer, uint64 nNumberOfBytesToRead, pointer lpNumberOfBytesRead, pointer lpOverlapped) -> uint64;
+//BOOL GetFileSizeEx(
+//  [in]  HANDLE         hFile,
+//  [out] PLARGE_INTEGER lpFileSize
+//);
+
 @define STD_OUTPUT_HANDLE 0xFFFFFFF5
 @define NULL 0
 
-@define NODE_TYPE_PROGRAM       1
-@define NODE_TYPE_STATEMENTS    2
+@define false 0
+@define true 1
 
+@define GENERIC_READ 0x80000000
+@define FILE_SHARE_READ 0x00000001
+@define OPEN_EXISTING 0x00000003
+@define FILE_ATTRIBUTE_NORMAL 0x00000080
 
-extern proc GetStdHandle(uint64 nStdHandle) -> uint64;
-extern proc WriteConsoleA(pointer hConsoleOutput, pointer lpBuffer, uint64 nNumberOfCharsToWrite, pointer lpNumberOfCharsWritten) -> uint64;
+uint64 std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 
-extern proc GetProcessHeap() -> pointer;
-extern proc HeapAlloc(uint64 hHeap, uint64 flags, uint64 size) -> pointer;
+uint8[] input_file = "v3.strata";
+uint8[] file_open_error = "Failed to open file\n";
+uint8[] process_heap_error = "Failed to get process heap\n";
+uint8[] file_size_error = "Failed to get file size\n";
+uint8[] file_read_error = "Failed to read file\n";
+uint8[] mem_alloc_error = "Failed to allocate memory\n";
 
-
-uint64 std_handle = 0;
-uint64 process_heap = 0;
-uint8[] alloc_error = "HeapAlloc failed\n";
-uint8[] alloc_success = "HeapAlloc succeeded\n";
-uint8[] test2 = "test\n";
-uint8[] hello = "Hello, World!\n";
-std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-
-@define NODE_TYPE_INTEGER 1
-@define NODE_TYPE_ADDITION 2
-
-@define OPERATOR_ADD 1
-@define OPERATOR_SUBTRACT 2
-
-struct NodeInteger
-    uint64 type;
-    uint64 value;
-end
-
-struct NodeBinary
-    uint64 type;
-    uint64 operator;
-    pointer left;
-    pointer right;
-end
-
-
-process_heap = GetProcessHeap();
-if process_heap == NULL then 
-    WriteConsoleA(std_handle, alloc_error, 16, NULL);
+uint64 input_file_handle = CreateFileA(input_file, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+if input_file_handle < 0 then
+    WriteConsoleA(std_handle, file_open_error, 20, NULL);
     exit(1);
 end
 
-NodeInteger* node_int_1;
-
-node_int_1 = HeapAlloc(process_heap, 0, sizeof(NodeInteger));
-if node_int_1 == NULL then 
-    WriteConsoleA(std_handle, alloc_error, 16, NULL);
+uint64 file_size = 0;
+if GetFileSizeEx(input_file_handle, &file_size) != true then
+   WriteConsoleA(std_handle, file_size_error, 23, NULL);
     exit(1);
 end
 
-*node_int_1.type = NODE_TYPE_INTEGER;
-*node_int_1.value = 34;
-
-NodeInteger* node_int_2;
-node_int_2 = HeapAlloc(process_heap, 0, sizeof(NodeInteger));
-if node_int_2 == NULL then 
-    WriteConsoleA(std_handle, alloc_error, 16, NULL);
+uint64 heap = GetProcessHeap();
+if heap == NULL then
+    WriteConsoleA(std_handle, process_heap_error, 26, NULL);
     exit(1);
 end
 
-*node_int_2.type = NODE_TYPE_INTEGER;
-*node_int_2.value = 35;
-
-NodeBinary* node_addition;
-node_addition = HeapAlloc(process_heap, 0, sizeof(NodeBinary));
-if node_addition == NULL then 
-    WriteConsoleA(std_handle, alloc_error, 16, NULL);
+uint8* file_contents = HeapAlloc(heap, 0, file_size);
+if file_contents == NULL then
+    WriteConsoleA(std_handle, mem_alloc_error, 26, NULL);
     exit(1);
 end
 
-*node_addition.type = NODE_TYPE_ADDITION;
-*node_addition.operator = OPERATOR_ADD;
-*node_addition.left = node_int_1;
-*node_addition.right = node_int_2;
+uint64 bytes_read = 0;
+if ReadFile(input_file_handle, file_contents, file_size, &bytes_read, NULL) != true then
+    WriteConsoleA(std_handle, file_read_error, 19, NULL);
+    exit(1);
+end
 
+WriteConsoleA(std_handle, file_contents, file_size, NULL);
 
-// NodeInteger* node_int_1;
-// node_int_1 = HeapAlloc(process_heap, 0, sizeof(NodeInteger));
+while *file_contents != 0 do
+    file_contents++;
+end
 
 // Uint16, uint32, int8, int16, uint32, int64
-// sizeof() intrinsic
 // offsetof() intrinsic
 // Strings - compare, index, read, write
 // Characters - convert to uint8

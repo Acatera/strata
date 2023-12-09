@@ -19,3 +19,4 @@ EXPORTS
     CreateProcessA 
     WaitForSingleObject
     GetExitCodeProcess
+    GetFileSizeEx

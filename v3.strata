@@ -1,0 +1,4 @@
+uint8 var_8;
+uint16 var_16;
+uint32 var_32;
+uint64 var_64;

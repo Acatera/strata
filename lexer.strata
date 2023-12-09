@@ -1658,51 +1658,68 @@ proc parseArrayDeclaration ( )
     end end
 endproc parseArrayDeclaration
 
-proc parseIntegerDeclaration ( )
-    gvNamePointer = parseIdentifier ( ) ;
+proc forward parseLogicalOrExpression
 
-    fgsIndex = findSymbol ( gvNamePointer ) ;
+uint64 pidIndentifier = 0 ;
+proc parseIntegerDeclaration ( )
+    pidIndentifier = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( pidIndentifier ) ;
 
     if fgsIndex != -1 then
-        _ = indentifierRedeclared ( gvNamePointer ) ;
+        _ = indentifierRedeclared ( pidIndentifier ) ;
     end
 
     expectedToken = TOKEN_ASSIGNMENT ;
     consumeToken ( ) ;
 
-    gvValue = parseNumber ( ) ;
+    if currentToken == [TOKEN_CONSTANT_INTEGER] then
+        gvValue = parseNumber ( ) ;
+    else
+        gvValue = 0 ; 
+        parseLogicalOrExpression ( ) ;
+    end
     
     if globalBoolParsingProcedure == 0 then
-        _ = addVariable ( gvType 0 VAR_KIND_PRIMITIVE gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
-        _ = addSymbol ( gvType 0 VAR_KIND_PRIMITIVE gvNamePointer 0 VARIABLE_SCOPE_GLOBAL ) ; 
+        _ = addVariable ( gvType 0 VAR_KIND_PRIMITIVE pidIndentifier gvValue VARIABLE_SCOPE_GLOBAL ) ;
+        _ = addSymbol ( gvType 0 VAR_KIND_PRIMITIVE pidIndentifier 0 VARIABLE_SCOPE_GLOBAL ) ; 
+        _ = readString ( pidIndentifier ) ; `
+        WriteToFile(`"\tpop rax\n\tmov qword [%s], rax\n"`, stringAtPointer)`
     else 
-        _ = addVariable ( gvType VARTYPE_LOCAL VAR_KIND_PRIMITIVE gvNamePointer gvValue globalProcedureId ) ;
-        _ = addSymbol ( gvType VARTYPE_LOCAL VAR_KIND_PRIMITIVE gvNamePointer ppdRbpOffset globalProcedureId ) ; 
+        _ = addVariable ( gvType VARTYPE_LOCAL VAR_KIND_PRIMITIVE pidIndentifier gvValue globalProcedureId ) ;
+        _ = addSymbol ( gvType VARTYPE_LOCAL VAR_KIND_PRIMITIVE pidIndentifier ppdRbpOffset globalProcedureId ) ; 
         ppdRbpOffset = ppdRbpOffset + 8 ;
-    end `
-    ;printf(`"[Trace] Variable declaration: type %d, value %d\n"`, [gvType], [gvValue])`
+    end 
 endproc parseIntegerDeclaration 
-    
+
+uint64 ptrIdentifier = 0 ;
 proc parsePointerDeclaration ( )
     expectedToken = TOKEN_MULTIPLY ;
     consumeToken ( ) ;
 
-    gvNamePointer = parseIdentifier ( ) ;
+    ptrIdentifier = parseIdentifier ( ) ;
 
-    fgsIndex = findSymbol ( gvNamePointer ) ;
+    fgsIndex = findSymbol ( ptrIdentifier ) ;
 
     if fgsIndex != -1 then
-        _ = indentifierRedeclared ( gvNamePointer ) ;
+        _ = indentifierRedeclared ( ptrIdentifier ) ;
     end
 
     expectedToken = TOKEN_ASSIGNMENT ;
     consumeToken ( ) ;
 
-    gvValue = parseNumber ( ) ;
+    if currentToken == [TOKEN_CONSTANT_INTEGER] then
+        gvValue = parseNumber ( ) ;
+    else
+        gvValue = 0 ; 
+        parseLogicalOrExpression ( ) ;
+    end
     
     if globalBoolParsingProcedure == 0 then
-        _ = addVariable ( TYPE_POINTER gvType VAR_KIND_PRIMITIVE gvNamePointer gvValue VARIABLE_SCOPE_GLOBAL ) ;
-        _ = addSymbol ( TYPE_POINTER gvType VAR_KIND_PRIMITIVE gvNamePointer 0 VARIABLE_SCOPE_GLOBAL ) ; 
+        _ = addVariable ( TYPE_POINTER gvType VAR_KIND_PRIMITIVE ptrIdentifier gvValue VARIABLE_SCOPE_GLOBAL ) ;
+        _ = addSymbol ( TYPE_POINTER gvType VAR_KIND_PRIMITIVE ptrIdentifier 0 VARIABLE_SCOPE_GLOBAL ) ; 
+         _ = readString ( ptrIdentifier ) ; `
+        WriteToFile(`"\tpop rax\n\tmov qword [%s], rax\n"`, stringAtPointer)`
     else `
         printf(`"[Error] Error: pointer declaration in procedures is not supported\n"`)
         ExitProcess(1)`
