@@ -245,6 +245,8 @@ uint64 TOKEN_AMPERSAND                = 45 ;
 uint64 TOKEN_EXIT                     = 46 ;
 uint64 TOKEN_SIZEOF                   = 47 ;
 
+uint64 TOKEN_INCREMENT                = 48 ;
+
 uint64 TYPE_UINT8                  =  1 ;
 uint64 TYPE_UINT64                 =  2 ;
 uint64 TYPE_POINTER                =  3 ;
@@ -937,14 +939,19 @@ while scIndex < [bytesRead] do
             ;printf(`"[\#27[92mINFO\#27[0m] Token: '%s'\n"`, token)
             `
             tokenIndex = 0 ;
-        else 
+        else if c == 43 then
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            _ = push_token ( TOKEN_INCREMENT 0 line col ) ;
+            tokenIndex = 0 ;
+        else
             token [ tokenIndex ] = 0 ; `
             ;printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
             `
             _ = push_token ( TOKEN_PLUS 0 line col ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
-        end
+        end end
     else if c == 42 then
         if tokenIndex > 0 then 
             token [ tokenIndex ] = 0 ;
@@ -3001,6 +3008,27 @@ proc parsePreprocessorDirective ( )
     _ = addSymbol ( TYPE_DEFINE 0 VAR_KIND_PRIMITIVE pppdIdentifier pppdValue VARIABLE_SCOPE_GLOBAL ) ; 
 endproc parsePreprocessorDirective
 
+uint64 pisIdentifier = 0 ;
+proc parseIncrementStatement ( )
+    pisIdentifier = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( pisIdentifier ) ;
+
+    if fgsIndex == -1 then
+        _ = identifierUnknown ( pisIdentifier ) ;
+    end
+
+    expectedToken = TOKEN_INCREMENT ;
+    consumeToken ( ) ;
+
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ;
+
+    _ = readString ( pisIdentifier ) ; `
+    WriteToFile(`"; -- increment '%s' -- \n"`, stringAtPointer)
+    WriteToFile(`"\tinc qword [%s]\n\n"`)`
+endproc parseIncrementStatement
+
 uint64 psIdentifier = 0 ;
 proc parseStatement ( )
     if currentToken == [TOKEN_UINT8] then
@@ -3019,6 +3047,8 @@ proc parseStatement ( )
         if fgsIndex != -1 then
             if nextToken == [TOKEN_DOT] then
                 parseAssignmentStatement ( ) ;
+            else if nextToken == [TOKEN_INCREMENT] then
+                parseIncrementStatement ( ) ;
             else
                 if gsType == [TYPE_USER_DEFINED] then 
                     parseUserTypeVariableDeclaration ( ) ;
@@ -3027,7 +3057,7 @@ proc parseStatement ( )
                 else
                     parseAssignmentStatement ( ) ;
                 end end
-            end
+            end end
         else 
             _ = identifierUnknown ( psIdentifier ) ;
         end

@@ -63,6 +63,8 @@ end
 
 WriteConsoleA(std_handle, file_contents, file_size, NULL);
 
+uint8[] increment = "Increment\n";
+
 while *file_contents != 0 do
     file_contents++;
 end
