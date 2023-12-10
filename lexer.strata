@@ -2035,13 +2035,13 @@ proc parseMultiplicativeExpression ( )
             consumeToken ( ) ;
             parseFactor ( ) ; `
             WriteToFile(`"; -- / --\n"`)
-            WriteToFile(`"\tpop rbx\n\tpop rax\n\tdiv rbx\n\tpush rax\n"`)`
+            WriteToFile(`"\tpop rbx\n\tpop rax\n\tcqo\n\tdiv rbx\n\tpush rax\n"`)`
         else if currentToken == [TOKEN_MODULO] then
             expectedToken = TOKEN_MODULO ;
             consumeToken ( ) ;
             parseFactor ( ) ; `
             WriteToFile(`"; -- %% --\n"`)
-            WriteToFile(`"\tpop rbx\n\tpop rax\n\tdiv rbx\n\tpush rdx\n"`)`
+            WriteToFile(`"\tpop rbx\n\tpop rax\n\tcqo\n\tdiv rbx\n\tpush rdx\n"`)`
         else
             break 
         end end end
