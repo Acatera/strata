@@ -399,11 +399,15 @@ proc to_number ( )
     if tnChar != 0 then
         _ = tnIndex + 1 ;
         _ = token [ _ ] ;
-        if _ == 88 then 
-            tnIsHex = 1 ;
+        if tnChar == 48 then
+            if _ == 88 then 
+                tnIsHex = 1 ;
+            end
         end
-        if _ == 120 then
-            tnIsHex = 1 ;
+        if tnChar == 48 then
+            if _ == 120 then
+                tnIsHex = 1 ;
+            end
         end
     end
     if tnIsHex == 1 then
@@ -414,28 +418,45 @@ proc to_number ( )
     while tnChar != 0 do 
         tnNumber = tnNumber * tnBase ; 
         tnDigit = token [ tnIndex ] ;
-        if tnDigit > 96 then
-            if tnDigit < 103 then
-                tnDigit = tnDigit - 87 ;
-            else
+        if tnBase == 10 then
+            if tnDigit > 47 then
+                if tnDigit < 58 then
+                    tnDigit = tnDigit - 48 ;
+                else
+                    tnSuccess = 0 ;
+                    break ;
+                end 
+            else 
                 tnSuccess = 0 ;
                 break ;
             end
-        else if tnDigit > 64 then
-            if tnDigit < 71 then
-                tnDigit = tnDigit - 55 ;
-            else
-                tnSuccess = 0 ;
-                break ;
-            end
-        else if tnDigit > 47 then
-            if tnDigit < 58 then
-                tnDigit = tnDigit - 48 ;
-            else
-                tnSuccess = 0 ;
-                break ;
-            end 
-        end end end 
+        else if tnBase == 16 then
+            if tnDigit > 96 then
+                if tnDigit < 103 then
+                    tnDigit = tnDigit - 87 ;
+                else
+                    tnSuccess = 0 ;
+                    break ;
+                end
+            else if tnDigit > 64 then
+                if tnDigit < 71 then
+                    tnDigit = tnDigit - 55 ;
+                else
+                    tnSuccess = 0 ;
+                    break ;
+                end
+            else if tnDigit > 47 then
+                if tnDigit < 58 then
+                    tnDigit = tnDigit - 48 ;
+                else
+                    tnSuccess = 0 ;
+                    break ;
+                end 
+            end end end 
+        else
+            tnSuccess = 0 ;
+            break ;
+        end end
         tnNumber = tnNumber + tnDigit ;
         tnIndex = tnIndex + 1 ;
         tnChar = token [ tnIndex ] ;
