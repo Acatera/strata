@@ -25,57 +25,52 @@ extern proc ReadFile(pointer hFile, pointer lpBuffer, uint64 nNumberOfBytesToRea
 uint64 std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 
 uint8[] input_file = "v3.strata";
-uint8[] file_open_error = "Failed to open file\n";
-uint8[] process_heap_error = "Failed to get process heap\n";
-uint8[] file_size_error = "Failed to get file size\n";
-uint8[] file_read_error = "Failed to read file\n";
-uint8[] mem_alloc_error = "Failed to allocate memory\n";
+
+WriteConsoleA(std_handle, "Hello, world!\n", 14, NULL);
 
 uint64 input_file_handle = CreateFileA(input_file, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 if input_file_handle < 0 then
-    WriteConsoleA(std_handle, file_open_error, 20, NULL);
+    WriteConsoleA(std_handle, "Failed to open file\n", 20, NULL);
     exit(1);
 end
 
 uint64 file_size = 0;
 if GetFileSizeEx(input_file_handle, &file_size) != true then
-   WriteConsoleA(std_handle, file_size_error, 23, NULL);
+   WriteConsoleA(std_handle, "Failed to get file size\n", 24, NULL);
     exit(1);
 end
 
 uint64 heap = GetProcessHeap();
 if heap == NULL then
-    WriteConsoleA(std_handle, process_heap_error, 26, NULL);
+    WriteConsoleA(std_handle, "Failed to get heap\n", 19, NULL);
     exit(1);
 end
 
 uint8* file_contents = HeapAlloc(heap, 0, file_size);
 if file_contents == NULL then
-    WriteConsoleA(std_handle, mem_alloc_error, 26, NULL);
+    WriteConsoleA(std_handle, "Failed to allocate memory\n", 26, NULL);
     exit(1);
 end
 
 uint64 bytes_read = 0;
 if ReadFile(input_file_handle, file_contents, file_size, &bytes_read, NULL) != true then
-    WriteConsoleA(std_handle, file_read_error, 19, NULL);
+    WriteConsoleA(std_handle, "Failed to read file\n", 20, NULL);
     exit(1);
 end
 
 WriteConsoleA(std_handle, file_contents, file_size, NULL);
 
-uint8[] increment = "Increment\n";
-
 while *file_contents != 0 do
     file_contents++;
 end
 
+// String literals
+// Characters - convert to uint8
+// Strings - compare, index, read, write
 // Uint16, uint32, int8, int16, uint32, int64
 // offsetof() intrinsic
-// Strings - compare, index, read, write
-// Characters - convert to uint8
-// Variadic procedures
 // Macros
-// String literals
+// Variadic procedures
 // `test`, `str` is not a valid identifier because it is a keyword in assembly
 // number parsing always treats the number as hex, resulting in identifier ceed being parsed as 0xceed
 // Includes

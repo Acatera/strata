@@ -2638,6 +2638,22 @@ proc parseReturnStatement ( )
     end 
 endproc parseReturnStatement
 
+uint64 pcsaIdentifier = 0 ;
+uint64 pcsaIndex = 0 ;
+proc parseConstantStringArgument ( )
+    _ = i + 1 ;
+    pcsaIdentifier = tokens [ _ ] ;
+
+    expectedToken = TOKEN_CONSTANT_STRING ;
+    consumeToken ( ) ;
+
+    _ = readString ( pcsaIdentifier ) ; `
+    WriteToFile(`"\tmov rax, ro_str_%d\n\tpush rax\n"`, [pcsaIndex])
+    `
+    _ = addVariable ( TYPE_STRING pcsaIndex VAR_KIND_PRIMITIVE 0 pcsaIdentifier VARIABLE_SCOPE_GLOBAL ) ;
+    pcsaIndex = pcsaIndex + 1 ;
+endproc parseConstantStringArgument
+
 uint64 ppcIdentifier = 0 ;
 uint64 ppcPrcArgumentCount = 0 ;
 uint64 ppcPrcCallArgumentCount = 0 ;
@@ -2723,14 +2739,25 @@ proc parseProcedureCall ( )
         ppcPrcCallArgumentCount = 0 ;
         ppdRbpOffset = 8 ;
         while currentToken != [TOKEN_RIGHT_PARENTHESIS] do
-            parseLogicalOrExpression ( ) ; `
-            ;WriteToFile(`"\tpop qword [r15 + %d]\n"`, [ppdRbpOffset])
-            `
-            ppcPrcCallArgumentCount = ppcPrcCallArgumentCount + 1 ;
-            ppdRbpOffset = ppdRbpOffset + 8 ;
-            if currentToken == [TOKEN_COMMA] then
-                expectedToken = TOKEN_COMMA ;
-                consumeToken ( ) ;
+            if currentToken == [TOKEN_CONSTANT_STRING] then
+                parseConstantStringArgument ( ) ; 
+
+                ppcPrcCallArgumentCount = ppcPrcCallArgumentCount + 1 ;
+                ppdRbpOffset = ppdRbpOffset + 8 ;
+                if currentToken == [TOKEN_COMMA] then
+                    expectedToken = TOKEN_COMMA ;
+                    consumeToken ( ) ;
+                end
+            else 
+                parseLogicalOrExpression ( ) ; `
+                ;WriteToFile(`"\tpop qword [r15 + %d]\n"`, [ppdRbpOffset])
+                `
+                ppcPrcCallArgumentCount = ppcPrcCallArgumentCount + 1 ;
+                ppdRbpOffset = ppdRbpOffset + 8 ;
+                if currentToken == [TOKEN_COMMA] then
+                    expectedToken = TOKEN_COMMA ;
+                    consumeToken ( ) ;
+                end
             end
         end
 
@@ -3224,6 +3251,12 @@ while i < [globalVariableCount] do
             _ = readString ( wsdIdentifier ) ; `
             WriteToFile(`"section .bss\r\n\t%s resb %d\n"`, stringAtPointer, [gvValue])`
         end
+    else if gvType == [TYPE_STRING] then `
+        WriteToFile(`"section .rodata\r\n\tro_str_%d"`, [gvSubType])
+        `
+        _ = readString ( gvValue ) ; 
+        encodeString ( ) ; `
+        WriteToFile(`" db %s,0\n"`, encodedString)`
     else if gvType == [TYPE_USER_DEFINED] then 
         wsdIdentifier = gvNamePointer ;
 
@@ -3238,7 +3271,7 @@ while i < [globalVariableCount] do
     else `
         printf(`"Error: unknown type %d in 'writeVars'"`, [gvType])
         ExitProcess(1)`
-    end end end end end end
+    end end end end end end end
 
     i = i + 1 ;
 end
