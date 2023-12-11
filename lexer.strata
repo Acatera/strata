@@ -806,6 +806,78 @@ while scIndex < [bytesRead] do
         push_identifier ( ) ;
         col = 2 + scIndex - line_start - 1 ;
         tokenIndex = 0 ;
+    else if c == 39 then 
+        if tokenIndex > 0 then 
+            token [ tokenIndex ] = 0 ; 
+            push_and_print_token ( ) ;
+        end
+        tokenIndex = 0 ;
+        `
+        ;token [ tokenIndex ] = c ;
+        ;tokenIndex = tokenIndex + 1 ;
+        `
+        scIndex = scIndex + 1 ;
+        c = sourceCode [ scIndex ] ;    
+        while scIndex < [bytesRead] do 
+            if c == 92 then
+                scIndex = scIndex + 1 ;
+                c = sourceCode [ scIndex ] ;
+                if c == 34 then
+                    token [ tokenIndex ] = c ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else if c == 92 then
+                    token [ tokenIndex ] = c ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else if c == 110 then
+                    token [ tokenIndex ] = 10 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else if c == 114 then
+                    token [ tokenIndex ] = 13 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else if c == 116 then
+                    token [ tokenIndex ] = 9 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else if c == 48 then
+                    token [ tokenIndex ] = 0 ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
+                else `
+                    printf(`"[\#27[91mERROR\#27[0m] Invalid escape sequence\n"`)
+                    ExitProcess(1)`
+                end end end end end end   
+            else if c == 39 then
+                break ;
+            else
+                token [ tokenIndex ] = c ;
+                tokenIndex = tokenIndex + 1 ;
+                scIndex = scIndex + 1 ;
+                c = sourceCode [ scIndex ] ;
+            end end 
+        end
+        `
+        ;token [ tokenIndex ] = c ; 
+        ;tokenIndex = tokenIndex + 1 ;
+        `
+        token [ tokenIndex ] = 0 ; `
+        ;printf(`"[\#27[92mINFO\#27[0m] Token: [!] '%s'\n"`, token)
+        `
+        tokenIndex = 0 ;
+        _ = token [ tokenIndex ] ;
+        _ = push_token ( TOKEN_CONSTANT_INTEGER _ line col ) ;
+        push_identifier ( ) ;
+        col = 2 + scIndex - line_start - 1 ;
+        tokenIndex = 0 ;
     else if isSep == 1 then
         if tokenIndex > 0 then 
             token [ tokenIndex ] = 0 ; 
@@ -1094,7 +1166,7 @@ while scIndex < [bytesRead] do
     else            
         token [ tokenIndex ] = c ;
         tokenIndex = tokenIndex + 1 ;
-    end end end end end end end end end end end end
+    end end end end end end end end end end end end end
 
     scIndex = scIndex + 1 ;
 end
@@ -1702,7 +1774,8 @@ proc parseIntegerDeclaration ( )
     consumeToken ( ) ;
 
     if currentToken == [TOKEN_CONSTANT_INTEGER] then
-        gvValue = parseNumber ( ) ;
+        gvValue = parseNumber ( ) ; `
+        WriteToFile(`"\tpush %d\n"`, [gvValue])`
     else
         gvValue = 0 ; 
         parseLogicalOrExpression ( ) ;
@@ -1737,7 +1810,8 @@ proc parsePointerDeclaration ( )
     consumeToken ( ) ;
 
     if currentToken == [TOKEN_CONSTANT_INTEGER] then
-        gvValue = parseNumber ( ) ;
+        gvValue = parseNumber ( ) ; `
+        WriteToFile(`"\tpush %d\n"`, [gvValue])`
     else
         gvValue = 0 ; 
         parseLogicalOrExpression ( ) ;
@@ -1983,7 +2057,7 @@ proc parseFactor ( )
             _ = identifierUnknown ( fpIdentifier ) ;
         end 
         `
-        printf(`"[Trace] parseFactor, gsType: %d\n"`, [gsType])
+        ;printf(`"[Trace] parseFactor, gsType: %d\n"`, [gsType])
         `   
 
         _ = readString ( fpIdentifier ) ; 
@@ -2704,13 +2778,13 @@ proc parseProcedureCall ( )
 
         if currentToken != [TOKEN_RIGHT_PARENTHESIS] then `
             WriteToFile(`"; -- procedure call --\n"`)
-            WriteToFile(`"\tsub rsp, %d\n\tpush rbp\n\tmov rbp, rsp\n"`, [ppcShadowSpace])`
+            WriteToFile(`"\tsub rsp, %d\n\tpush r15\n\tmov r15, rsp\n"`, [ppcShadowSpace])`
         end
 
         ppcPrcCallArgumentCount = 0 ;
         while currentToken != [TOKEN_RIGHT_PARENTHESIS] do
             parseLogicalOrExpression ( ) ; `
-            WriteToFile(`"\tpop qword [rbp + %d]\n"`, [ppdRbpOffset])
+            WriteToFile(`"\tpop qword [r15 + %d]\n"`, [ppdRbpOffset])
             `
             ppcPrcCallArgumentCount = ppcPrcCallArgumentCount + 1 ;
             ppdRbpOffset = ppdRbpOffset + 8 ;
@@ -2738,7 +2812,7 @@ proc parseProcedureCall ( )
         _ = readString ( ppcIdentifier ) ; 
 
         if ppcPrcArgumentCount != 0 then `
-            WriteToFile(`"\tmov rsp, rbp\n\tpop rbp\n\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])`
+            WriteToFile(`"\tmov rsp, r15\n\tpop r15\n\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])`
         else `
             WriteToFile(`"\tcall %s\n\tadd rsp, %d\n"`, stringAtPointer, [ppcShadowSpace])`
         end `
@@ -3074,7 +3148,7 @@ proc parseIncrementStatement ( )
 
     _ = readString ( pisIdentifier ) ; `
     WriteToFile(`"; -- increment '%s' -- \n"`, stringAtPointer)
-    WriteToFile(`"\tinc qword [%s]\n\n"`)`
+    WriteToFile(`"\tmov rax, [%s]\n\tinc rax\n\tmov [%s], rax\n\n"`, stringAtPointer, stringAtPointer)`
 endproc parseIncrementStatement
 
 uint64 psIdentifier = 0 ;
