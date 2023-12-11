@@ -131,7 +131,7 @@ uint64 line = 1 ;
 uint64 line_start = 1 ;
 uint64 col = 1 ;
 
-array tokens = uint64 [ 10000 ] ;
+array tokens = uint64 [ 50000 ] ;
 uint64 tokenCount = 0 ;
 uint64 tokenSize = 4 ;
 
@@ -246,6 +246,9 @@ uint64 TOKEN_EXIT                     = 46 ;
 uint64 TOKEN_SIZEOF                   = 47 ;
 
 uint64 TOKEN_INCREMENT                = 48 ;
+uint64 TOKEN_DECREMENT                = 49 ;
+
+uint64 TOKEN_ENUM                     = 50 ;
 
 uint64 TYPE_UINT8                  =  1 ;
 uint64 TYPE_UINT64                 =  2 ;
@@ -670,6 +673,13 @@ stringToPush [ 5 ] = 102 ;
 stringToPush [ 6 ] = 0 ;
 _ = register_token_type ( TOKEN_SIZEOF ) ;
 
+stringToPush [ 0 ] = 101 ;
+stringToPush [ 1 ] = 110 ;
+stringToPush [ 2 ] = 117 ;
+stringToPush [ 3 ] = 109 ;
+stringToPush [ 4 ] = 0 ;
+_ = register_token_type ( TOKEN_ENUM ) ;
+
 `
 ;printf(`"Token dictionary count: %d\n"`, [token_dictionary_pointers_top])
 `
@@ -852,10 +862,15 @@ while scIndex < [bytesRead] do
                     tokenIndex = tokenIndex + 1 ;
                     scIndex = scIndex + 1 ;
                     c = sourceCode [ scIndex ] ;
+                else if c == 39 then
+                    token [ tokenIndex ] = c ;
+                    tokenIndex = tokenIndex + 1 ;
+                    scIndex = scIndex + 1 ;
+                    c = sourceCode [ scIndex ] ;
                 else `
                     printf(`"[\#27[91mERROR\#27[0m] Invalid escape sequence\n"`)
                     ExitProcess(1)`
-                end end end end end end   
+                end end end end end end end
             else if c == 39 then
                 break ;
             else
@@ -1095,6 +1110,11 @@ while scIndex < [bytesRead] do
             `
             _ = push_token ( TOKEN_ARROW_RIGHT 0 line col ) ;
             tokenIndex = 0 ;
+        else if c == 45 then
+            token [ tokenIndex ] = c ;
+            tokenIndex = tokenIndex + 1 ;
+            _ = push_token ( TOKEN_DECREMENT 0 line col ) ;
+            tokenIndex = 0 ;
         else 
             token [ tokenIndex ] = 0 ; `
             ;printf(`"[\#27[92mINFO\#27[0m] Token: [x] '%s'\n"`, token)
@@ -1102,7 +1122,7 @@ while scIndex < [bytesRead] do
             _ = push_token ( TOKEN_MINUS 0 line col ) ;
             tokenIndex = 0 ;
             scIndex = scIndex - 1 ;
-        end end
+        end end end
     else if c == 47 then
         if tokenIndex > 0 then 
             token [ tokenIndex ] = 0 ; 
@@ -3151,6 +3171,57 @@ proc parseIncrementStatement ( )
     WriteToFile(`"\tmov rax, [%s]\n\tinc rax\n\tmov [%s], rax\n\n"`, stringAtPointer, stringAtPointer)`
 endproc parseIncrementStatement
 
+uint64 pdsIdentifier = 0 ;
+proc parseDecrementStatement ( )
+    pdsIdentifier = parseIdentifier ( ) ;
+
+    fgsIndex = findSymbol ( pdsIdentifier ) ;
+
+    if fgsIndex == -1 then
+        _ = identifierUnknown ( pdsIdentifier ) ;
+    end
+
+    expectedToken = TOKEN_DECREMENT ;
+    consumeToken ( ) ;
+
+    expectedToken = TOKEN_SEMICOLON ;
+    consumeToken ( ) ;
+
+    _ = readString ( pdsIdentifier ) ; `
+    WriteToFile(`"; -- decrement '%s' -- \n"`, stringAtPointer)
+    WriteToFile(`"\tmov rax, [%s]\n\dec rax\n\tmov [%s], rax\n\n"`, stringAtPointer, stringAtPointer)`
+endproc parseDecrementStatement
+
+uint64 penumIdentifier = 0 ;
+uint64 penumValue = 0 ;
+proc parseEnumDefinition ( )
+    penumValue = 0 ;
+    expectedToken = TOKEN_ENUM ;
+    consumeToken ( ) ;
+
+    _ = parseIdentifier ( ) ;
+
+    while currentToken != [TOKEN_END] do
+        penumIdentifier = parseIdentifier ( ) ;
+
+        fgsIndex = findSymbol ( penumIdentifier ) ;
+
+        if fgsIndex != -1 then
+            _ = indentifierRedeclared ( penumIdentifier ) ;
+        end
+
+        expectedToken = TOKEN_COMMA ;
+        consumeToken ( ) ;
+
+        _ = addSymbol ( TYPE_DEFINE 0 VAR_KIND_PRIMITIVE penumIdentifier penumValue VARIABLE_SCOPE_GLOBAL ) ; 
+
+        penumValue = penumValue + 1 ;
+    end
+
+    expectedToken = TOKEN_END ;
+    consumeToken ( ) ;
+endproc parseEnumDefinition
+
 uint64 psIdentifier = 0 ;
 proc parseStatement ( )
     if currentToken == [TOKEN_UINT8] then
@@ -3171,6 +3242,8 @@ proc parseStatement ( )
                 parseAssignmentStatement ( ) ;
             else if nextToken == [TOKEN_INCREMENT] then
                 parseIncrementStatement ( ) ;
+            else if nextToken == [TOKEN_DECREMENT] then
+                parseDecrementStatement ( ) ;
             else
                 if gsType == [TYPE_USER_DEFINED] then 
                     parseUserTypeVariableDeclaration ( ) ;
@@ -3179,7 +3252,7 @@ proc parseStatement ( )
                 else
                     parseAssignmentStatement ( ) ;
                 end end
-            end end
+            end end end
         else 
             _ = identifierUnknown ( psIdentifier ) ;
         end
@@ -3197,6 +3270,8 @@ proc parseStatement ( )
         parseReturnStatement ( ) ;
     else if currentToken == [TOKEN_STRUCT] then
         parseStructDefinition ( ) ;
+    else if currentToken == [TOKEN_ENUM] then
+        parseEnumDefinition ( ) ;
     else if currentToken == [TOKEN_EXTERN] then
         parseExternDeclaration ( ) ;
     else if currentToken == [TOKEN_EXIT] then
@@ -3207,7 +3282,7 @@ proc parseStatement ( )
         parseAssignmentStatement ( ) ;
     else
         unexpectedToken ( ) ;
-    end end end end end end end end end end end end end end end 
+    end end end end end end end end end end end end end end end end
 endproc parseStatement
 
 proc parseStatements ( )
