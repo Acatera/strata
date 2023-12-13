@@ -2695,6 +2695,8 @@ proc parseProcedureDeclaration ( )
         end
     end
 
+    _ = addSymbol ( TYPE_PROCEDURE gvType VAR_KIND_USER_DEFINED ppdIdentifier paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ;
+
     ppdLocalVariableCount = ppdLocalVariableCount * 8 ;
     _ = readString ( ppdIdentifier ) ; `
     ;printf(`"[Trace] Procedure declaration: %s\n"`, stringAtPointer)
@@ -2727,7 +2729,6 @@ proc parseProcedureDeclaration ( )
         WriteToFile(`"\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
     end
 
-    _ = addSymbol ( TYPE_PROCEDURE gvType VAR_KIND_USER_DEFINED ppdIdentifier paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ;
 
     _ = readString ( ppdIdentifier ) ; `
     ;printf(`"[Trace] Procedure declaration: %s with %d parameters\n"`, stringAtPointer, [paProArgumentCount])

@@ -1297,6 +1297,7 @@ code
 
     add_variable(tokens[pvd_identifier].text, tokens[pvd_identifier].length, pvd_data_type, pvd_initial_value, scope, VARIABLE_KIND_LOCAL);
 end
+
 proc parse_factor() -> uint64
 vars
     uint64 pe_term_index = 0;
@@ -1333,10 +1334,12 @@ code
     pae_left_index = parse_multiplicative_expression();
 
     if tokens[token_index].type == TOKEN_PLUS then
-        consume_token(TOKEN_PLUS);
-        pae_right_index = parse_multiplicative_expression();
+        while tokens[token_index].type == TOKEN_PLUS do
+            consume_token(TOKEN_PLUS);
+            pae_right_index = parse_additive_expression();
 
-        return add_binary_op(BINARY_OPERATION_ADD, pae_left_index, TERM_TYPE_BINARY_OPERATION, pae_right_index, TERM_TYPE_BINARY_OPERATION);
+            return add_binary_op(BINARY_OPERATION_ADD, pae_left_index, TERM_TYPE_BINARY_OPERATION, pae_right_index, TERM_TYPE_BINARY_OPERATION);
+        end
     else
         return pae_left_index;
     end
@@ -1519,16 +1522,129 @@ code
     end
 end
 
-uint8[] reg_r14 = "r14";
-uint8[] reg_r15 = "r15";
+enum Registers
+    REG_RAX = 1,
+    REG_RBX,
+    REG_RCX,
+    REG_RDX,
+    REG_RSI,
+    REG_RDI,
+    REG_R8,
+    REG_R9,
+    REG_R10,
+    REG_R11,
+    REG_R12,
+    REG_R13,
+    REG_R14,
+    REG_R15,
+end
 
-proc get_unary_op_value(uint64 file_handle, uint64 op_index, pointer reg)
+@define REG_COUNT 15
+uint64[REG_COUNT] reg_used;
+uint64[REG_COUNT] reg_stack;
+uint64 reg_stack_count = 0;
+uint64 regs_in_use = 0;
+uint64[REG_COUNT] reg_names;
+
+uint8[] reg_rax = "rax"; reg_names[REG_RAX] = &reg_rax;
+uint8[] reg_rbx = "rbx"; reg_names[REG_RBX] = &reg_rbx;
+uint8[] reg_rcx = "rcx"; reg_names[REG_RCX] = &reg_rcx;
+uint8[] reg_rdx = "rdx"; reg_names[REG_RDX] = &reg_rdx;
+uint8[] reg_rsi = "rsi"; reg_names[REG_RSI] = &reg_rsi;
+uint8[] reg_rdi = "rdi"; reg_names[REG_RDI] = &reg_rdi;
+uint8[] reg_r8 = "r8";   reg_names[REG_R8] = &reg_r8;
+uint8[] reg_r9 = "r9";   reg_names[REG_R9] = &reg_r9;
+uint8[] reg_r10 = "r10"; reg_names[REG_R10] = &reg_r10;
+uint8[] reg_r11 = "r11"; reg_names[REG_R11] = &reg_r11;
+uint8[] reg_r12 = "r12"; reg_names[REG_R12] = &reg_r12;
+uint8[] reg_r13 = "r13"; reg_names[REG_R13] = &reg_r13;
+uint8[] reg_r14 = "r14"; reg_names[REG_R14] = &reg_r14;
+uint8[] reg_r15 = "r15"; reg_names[REG_R15] = &reg_r15;
+
+proc get_register() -> uint64
+vars
+    uint64 gr_i = 0;
+code
+    gr_i = 1;
+    while gr_i < REG_COUNT do
+        if reg_used[gr_i] == 0 then
+            reg_used[gr_i] = 1;
+            regs_in_use++;
+            reg_stack[reg_stack_count] = gr_i;
+            reg_stack_count++;
+            return gr_i;
+        end
+        gr_i = gr_i + 1;
+    end
+
+    print_string("Out of registers\n");
+    exit(1);
+end
+
+proc free_register(uint64 reg)
+code
+    reg_used[reg] = 0;
+    regs_in_use = regs_in_use - 1;
+end
+
+proc push_register(uint64 reg)
+code
+    if reg_stack_count >= REG_COUNT then
+        print_string("Register stack overflow\n");
+        exit(1);
+    end
+
+    if reg_used[reg] == 1 then
+        print_string("Register already in use\n");
+        exit(1);
+    end
+
+    reg_stack[reg_stack_count] = reg;
+    reg_stack_count++;
+end
+
+proc pop_register() -> uint64
+vars
+    uint64 pr_reg = 0;
+code
+    if reg_stack_count == 0 then
+        print_string("Register stack underflow\n");
+        exit(1);
+    end
+    pr_reg = reg_stack[reg_stack_count - 1];
+    free_register(pr_reg);
+    reg_stack_count = reg_stack_count - 1;
+    return pr_reg;
+end
+
+proc get_register_name(uint64 reg) -> pointer
+code
+    return reg_names[reg];
+end
+
+proc print_reg_stack()
+vars
+    uint64 prs_i = 0;
+    uint64 prs_reg = 0;
+code
+    prs_i = 0;
+    while prs_i < reg_stack_count do
+        print_string(" ");
+        print_string(reg_names[prs_reg]);
+        prs_i = prs_i + 1;
+    end
+    print_string("\n");
+end
+
+proc get_unary_op_value(uint64 file_handle, uint64 op_index)
 vars
     uint64 guov_left_index = 0;
+    uint64 guov_free_reg = 0;
 code
+    guov_free_reg = get_register();
     if binary_ops[op_index].left_type == TERM_TYPE_LITERAL_INT then
         emit_string(file_handle, "\tmov ");
-        emit_string(file_handle, reg);
+        emit_string(file_handle, reg_names[guov_free_reg]);
         emit_string(file_handle, ", ");
         str_number = to_string(binary_ops[op_index].left_index);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
@@ -1538,7 +1654,7 @@ code
 
         guov_left_index = binary_ops[op_index].left_index;
         emit_string(file_handle, "\tmov ");
-        emit_string(file_handle, reg);
+        emit_string(file_handle, reg_names[guov_free_reg]);
         emit_string(file_handle, ", qword [rbp - ");
         str_number = to_string(variables[guov_left_index].rbp_offset);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
@@ -1553,39 +1669,62 @@ proc write_op_addition(uint64 file_handle, uint64 op_index)
 vars
     uint64 woa_left_index = 0;
     uint64 woa_right_index = 0;
-    uint64 woa_left_value = 0;
-    uint64 woa_right_value = 0;
+    uint64 woa_left_reg = 0;
+    uint64 woa_right_reg = 0;
 code
     woa_left_index = binary_ops[op_index].left_index;
     woa_right_index = binary_ops[op_index].right_index;
 
     if binary_ops[woa_left_index].type == BINARY_OPERATION_UNARY then
-        get_unary_op_value(file_handle, woa_left_index, reg_r15);
+        get_unary_op_value(file_handle, woa_left_index);
     else
         print_string("Unsupported left type\n");
     end 
 
     if binary_ops[woa_right_index].type == BINARY_OPERATION_UNARY then
-        get_unary_op_value(file_handle, woa_right_index, reg_r14);
-    else
-        print_string("Unsupported right type\n");
-    end 
+        get_unary_op_value(file_handle, woa_right_index);
+    else if binary_ops[woa_right_index].type == BINARY_OPERATION_ADD then
+        write_op_addition(file_handle, woa_right_index);
+    else 
+        print_string("Unsupported right type ");
+        str_number = to_string(binary_ops[woa_right_index].type);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string("\n");
+    end end
 
-    emit_string(file_handle, "\tadd r15, r14\n");
+    // print_reg_stack();
+    woa_left_reg = pop_register();
+    woa_right_reg = pop_register();
+    // print_reg_stack();
+    
+    print_string("Poped registers: left");
+    str_number = to_string(woa_left_reg);
+    print_nstring(str_number, &buffer + buffer_size - str_number);
+    print_string(" right");
+    str_number = to_string(woa_right_reg);
+    print_nstring(str_number, &buffer + buffer_size - str_number);
+    print_string("\n");
+
+    emit_string(file_handle, "\tadd ");
+    emit_string(file_handle, reg_names[woa_left_reg]);
+    emit_string(file_handle, ", ");
+    emit_string(file_handle, reg_names[woa_right_reg]);
+    emit_string(file_handle, "\n");
+
+    push_register(woa_left_reg);
 end
 
 proc write_assignment(uint64 file_handle, uint64 op_index)
 vars
     uint64 wa_left_index = 0;
     uint64 wa_right_index = 0;
-    uint64 wa_left_value = 0;
-    uint64 wa_right_value = 0;
+    uint64 wa_right_reg = 0;
 code
     wa_left_index = binary_ops[op_index].left_index;
     wa_right_index = binary_ops[op_index].right_index;
 
     if binary_ops[wa_right_index].type == BINARY_OPERATION_UNARY then
-        get_unary_op_value(file_handle, wa_right_index, reg_r15);
+        get_unary_op_value(file_handle, wa_right_index);
     else if binary_ops[wa_right_index].type == BINARY_OPERATION_ADD then
         write_op_addition(file_handle, wa_right_index);
     else 
@@ -1593,10 +1732,14 @@ code
     end end
 
     if binary_ops[op_index].left_type == TERM_TYPE_VARIABLE then
+        wa_right_reg = pop_register();
+
         emit_string(file_handle, "\tmov qword [rbp - ");
         str_number = to_string(variables[wa_left_index].rbp_offset);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
-        emit_string(file_handle, "], r15\n");
+        emit_string(file_handle, "], ");
+        emit_string(file_handle, reg_names[wa_right_reg]);
+        emit_string(file_handle, "\n");
     else
         print_string("Unsupported left type\n");
     end
