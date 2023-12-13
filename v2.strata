@@ -6,10 +6,9 @@ extern proc GetLastError() -> uint64;
 extern proc CreateFileA(pointer lpFileName, uint64 dwDesiredAccess, uint64 dwShareMode, pointer lpSecurityAttributes, uint64 dwCreationDisposition, uint64 dwFlagsAndAttributes, pointer hTemplateFile) -> pointer;
 extern proc GetFileSizeEx(pointer hFile, pointer lpFileSize) -> uint64;
 extern proc ReadFile(pointer hFile, pointer lpBuffer, uint64 nNumberOfBytesToRead, pointer lpNumberOfBytesRead, pointer lpOverlapped) -> uint64;
-//BOOL GetFileSizeEx(
-//  [in]  HANDLE         hFile,
-//  [out] PLARGE_INTEGER lpFileSize
-//);
+extern proc WriteFile(pointer hFile, pointer lpBuffer, uint64 nNumberOfBytesToWrite, pointer lpNumberOfBytesWritten, pointer lpOverlapped) -> uint64;
+
+@define DEBUG 0
 
 @define STD_OUTPUT_HANDLE 0xFFFFFFF5
 @define NULL 0
@@ -18,68 +17,1555 @@ extern proc ReadFile(pointer hFile, pointer lpBuffer, uint64 nNumberOfBytesToRea
 @define true 1
 
 @define GENERIC_READ 0x80000000
+@define GENERIC_WRITE 0x40000000
+
 @define FILE_SHARE_READ 0x00000001
+@define FILE_SHARE_WRITE 0x00000002
+
+@define CREATE_ALWAYS 0x00000002
 @define OPEN_EXISTING 0x00000003
+
 @define FILE_ATTRIBUTE_NORMAL 0x00000080
+
+uint64 NOT_FOUND = 0;
+NOT_FOUND = 0 - 1;
 
 uint64 std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 
-uint8[] input_file = "v3.strata";
+uint8* _sl_ptr = 0;
+proc string_length(pointer str) -> uint64
+vars
+    uint64 length = 0;
+code
+    _sl_ptr = str;
+    length = 0;
+    while *_sl_ptr != 0 do
+        _sl_ptr++;
+        length++;
+    end
+    return length;
+end
 
-WriteConsoleA(std_handle, "Hello, world!\n", 14, NULL);
+proc print_nstring(pointer text, uint64 len)
+code
+    WriteConsoleA(std_handle, text, len, NULL);
+end
+
+proc print_string(pointer text)
+vars
+    uint64 ps_len = 0;
+code
+    ps_len = string_length(text);
+    print_nstring(text, ps_len);
+end
+
+proc debug_string(pointer text)
+vars
+    uint64 ds_length = 0;
+code
+    if DEBUG then
+        ds_length = string_length(text);
+        print_nstring(text, ds_length);
+    end
+end
+
+proc debug_nstring(pointer text, uint64 len)
+code
+    if DEBUG then
+        print_nstring(text, len);
+    end
+end
+
+uint8[] input_file = "v3.strata";
 
 uint64 input_file_handle = CreateFileA(input_file, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 if input_file_handle < 0 then
-    WriteConsoleA(std_handle, "Failed to open file\n", 20, NULL);
+    print_string("Failed to open file\n");
     exit(1);
 end
 
 uint64 file_size = 0;
 if GetFileSizeEx(input_file_handle, &file_size) != true then
-   WriteConsoleA(std_handle, "Failed to get file size\n", 24, NULL);
+    print_string("Failed to get file size\n");
     exit(1);
 end
 
 uint64 heap = GetProcessHeap();
 if heap == NULL then
-    WriteConsoleA(std_handle, "Failed to get heap\n", 19, NULL);
+    print_string("Failed to get heap\n");
     exit(1);
 end
 
 uint8* file_contents = HeapAlloc(heap, 0, file_size);
 if file_contents == NULL then
-    WriteConsoleA(std_handle, "Failed to allocate memory\n", 26, NULL);
+    print_string("Failed to allocate memory\n");
     exit(1);
 end
 
 uint64 bytes_read = 0;
 if ReadFile(input_file_handle, file_contents, file_size, &bytes_read, NULL) != true then
-    WriteConsoleA(std_handle, "Failed to read file\n", 20, NULL);
+    print_string("Failed to read file\n");
     exit(1);
 end
 
-WriteConsoleA(std_handle, file_contents, file_size, NULL);
+uint8[256] buffer;
+uint8* buffer_ptr = &buffer;
+uint64 buffer_size = 0;
+uint8* str_number = 0;
 
-while *file_contents != 0 do
-    file_contents++;
+proc to_string(uint64 value) -> uint64
+vars
+    uint64 val = 0;
+code
+    val = value;
+    if val == 0 then
+        buffer_ptr = &buffer + buffer_size;
+        buffer_ptr = buffer_ptr - 1;
+        *buffer_ptr = 48;
+        return buffer_ptr;
+    end
+    buffer_ptr = &buffer + buffer_size;
+    while val > 0 do
+        buffer_ptr = buffer_ptr - 1;
+        *buffer_ptr = val % 10 + 48;
+        val = val / 10;
+    end
+    return buffer_ptr;
 end
 
-// String literals
-// Characters - convert to uint8
+uint8* tn_ptr = 0;
+proc to_number(pointer text, uint64 length) -> uint64
+vars
+    uint64 _tn_i = 0;
+    uint64 _tn_number = 0;
+code
+    tn_ptr = text;
+    _tn_i = 0;
+    _tn_number = 0;
+    while _tn_i < length do
+        _tn_number = _tn_number * 10 + *tn_ptr - '0';
+        _tn_i++;
+        tn_ptr++;
+    end
+    return _tn_number;
+end
+
+
+
+uint8* snc_a_ptr = 0;
+uint8* snc_b_ptr = 0;
+proc string_compare(pointer a, pointer b, uint64 len_a, uint64 len_b) -> uint64
+vars
+    uint64 i = 0;
+code
+    snc_a_ptr = a;
+    snc_b_ptr = b;
+
+    if len_a != len_b then
+        return false;
+    end
+
+    i = 0;
+    while i < len_a do
+        if *snc_a_ptr != *snc_b_ptr then
+            return false;
+        end
+        snc_a_ptr++;
+        snc_b_ptr++;
+        i++;
+    end
+
+    return true;
+end
+
+enum TokenType
+    TOKEN_UINT8 = 1,
+    TOKEN_UINT16,
+    TOKEN_UINT32,
+    TOKEN_UINT64,
+    TOKEN_INT8,
+    TOKEN_INT16,
+    TOKEN_INT32,
+    TOKEN_INT64,
+    TOKEN_BOOL,
+    TOKEN_IDENTIFIER,
+    TOKEN_OPEN_PAREN,
+    TOKEN_CLOSE_PAREN,
+    TOKEN_OPEN_BRACKET,
+    TOKEN_CLOSE_BRACKET,
+    TOKEN_COMMA,
+    TOKEN_DOT,
+    TOKEN_SEMICOLON,
+    TOKEN_AT,
+    TOKEN_AMPERSAND,
+    TOKEN_LITERAL_INT,
+    TOKEN_LITERAL_STRING,
+    TOKEN_LITERAL_CHAR,
+    TOKEN_ASSIGNMENT,
+    TOKEN_EQUALS,
+    TOKEN_NOT,
+    TOKEN_NOT_EQUALS,
+    TOKEN_PLUS,
+    TOKEN_PLUS_EQUALS,
+    TOKEN_INCREMENT,
+    TOKEN_MINUS,
+    TOKEN_MINUS_EQUALS,
+    TOKEN_ARROW,
+    TOKEN_DECREMENT,
+    TOKEN_MULTIPLY,
+    TOKEN_MULTIPLY_EQUALS,
+    TOKEN_DIVIDE,
+    TOKEN_DIVIDE_EQUALS,
+    TOKEN_MODULO,
+    TOKEN_MODULO_EQUALS,
+    TOKEN_LESS_THAN,
+    TOKEN_LESS_THAN_EQUALS,
+    TOKEN_GREATER_THAN,
+    TOKEN_GREATER_THAN_EQUALS,
+    TOKEN_PROC_DECL,
+    TOKEN_END,
+end
+
+struct Keyword
+    uint64 type;
+    uint64 length;
+    pointer text;
+    pointer human_readable_text;
+    uint64 human_readable_length;
+end
+
+
+@define KEYWORD_COUNT 100
+Keyword[KEYWORD_COUNT] keywords;
+uint64 keyword_count = 0;
+
+proc add_keyword(uint64 type, pointer text, uint64 length, pointer human_readable_text)
+code
+    if keyword_count >= KEYWORD_COUNT then
+        print_string("Keyword count exceeded\n");
+        exit(1);
+    end
+
+    keywords[keyword_count].type = type;
+    keywords[keyword_count].text = text;
+    keywords[keyword_count].length = length;
+    keywords[keyword_count].human_readable_text = human_readable_text;
+    keywords[keyword_count].human_readable_length = string_length(human_readable_text);
+    keyword_count++;
+end
+
+struct Token
+    uint64 type;
+    uint64 line;
+    uint64 column;
+    uint64 length;
+    pointer text;
+end
+
+Token[50000] tokens;
+uint64 token_count = 0;
+
+uint64 line = 1;
+uint64 column = 1;
+
+proc is_whitespace(uint8 c) -> uint64
+code
+    return c == ' ' or c == '\n' or c == '\r' or c == '\t';
+end
+
+proc is_alpha(uint8 c) -> uint64
+vars
+    uint64 _is_lowercase = 0;
+    uint64 _is_uppercase = 0;
+code
+    _is_lowercase = c >= 'a' and c <= 'z';
+    _is_uppercase = c >= 'A' and c <= 'Z';
+    return _is_lowercase or _is_uppercase or c == '_';
+end
+
+proc is_digit(uint8 c) -> uint64
+code
+    return c >= '0' and c <= '9';
+end
+
+proc is_hex_digit(uint8 c) -> uint64
+vars
+    uint64 _is_lowercase = 0;
+    uint64 _is_uppercase = 0;
+code
+    _is_lowercase = c >= 'a' and c <= 'f';
+    _is_uppercase = c >= 'A' and c <= 'F';
+    return is_digit(c) or _is_lowercase or _is_uppercase;
+end
+
+proc is_alphanumeric(uint8 c) -> uint64
+code
+    return is_alpha(c) or is_digit(c);
+end
+
+proc is_delimiter(uint8 c) -> uint64
+code
+    return  c == '(' or c == ')' or
+            c == '[' or c == ']' or
+            c == ',' or c == '.' or
+            c == ';' or c == '@' or
+            c == '&';
+end
+
+uint64 i = 0;
+
+proc print_token_type(uint64 type)
+vars
+    uint64 _ptt_i = 0;
+code
+    _ptt_i = 0;
+    while _ptt_i < keyword_count do
+        if type == keywords[_ptt_i].type then
+            print_nstring(keywords[_ptt_i].human_readable_text, keywords[_ptt_i].human_readable_length);
+            return;
+        end
+        _ptt_i++;
+    end
+end
+
+proc get_identifier_type(pointer text, uint64 length) -> uint64
+vars
+    uint64 _git_i = 0;
+code
+    _git_i = 0;
+    while _git_i < keyword_count do
+        if string_compare(text, keywords[_git_i].text, length, keywords[_git_i].length) then
+            return keywords[_git_i].type;
+        end
+        _git_i++;
+    end
+    return TOKEN_IDENTIFIER;
+end
+
+proc get_symbol_type(uint64 symbol) -> uint64
+vars
+    uint8 _symbol = 0;
+code
+    _symbol = symbol;
+    if _symbol == '(' then
+        return TOKEN_OPEN_PAREN;
+    else if _symbol == ')' then
+        return TOKEN_CLOSE_PAREN;
+    else if _symbol == '[' then
+        return TOKEN_OPEN_BRACKET;
+    else if _symbol == ']' then
+        return TOKEN_CLOSE_BRACKET;
+    else if _symbol == ',' then
+        return TOKEN_COMMA;
+    else if _symbol == '.' then
+        return TOKEN_DOT;
+    else if _symbol == ';' then
+        return TOKEN_SEMICOLON;
+    else if _symbol == '@' then
+        return TOKEN_AT;
+    else if _symbol == '&' then
+        return TOKEN_AMPERSAND;
+    else
+        print_string("Unknown symbol: '");
+        str_number = to_string(_symbol);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string("'\n");
+        print_string("Line: ");
+        str_number = to_string(line);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string(" Column: ");
+        str_number = to_string(column);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string("\n");
+        exit(1);
+    end end end end end end end end end
+end
+
+// Data types
+add_keyword(TOKEN_UINT8,  "uint8",  5, "TOKEN_TYPE_UINT8");
+add_keyword(TOKEN_UINT16, "uint16", 6, "TOKEN_TYPE_UINT16");
+add_keyword(TOKEN_UINT32, "uint32", 6, "TOKEN_TYPE_UINT32");
+add_keyword(TOKEN_UINT64, "uint64", 6, "TOKEN_TYPE_UINT64");
+add_keyword(TOKEN_INT8,   "int8",   4, "TOKEN_TYPE_INT8");
+add_keyword(TOKEN_INT16,  "int16",  5, "TOKEN_TYPE_INT16");
+add_keyword(TOKEN_INT32,  "int32",  5, "TOKEN_TYPE_INT32");
+add_keyword(TOKEN_INT64,  "int64",  5, "TOKEN_TYPE_INT64");
+add_keyword(TOKEN_BOOL,   "bool",   4, "TOKEN_TYPE_BOOL");
+
+add_keyword(TOKEN_IDENTIFIER, NULL, NULL, "TOKEN_TYPE_IDENTIFIER");
+
+// Symbols
+add_keyword(TOKEN_OPEN_PAREN,    NULL, NULL, "TOKEN_TYPE_OPEN_PAREN");
+add_keyword(TOKEN_CLOSE_PAREN,   NULL, NULL, "TOKEN_TYPE_CLOSE_PAREN");
+add_keyword(TOKEN_OPEN_BRACKET,  NULL, NULL, "TOKEN_TYPE_OPEN_BRACKET");
+add_keyword(TOKEN_CLOSE_BRACKET, NULL, NULL, "TOKEN_TYPE_CLOSE_BRACKET");
+add_keyword(TOKEN_COMMA,         NULL, NULL, "TOKEN_TYPE_COMMA");
+add_keyword(TOKEN_DOT,           NULL, NULL, "TOKEN_TYPE_DOT");
+add_keyword(TOKEN_SEMICOLON,     NULL, NULL, "TOKEN_TYPE_SEMICOLON");
+add_keyword(TOKEN_AT,            NULL, NULL, "TOKEN_TYPE_AT");
+add_keyword(TOKEN_AMPERSAND,     NULL, NULL, "TOKEN_TYPE_AMPERSAND");
+
+// Logical operators
+add_keyword(TOKEN_ASSIGNMENT, NULL, NULL, "TOKEN_TYPE_ASSIGNMENT");
+add_keyword(TOKEN_EQUALS,     NULL, NULL, "TOKEN_TYPE_EQUALS");
+add_keyword(TOKEN_NOT,        NULL, NULL, "TOKEN_TYPE_NOT");
+add_keyword(TOKEN_NOT_EQUALS, NULL, NULL, "TOKEN_TYPE_NOT_EQUALS");
+
+// Arithmetic operators
+add_keyword(TOKEN_PLUS, "+", 1, "TOKEN_TYPE_PLUS");
+add_keyword(TOKEN_PLUS_EQUALS, "+=", 2, "TOKEN_TYPE_PLUS_EQUALS");
+add_keyword(TOKEN_INCREMENT, "++", 2, "TOKEN_TYPE_INCREMENT");
+add_keyword(TOKEN_MINUS, "-", 1, "TOKEN_TYPE_MINUS");
+add_keyword(TOKEN_MINUS_EQUALS, "-=", 2, "TOKEN_TYPE_MINUS_EQUALS");
+add_keyword(TOKEN_ARROW, "->", 2, "TOKEN_TYPE_ARROW");
+add_keyword(TOKEN_DECREMENT, "--", 2, "TOKEN_TYPE_DECREMENT");
+add_keyword(TOKEN_MULTIPLY, "*", 1, "TOKEN_TYPE_MULTIPLY");
+add_keyword(TOKEN_MULTIPLY_EQUALS, "*=", 2, "TOKEN_TYPE_MULTIPLY_EQUALS");
+add_keyword(TOKEN_DIVIDE, "/", 1, "TOKEN_TYPE_DIVIDE");
+add_keyword(TOKEN_DIVIDE_EQUALS, "/=", 2, "TOKEN_TYPE_DIVIDE_EQUALS");
+add_keyword(TOKEN_MODULO, "%%", 1, "TOKEN_TYPE_MODULO");
+add_keyword(TOKEN_MODULO_EQUALS, "%%=", 2, "TOKEN_TYPE_MODULO_EQUALS");
+
+// Comparison operators
+add_keyword(TOKEN_LESS_THAN, "<", 1, "TOKEN_TYPE_LESS_THAN");
+add_keyword(TOKEN_LESS_THAN_EQUALS, "<=", 2, "TOKEN_TYPE_LESS_THAN_EQUALS");
+add_keyword(TOKEN_GREATER_THAN, ">", 1, "TOKEN_TYPE_GREATER_THAN");
+add_keyword(TOKEN_GREATER_THAN_EQUALS, ">=", 2, "TOKEN_TYPE_GREATER_THAN_EQUALS");
+
+// Literals
+add_keyword(TOKEN_LITERAL_INT, NULL, NULL, "TOKEN_TYPE_LITERAL_INT");
+add_keyword(TOKEN_LITERAL_STRING, NULL, NULL, "TOKEN_TYPE_LITERAL_STRING");
+add_keyword(TOKEN_LITERAL_CHAR, NULL, NULL, "TOKEN_TYPE_LITERAL_CHAR");
+
+// Keywords
+add_keyword(TOKEN_PROC_DECL, "proc", 4, "TOKEN_TYPE_PROC_DECL");
+add_keyword(TOKEN_END, "end", 3, "TOKEN_TYPE_END");
+
+
+proc lex_identifier()
+vars
+    uint64 _lit_type = 0;
+code
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    column++;
+    i++;
+
+    while is_alphanumeric(*file_contents) and i < file_size do
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = tokens[token_count].length + 1;
+    end
+
+    tokens[token_count].type = get_identifier_type(tokens[token_count].text, tokens[token_count].length);
+
+    token_count++;
+end
+
+proc lex_delimiter()
+code
+    tokens[token_count].type = get_symbol_type(*file_contents);
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    i++;
+    column++;
+
+    token_count++;
+end
+
+proc lex_hex_number()
+code
+    file_contents++;
+    i++;
+    column++;
+    tokens[token_count].length = tokens[token_count].length + 1;
+    while is_hex_digit(*file_contents) and i < file_size do
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = tokens[token_count].length + 1;
+    end
+end
+
+proc lex_decimal_number()
+code
+    while is_digit(*file_contents) and i < file_size do
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = tokens[token_count].length + 1;
+    end
+end
+
+proc lex_number()
+code
+    tokens[token_count].type = TOKEN_LITERAL_INT;
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    i++;
+    column++;
+
+    if *file_contents == 'x' or *file_contents == 'X' then
+        lex_hex_number();
+    else
+        lex_decimal_number();
+    end
+
+    if is_whitespace(*file_contents) or is_delimiter(*file_contents) or i >= file_size then
+    else
+        print_string("Invalid number\n");
+        print_string("Line: ");
+        str_number = to_string(line);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string(" Column: ");
+        str_number = to_string(column);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        exit(1);
+    end
+
+    token_count++;
+end
+
+proc lex_string()
+code
+    tokens[token_count].type = TOKEN_LITERAL_STRING;
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    i++;
+    column++;
+
+    while *file_contents != '\"' and i < file_size do
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = tokens[token_count].length + 1;
+    end
+
+    if *file_contents == '\"' then
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = tokens[token_count].length + 1;
+    else
+        print_string("Invalid string\n");
+        print_string("Line: ");
+        str_number = to_string(line);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string(" Column: ");
+        str_number = to_string(column);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        exit(1);
+    end
+
+    token_count++;
+end
+
+proc lex_character()
+code
+    tokens[token_count].type = TOKEN_LITERAL_CHAR;
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    i++;
+    column++;
+
+    if *file_contents == '\\' and i < file_size then
+        file_contents = file_contents + 2;
+        i = i + 2;
+        column = column + 2;
+        tokens[token_count].length = tokens[token_count].length + 2;
+    else
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = tokens[token_count].length + 1;
+    end
+
+    if *file_contents == '\'' then
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = tokens[token_count].length + 1;
+    else
+        if tokens[token_count].length > 1 then
+            print_string("Invalid character\n");
+            print_string("Line: ");
+            str_number = to_string(line);
+            print_nstring(str_number, &buffer + buffer_size - str_number);
+            print_string(" Column: ");
+            str_number = to_string(column);
+            print_nstring(str_number, &buffer + buffer_size - str_number);
+            exit(1);
+        end
+    end
+
+    token_count++;
+end
+
+proc lex_equals()
+code
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    i++;
+    column++;
+
+    if *file_contents == '=' then
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_EQUALS;
+    else
+        tokens[token_count].type = TOKEN_ASSIGNMENT;
+    end
+
+    token_count++;
+end
+
+proc lex_not()
+code
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    i++;
+    column++;
+
+    if *file_contents == '=' then
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_NOT_EQUALS;
+    else
+        tokens[token_count].type = TOKEN_NOT;
+    end
+
+    token_count++;
+end
+
+proc lex_less_than()
+code
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    i++;
+    column++;
+
+    if *file_contents == '=' then
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_LESS_THAN_EQUALS;
+    else
+        tokens[token_count].type = TOKEN_LESS_THAN;
+    end
+
+    token_count++;
+end
+
+proc lex_greater_than()
+code
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    i++;
+    column++;
+
+    if *file_contents == '=' then
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_GREATER_THAN_EQUALS;
+    else
+        tokens[token_count].type = TOKEN_GREATER_THAN;
+    end
+
+    token_count++;
+end
+
+proc lex_plus()
+code
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    column++;
+    i++;
+
+    if *file_contents == '=' then
+        file_contents++;
+        column++;
+        i++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_PLUS_EQUALS;
+    else if *file_contents == '+' then
+        file_contents++;
+        column++;
+        i++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_INCREMENT;
+    else
+        tokens[token_count].type = TOKEN_PLUS;
+    end end
+
+    token_count++;
+end
+
+proc lex_minus()
+code
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    column++;
+    i++;
+
+    if *file_contents == '=' then
+        file_contents++;
+        column++;
+        i++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_MINUS_EQUALS;
+    else if *file_contents == '>' then
+        file_contents++;
+        column++;
+        i++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_ARROW;
+    else if *file_contents == '-' then
+        file_contents++;
+        column++;
+        i++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_DECREMENT;
+    else
+        tokens[token_count].type = TOKEN_MINUS;
+    end end end
+
+    token_count++;
+end
+
+proc lex_multiply()
+code
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    column++;
+    i++;
+
+    if *file_contents == '=' then
+        file_contents++;
+        column++;
+        i++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_MULTIPLY_EQUALS;
+    else
+        tokens[token_count].type = TOKEN_MULTIPLY;
+    end
+
+    token_count++;
+end
+
+proc lex_divide()
+code
+    file_contents++;
+    column++;
+    i++;
+    if *file_contents == '=' then
+        tokens[token_count].text = file_contents - 1;
+        tokens[token_count].line = line;
+        tokens[token_count].column = column;
+        tokens[token_count].length = 2;
+
+        file_contents++;
+        column++;
+        i++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_DIVIDE_EQUALS;
+    else if *file_contents == '/' then
+        while *file_contents != '\n' and i < file_size do
+            file_contents++;
+            i++;
+        end
+    else
+        tokens[token_count].text = file_contents - 1;
+        tokens[token_count].line = line;
+        tokens[token_count].column = column;
+        tokens[token_count].length = 1;
+        tokens[token_count].type = TOKEN_DIVIDE;
+    end end
+end
+
+proc lex_modulo()
+code
+    tokens[token_count].text = file_contents;
+    tokens[token_count].line = line;
+    tokens[token_count].column = column;
+    tokens[token_count].length = 1;
+
+    file_contents++;
+    column++;
+    i++;
+
+    if *file_contents == '=' then
+        file_contents++;
+        column++;
+        i++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_MODULO_EQUALS;
+    else
+        tokens[token_count].type = TOKEN_MODULO;
+    end
+
+    token_count++;
+end
+
+while i < file_size do
+    if is_alpha(*file_contents) then
+        lex_identifier();
+    else if is_delimiter(*file_contents) then
+        lex_delimiter();
+    else if is_digit(*file_contents) then
+        lex_number();
+    else if *file_contents == '\n' then
+        line++;
+        column = 1;
+        file_contents++;
+        i++;
+    else if *file_contents == '\r' then
+        file_contents++;
+        i++;
+    else if *file_contents == ' ' then
+        file_contents++;
+        column++;
+        i++;
+    else if *file_contents == '\"' then
+        lex_string();
+    else if *file_contents == '\'' then
+        lex_character();
+    else if *file_contents == '=' then
+        lex_equals();
+    else if *file_contents == '!' then
+        lex_not();
+    else if *file_contents == '<' then
+        lex_less_than();
+    else if *file_contents == '>' then
+        lex_greater_than();
+    else if *file_contents == '+' then
+        lex_plus();
+    else if *file_contents == '-' then
+        lex_minus();
+    else if *file_contents == '*' then
+        lex_multiply();
+    else if *file_contents == '/' then
+        lex_divide();
+    else if *file_contents == '%' then
+        lex_modulo();
+    else
+        print_string("Unknown character: '");
+        print_nstring(file_contents, 1);
+        print_string("'\n");
+        print_string("Line: ");
+        str_number = to_string(line);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string(" Column: ");
+        str_number = to_string(column);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string("\n");
+        exit(1);
+    end end end end end end end end end end end end end end end end end
+end
+
+if DEBUG then
+    str_number = to_string(token_count);
+    print_string("Token count: ");
+    print_nstring(str_number, &buffer + buffer_size - str_number);
+    print_string("\n");
+
+    i = 0;
+    while i < token_count do
+        print_token_type(tokens[i].type);
+        print_string(" text:");
+        print_nstring(tokens[i].text, tokens[i].length);
+        print_string(" line:");
+        str_number = to_string(tokens[i].line);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string(" col:");
+        str_number = to_string(tokens[i].column);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string("\n");
+        i++;
+    end
+end
+
+// =================================================================================================
+// Parser
+// =================================================================================================
+
+uint64 token_index = 0;
+
+proc unexpected_token()
+code
+    print_string("Unexpected token: ");
+    print_token_type(tokens[token_index].type);
+    print_string("\nLine: ");
+    str_number = to_string(tokens[token_index].line);
+    print_nstring(str_number, &buffer + buffer_size - str_number);
+    print_string(" Column: ");
+    str_number = to_string(tokens[token_index].column);
+    print_nstring(str_number, &buffer + buffer_size - str_number);
+    print_string("\n");
+    exit(1);
+end
+
+proc unknown_identifier()
+code
+    print_string("Unknown word: ");
+    print_nstring(tokens[token_index].text, tokens[token_index].length);
+    print_string("\nLine: ");
+    str_number = to_string(tokens[token_index].line);
+    print_nstring(str_number, &buffer + buffer_size - str_number);
+    print_string(" Column: ");
+    str_number = to_string(tokens[token_index].column);
+    print_nstring(str_number, &buffer + buffer_size - str_number);
+    print_string("\n");
+    exit(1);
+end
+
+proc redeclared_identifier()
+code
+    print_string("Identifier redeclared: ");
+    print_nstring(tokens[token_index].text, tokens[token_index].length);
+    print_string("\nLine: ");
+    str_number = to_string(tokens[token_index].line);
+    print_nstring(str_number, &buffer + buffer_size - str_number);
+    print_string(" Column: ");
+    str_number = to_string(tokens[token_index].column);
+    print_nstring(str_number, &buffer + buffer_size - str_number);
+    print_string("\n");
+    exit(1);
+end
+
+proc is_data_type_token(uint64 type) -> uint64
+code
+    return type == TOKEN_UINT8 or type == TOKEN_UINT16 or type == TOKEN_UINT32 or type == TOKEN_UINT64 or
+           type == TOKEN_INT8 or type == TOKEN_INT16 or type == TOKEN_INT32 or type == TOKEN_INT64 or
+           type == TOKEN_BOOL;
+end
+
+proc consume_token(uint64 type)
+code
+    if tokens[token_index].type != type then
+        print_string("Expected token: ");
+        print_token_type(type);
+        print_string(" but got: ");
+        print_token_type(tokens[token_index].type);
+        print_string("\nLine: ");
+        str_number = to_string(tokens[token_index].line);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string(" Column: ");
+        str_number = to_string(tokens[token_index].column);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string("\n");
+        exit(1);
+    end
+    token_index++;
+end
+
+struct Procedure
+    pointer name;
+    uint64 name_length;
+    uint64 variable_count;
+    uint64 first_variable_index;
+    uint64 last_variable_index;
+    uint64 statement_count;
+    uint64 first_statement_index;
+    uint64 last_statement_index;
+end
+
+@define PROCEDURE_COUNT 1000
+
+Procedure[PROCEDURE_COUNT] procedures;
+uint64 procedure_count = 0;
+
+@define VARIABLE_SCOPE_GLOBAL 0
+
+uint64 current_scope = 1;
+
+enum Data_Type_Enum
+    DATA_TYPE_UINT8,
+    DATA_TYPE_UINT16,
+    DATA_TYPE_UINT32,
+    DATA_TYPE_UINT64,
+    DATA_TYPE_INT8,
+    DATA_TYPE_INT16,
+    DATA_TYPE_INT32,
+    DATA_TYPE_INT64,
+    DATA_TYPE_BOOL,
+    DATA_TYPE_STRUCT,
+end
+
+struct Data_Type
+    uint64 type;
+    uint64 size;
+    uint64 is_primitive;
+    pointer name;
+    uint64 name_length;
+end
+
+enum VariableKind
+    VARIABLE_KIND_PARAMETER = 1,
+    VARIABLE_KIND_LOCAL,
+end
+
+struct Variable
+    pointer name;
+    uint64 name_length;
+    uint64 data_type;
+    uint64 rbp_offset; // for local variables
+    uint64 initial_value;
+    uint64 scope;
+    uint64 kind;
+    uint64 next_variable_index;
+end
+
+@define VARIABLE_COUNT 1000
+
+Variable[VARIABLE_COUNT] variables;
+uint64 variable_count = 0;
+
+enum Binary_Operation_Type
+    BINARY_OPERATION_ASSIGNMENT = 1,
+    BINARY_OPERATION_ADD,
+    BINARY_OPERATION_SUBTRACT,
+    BINARY_OPERATION_MULTIPLY,
+    BINARY_OPERATION_DIVIDE,
+    BINARY_OPERATION_MODULO,
+    BINARY_OPERATION_EQUALS,
+    BINARY_OPERATION_NOT_EQUALS,
+    BINARY_OPERATION_LESS_THAN,
+    BINARY_OPERATION_LESS_THAN_EQUALS,
+    BINARY_OPERATION_GREATER_THAN,
+    BINARY_OPERATION_GREATER_THAN_EQUALS,
+end
+
+enum Term_Type
+    TERM_TYPE_LITERAL_INT = 1,
+    TERM_TYPE_LITERAL_STRING,
+    TERM_TYPE_LITERAL_CHAR,
+    TERM_TYPE_VARIABLE,
+    TERM_TYPE_BINARY_OPERATION,
+    TERM_TYPE_PROCEDURE_CALL,
+end
+
+struct Binary_Operation
+    uint64 type;
+    uint64 left_index;
+    uint64 left_type;
+    uint64 right_index;
+    uint64 right_type;
+end
+
+
+@define BINARY_OP_COUNT 1000
+Binary_Operation[BINARY_OP_COUNT] binary_ops;
+uint64 binary_op_count = 0;
+
+proc add_binary_op(uint64 type, uint64 left_index, uint64 left_type, uint64 right_index, uint64 right_type) -> uint64
+code
+    if binary_op_count >= BINARY_OP_COUNT then
+        print_string("Binary operation count exceeded\n");
+        exit(1);
+    end
+
+    binary_ops[binary_op_count].type = type;
+    binary_ops[binary_op_count].left_index = left_index;
+    binary_ops[binary_op_count].left_type = left_type;
+    binary_ops[binary_op_count].right_index = right_index;
+    binary_ops[binary_op_count].right_type = right_type;
+    binary_op_count++;
+
+    return binary_op_count - 1;
+end
+
+struct Statement
+    uint64 op_index;
+    uint64 next_index;
+    uint64 prev_index;
+end
+
+@define STATEMENT_COUNT 1000
+Statement[STATEMENT_COUNT] statements;
+uint64 statement_count = 0;
+
+proc create_statement(uint64 op_index, uint64 next_index, uint64 prev_index) -> uint64
+code
+    debug_string("Adding statement\n");
+    if statement_count >= STATEMENT_COUNT then
+        print_string("Statement count exceeded\n");
+        exit(1);
+    end
+
+    statements[statement_count].op_index = op_index;
+    statements[statement_count].next_index = next_index;
+    statements[statement_count].prev_index = prev_index;
+    statement_count++;
+
+    return statement_count - 1;
+end
+
+proc add_procedure(pointer name, uint64 name_length)
+code
+    if procedure_count >= PROCEDURE_COUNT then
+        print_string("Procedure count exceeded\n");
+        exit(1);
+    end
+
+    procedures[procedure_count].name = name;
+    procedures[procedure_count].name_length = name_length;
+    procedures[procedure_count].variable_count = 0;
+    procedures[procedure_count].first_variable_index = NOT_FOUND;
+    procedures[procedure_count].last_variable_index = NOT_FOUND;
+    procedures[procedure_count].statement_count = 0;
+    procedures[procedure_count].first_statement_index = NOT_FOUND;
+    procedures[procedure_count].last_statement_index = NOT_FOUND;
+    procedure_count++;
+end
+
+proc find_procedure(pointer name, uint64 name_length) -> uint64
+vars
+    uint64 fp_i = 0;
+code
+    fp_i = 0;
+    while fp_i < procedure_count do
+        if string_compare(name, procedures[fp_i].name, name_length, procedures[fp_i].name_length) then
+            return fp_i;
+        end
+        fp_i++;
+    end
+    return 0 - 1; // only uint64 are supported, so this is the best we can do
+end
+
+proc add_variable_to_procedure(uint64 variable_index)
+vars
+    uint64 avtp_current_proc = 0;
+    uint64 avtp_last_variable_index = 0;
+code
+    debug_string("Adding variable to procedure\n");
+    avtp_current_proc = procedure_count - 1;
+    if procedures[avtp_current_proc].first_variable_index == NULL then
+        procedures[avtp_current_proc].first_variable_index = variable_index;
+        procedures[avtp_current_proc].last_variable_index = variable_index;
+    else
+        avtp_last_variable_index = procedures[avtp_current_proc].last_variable_index;
+        variables[avtp_last_variable_index].next_variable_index = variable_index;
+        procedures[avtp_current_proc].last_variable_index = variable_index;
+    end
+
+    // Set variable index
+    variables[variable_index].rbp_offset = procedures[avtp_current_proc].variable_count * 8 + 8;
+
+    procedures[avtp_current_proc].variable_count = procedures[avtp_current_proc].variable_count + 1;
+end
+
+proc add_variable(pointer name, uint64 name_length, uint64 data_type, uint64 initial_value, uint64 scope, uint64 kind)
+code
+    if variable_count >= VARIABLE_COUNT then
+        print_string("Variable count exceeded\n");
+        exit(1);
+    end
+
+    variables[variable_count].name = name;
+    variables[variable_count].name_length = name_length;
+    variables[variable_count].data_type = data_type;
+    variables[variable_count].initial_value = initial_value;
+    variables[variable_count].scope = scope;
+    variables[variable_count].kind = kind;
+
+    if scope != VARIABLE_SCOPE_GLOBAL then
+        add_variable_to_procedure(variable_count);
+    end
+
+    variable_count++;
+end
+
+proc find_variable(uint64 token_index) -> uint64
+vars
+    uint64 iv_i = 0;
+code
+    iv_i = 0;
+    while iv_i < variable_count do
+        if string_compare(tokens[token_index].text, variables[iv_i].name, tokens[token_index].length, variables[iv_i].name_length) then
+            return iv_i;
+        end
+        iv_i++;
+    end
+    return NOT_FOUND;
+end
+
+proc parse_identifier() -> uint64
+code
+    consume_token(TOKEN_IDENTIFIER);
+    return token_index - 1;
+end
+
+proc parse_literal_int() -> uint64
+vars
+    uint64 _pli_i = 0;
+code
+    _pli_i = token_index;
+    consume_token(TOKEN_LITERAL_INT);
+
+    return to_number(tokens[_pli_i].text, tokens[_pli_i].length);
+end
+
+proc parse_variable_declaration(uint64 scope)
+vars
+    uint64 pvd_data_type = 0;
+    uint64 pvd_identifier = 0;
+    uint64 pvd_initial_value = 0;
+code
+    pvd_data_type = tokens[token_index].type;
+    consume_token(pvd_data_type);
+    pvd_identifier = parse_identifier();
+
+    // Check if variable already exists
+    if find_variable(pvd_identifier) != NOT_FOUND then
+        // revert token index to identifier for error message
+        token_index = pvd_identifier;
+        redeclared_identifier();
+    end
+
+    if tokens[token_index].type == TOKEN_ASSIGNMENT then
+        consume_token(TOKEN_ASSIGNMENT);
+        pvd_initial_value = parse_literal_int();
+    else
+        pvd_initial_value = 0;
+    end
+
+    consume_token(TOKEN_SEMICOLON);
+
+    add_variable(tokens[pvd_identifier].text, tokens[pvd_identifier].length, pvd_data_type, pvd_initial_value, scope, VARIABLE_KIND_LOCAL);
+end
+
+proc parse_expression() -> uint64
+code
+    return parse_literal_int();
+end
+
+proc add_statement_to_procedure(uint64 statement_index, uint64 proc_index)
+vars
+    uint64 astp_last_statement_index = 0;
+code
+    debug_string("Adding statement ");
+    str_number = to_string(statement_index);
+    debug_nstring(str_number, &buffer + buffer_size - str_number);
+    debug_string(" to procedure ");
+    str_number = to_string(proc_index);
+    debug_nstring(str_number, &buffer + buffer_size - str_number);
+    debug_string("\n");
+
+    if procedures[proc_index].statement_count == 0 then
+        procedures[proc_index].first_statement_index = statement_index;
+    else
+        astp_last_statement_index = procedures[proc_index].last_statement_index;
+        statements[astp_last_statement_index].next_index = statement_index;
+    end
+    procedures[proc_index].last_statement_index = statement_index;
+
+    procedures[proc_index].statement_count = procedures[proc_index].statement_count + 1;
+end
+
+proc parse_statement(uint64 scope, uint64 proc_index)
+vars
+    uint64 ps_identifier = 0;
+    uint64 ps_data_type = 0;
+    uint64 ps_var_index = 0;
+    uint64 ps_expr_index = 0;
+    uint64 ps_op_index = 0;
+    uint64 ps_statement_index = 0;
+code
+    if is_data_type_token(tokens[token_index].type) then
+        parse_variable_declaration(scope);
+    else if tokens[token_index].type == TOKEN_IDENTIFIER then
+        ps_identifier = parse_identifier();
+
+        ps_var_index = find_variable(ps_identifier);
+        if ps_var_index != NOT_FOUND then
+            ps_data_type = DATA_TYPE_UINT64;
+        else
+            token_index = token_index - 1;
+            unknown_identifier();
+        end
+
+        debug_string("Variable index is ");
+        str_number = to_string(ps_var_index);
+        debug_nstring(str_number, &buffer + buffer_size - str_number);
+        debug_string("\n");
+
+        debug_string("Variable Count is ");
+        str_number = to_string(variable_count);
+        debug_nstring(str_number, &buffer + buffer_size - str_number);
+        debug_string("\n");
+
+        if tokens[token_index] == TOKEN_ASSIGNMENT then
+            consume_token(TOKEN_ASSIGNMENT);
+        else
+            unexpected_token();
+        end
+
+        ps_expr_index = parse_expression();
+
+        ps_op_index = add_binary_op(BINARY_OPERATION_ASSIGNMENT, ps_var_index, TERM_TYPE_VARIABLE, ps_expr_index, TERM_TYPE_LITERAL_INT);
+
+        debug_string("Added binary op index: ");
+        str_number = to_string(ps_op_index);
+        debug_nstring(str_number, &buffer + buffer_size - str_number);
+        debug_string("\n");
+
+        ps_statement_index = create_statement(ps_op_index, procedures[proc_index].last_statement_index, NULL);
+
+        add_statement_to_procedure(ps_statement_index, proc_index);
+
+        consume_token(TOKEN_SEMICOLON);
+    else
+        unexpected_token();
+    end end
+end
+
+proc parse_procedure_declaration(uint64 scope)
+vars
+    uint64 ppd_identifier = 0;
+    pointer ppd_proc_pointer = 0;
+    uint64 ppd_proc_index = 0;
+code
+    consume_token(TOKEN_PROC_DECL);
+    ppd_identifier = parse_identifier();
+
+    // Check if procedure already exists
+    if find_procedure(tokens[ppd_identifier].text, tokens[ppd_identifier].length) != NOT_FOUND then
+        // revert token index to identifier for error message
+        token_index = ppd_identifier;
+        redeclared_identifier();
+    end
+
+    add_procedure(tokens[ppd_identifier].text, tokens[ppd_identifier].length);
+
+    consume_token(TOKEN_OPEN_PAREN);
+    consume_token(TOKEN_CLOSE_PAREN);
+
+    while tokens[token_index].type != TOKEN_END do
+        parse_statement(scope, procedure_count - 1);
+    end
+
+    consume_token(TOKEN_END);
+end
+
+while token_index < token_count do
+    if is_data_type_token(tokens[token_index].type) then
+        parse_variable_declaration(VARIABLE_SCOPE_GLOBAL);
+    else if tokens[token_index].type == TOKEN_PROC_DECL then
+        parse_procedure_declaration(current_scope);
+        current_scope++;
+    else
+        unexpected_token();
+    end end
+end
+
+// =================================================================================================
+// Code generation
+// =================================================================================================
+
+proc emit_nstring(uint64 handle, pointer text, uint64 length)
+code
+    WriteFile(handle, text, length, NULL, NULL);
+end
+
+proc emit_string(uint64 handle, pointer text)
+vars
+    uint64 es_length = 0;
+code
+    es_length = string_length(text);
+    emit_nstring(handle, text, es_length);
+end
+
+proc write_header(uint64 file_handle)
+code
+    emit_string(file_handle, "; Generated by Strata v2.0\n\n");
+    emit_string(file_handle, "bits 64");
+    emit_string(file_handle, "default rel\n\n");
+    emit_string(file_handle, "section .text\n");
+    emit_string(file_handle, "\tglobal proc_main\n\n");
+end
+
+proc write_assignment(uint64 file_handle, uint64 op_index)
+vars
+    uint64 wa_left_index = 0;
+    uint64 wa_right_index = 0;
+code
+    wa_left_index = binary_ops[op_index].left_index;
+    wa_right_index = binary_ops[op_index].right_index;
+
+    if binary_ops[op_index].right_type == TERM_TYPE_LITERAL_INT then
+        emit_string(file_handle, "\tmov r15, ");
+        str_number = to_string(binary_ops[op_index].right_index);
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, "\n");
+    else 
+        print_string("Unsupported right type\n");
+    end
+
+    if binary_ops[op_index].left_type == TERM_TYPE_VARIABLE then
+        emit_string(file_handle, "\tmov qword [rbp - ");
+        str_number = to_string(variables[wa_left_index].rbp_offset);
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, "]\n");
+    else
+        print_string("Unsupported left type\n");
+    end
+end
+
+uint64 ws_statement_index = 0;
+proc write_statement(uint64 file_handle, uint64 statement_index)
+vars
+    uint64 ws_op_index = 0;
+    uint64 ws_left_index = 0;
+    uint64 ws_right_index = 0;
+code
+    debug_string("; writing statement ");
+    str_number = to_string(statement_index);
+    debug_nstring(str_number, &buffer + buffer_size - str_number);
+    debug_string("\n");
+    ws_op_index = statements[statement_index].op_index;
+
+    emit_string(file_handle, "; statement index: ");
+    str_number = to_string(ws_statement_index);
+    emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+    emit_string(file_handle, "\n");
+
+    if binary_ops[ws_op_index].type == BINARY_OPERATION_ASSIGNMENT then
+        write_assignment(file_handle, ws_op_index);
+    else
+        unexpected_token();
+    end
+
+    ws_statement_index++;
+end
+
+proc write_procedure_declaration(uint64 file_handle, uint64 procedure_index)
+vars
+    uint64 wp_i = 0;
+    uint64 wp_statement_index = 0;
+code
+    debug_string("; writing procedure\n");
+    emit_string(file_handle, "proc_");
+    emit_nstring(file_handle, procedures[procedure_index].name, procedures[procedure_index].name_length);
+    emit_string(file_handle, ":\n");
+    emit_string(file_handle, "\tpush rbp\n");
+    emit_string(file_handle, "\tmov rbp, rsp\n");
+
+    if procedures[procedure_index].variable_count != 0 then
+        emit_string(file_handle, "\tsub rsp, ");
+        str_number = to_string(procedures[procedure_index].variable_count * 8);
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, " ; ");
+        str_number = to_string(procedures[procedure_index].variable_count);
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, " local vars\n");
+    end
+
+    wp_i = 0;
+    wp_statement_index = procedures[procedure_index].first_statement_index;
+    ws_statement_index = 0;
+    while wp_i < procedures[procedure_index].statement_count do
+        write_statement(file_handle, wp_statement_index);
+        wp_statement_index = statements[wp_statement_index].next_index;
+        wp_i++;
+    end
+
+    emit_string(file_handle, "\tmov rsp, rbp\n");
+    emit_string(file_handle, "\tpop rbp\n");
+    emit_string(file_handle, "\tret\n");
+    emit_string(file_handle, "; end proc_");
+    emit_nstring(file_handle, procedures[procedure_index].name, procedures[procedure_index].name_length);
+    emit_string(file_handle, "\n\n");
+end
+
+proc write_program(uint64 file_handle)
+vars
+    uint64 wp_i = 0;
+code
+    write_header(file_handle);
+
+    debug_string("Writing program\n");
+    wp_i = 0;
+    while wp_i < procedure_count do
+        write_procedure_declaration(file_handle, wp_i);
+        wp_i++;
+    end
+end
+
+uint64 output_file_handle = CreateFileA("v3.asm", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+write_program(output_file_handle);
+
+
+
 // Strings - compare, index, read, write
 // Uint16, uint32, int8, int16, uint32, int64
 // offsetof() intrinsic
 // Macros
 // Variadic procedures
 // `test`, `str` is not a valid identifier because it is a keyword in assembly
-// number parsing always treats the number as hex, resulting in identifier ceed being parsed as 0xceed
 // Includes
 // Asserts
-// 
+//
 // For loops
 // Generate byte code
 // Dead code elimination
-// Constant folding 
+// Constant folding
 // Tests - edit some simple examples and develop a C# app to run them. Compare output
-// Type check 
-// 
+// Type check
+//
