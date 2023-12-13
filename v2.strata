@@ -116,20 +116,34 @@ uint8* str_number = 0;
 proc to_string(uint64 value) -> uint64
 vars
     uint64 val = 0;
+    uint64 ts_negative = 0;
 code
     val = value;
+    ts_negative = 0;
+    if val < 0 then
+        ts_negative = 1;
+        val = 0 - val;
+    end
+
     if val == 0 then
         buffer_ptr = &buffer + buffer_size;
         buffer_ptr = buffer_ptr - 1;
         *buffer_ptr = 48;
         return buffer_ptr;
     end
+
     buffer_ptr = &buffer + buffer_size;
-    while val > 0 do
+    while val != 0 do
         buffer_ptr = buffer_ptr - 1;
         *buffer_ptr = val % 10 + 48;
         val = val / 10;
     end
+
+    if ts_negative then
+        buffer_ptr = buffer_ptr - 1;
+        *buffer_ptr = '-';
+    end
+
     return buffer_ptr;
 end
 
@@ -507,6 +521,11 @@ code
     end
 end
 
+proc is_math_symbol(uint8 c) -> uint64
+code    
+    return c == '+' or c == '-' or c == '*' or c == '/' or c == '%';
+end
+
 proc lex_number()
 code
     tokens[token_count].type = TOKEN_LITERAL_INT;
@@ -525,7 +544,7 @@ code
         lex_decimal_number();
     end
 
-    if is_whitespace(*file_contents) or is_delimiter(*file_contents) or i >= file_size then
+    if is_whitespace(*file_contents) or is_delimiter(*file_contents) or is_math_symbol(*file_contents) or i >= file_size then
     else
         print_string("Invalid number\n");
         print_string("Line: ");
@@ -1304,7 +1323,11 @@ vars
     uint64 pe_var_index = 0;
     uint64 pe_op_index = 0;
 code
-    if tokens[token_index].type == TOKEN_LITERAL_INT then
+    if tokens[token_index].type == TOKEN_MINUS and tokens[token_index + 1].type == TOKEN_LITERAL_INT then
+        consume_token(TOKEN_MINUS);
+        pe_term_index = 0 - parse_literal_int();
+        return add_binary_op(BINARY_OPERATION_UNARY, pe_term_index, TERM_TYPE_LITERAL_INT, 0, 0);
+    else if tokens[token_index].type == TOKEN_LITERAL_INT then
         pe_term_index = parse_literal_int();
         return add_binary_op(BINARY_OPERATION_UNARY, pe_term_index, TERM_TYPE_LITERAL_INT, 0, 0);
     else if tokens[token_index].type == TOKEN_IDENTIFIER then
@@ -1318,7 +1341,7 @@ code
         end
     else
         unexpected_token();
-    end end
+    end end end
 end
 
 proc parse_multiplicative_expression() -> uint64
@@ -1330,19 +1353,24 @@ proc parse_additive_expression() -> uint64
 vars
     uint64 pae_left_index = 0;
     uint64 pae_right_index = 0;
+    uint64 pae_op_type = 0;
 code 
     pae_left_index = parse_multiplicative_expression();
 
-    if tokens[token_index].type == TOKEN_PLUS then
-        while tokens[token_index].type == TOKEN_PLUS do
+    while tokens[token_index].type == TOKEN_PLUS or tokens[token_index].type == TOKEN_MINUS do
+        if tokens[token_index].type == TOKEN_PLUS then
             consume_token(TOKEN_PLUS);
-            pae_right_index = parse_additive_expression();
-
-            return add_binary_op(BINARY_OPERATION_ADD, pae_left_index, TERM_TYPE_BINARY_OPERATION, pae_right_index, TERM_TYPE_BINARY_OPERATION);
+            pae_op_type = BINARY_OPERATION_ADD;
+        else
+            consume_token(TOKEN_MINUS);
+            pae_op_type = BINARY_OPERATION_SUBTRACT;
         end
-    else
-        return pae_left_index;
+        pae_right_index = parse_additive_expression();
+
+        return add_binary_op(pae_op_type, pae_left_index, TERM_TYPE_BINARY_OPERATION, pae_right_index, TERM_TYPE_BINARY_OPERATION);
     end
+   
+    return pae_left_index;
 end
 
 proc parse_expression() -> uint64
@@ -1650,7 +1678,7 @@ code
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, "\n");
     else if binary_ops[op_index].left_type == TERM_TYPE_VARIABLE then
-        print_string("Unary op value is variable\n");
+        print_string("get_unary_op_value: Unary op value is variable\n");
 
         guov_left_index = binary_ops[op_index].left_index;
         emit_string(file_handle, "\tmov ");
@@ -1660,7 +1688,7 @@ code
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, "]\n");
     else
-        print_string("Unsupported unary type\n");
+        print_string("get_unary_op_value: Unsupported unary type\n");
         exit(1);
     end end
 end
@@ -1678,24 +1706,24 @@ code
     if binary_ops[woa_left_index].type == BINARY_OPERATION_UNARY then
         get_unary_op_value(file_handle, woa_left_index);
     else
-        print_string("Unsupported left type\n");
+        print_string("write_op_addition: Unsupported left type\n");
+        exit(1);
     end 
 
     if binary_ops[woa_right_index].type == BINARY_OPERATION_UNARY then
         get_unary_op_value(file_handle, woa_right_index);
-    else if binary_ops[woa_right_index].type == BINARY_OPERATION_ADD then
+    else if binary_ops[woa_right_index].type == BINARY_OPERATION_ADD or binary_ops[woa_right_index].type == BINARY_OPERATION_SUBTRACT then
         write_op_addition(file_handle, woa_right_index);
     else 
-        print_string("Unsupported right type ");
+        print_string("write_op_addition: Unsupported right type ");
         str_number = to_string(binary_ops[woa_right_index].type);
         print_nstring(str_number, &buffer + buffer_size - str_number);
         print_string("\n");
+        exit(1);
     end end
 
-    // print_reg_stack();
-    woa_left_reg = pop_register();
     woa_right_reg = pop_register();
-    // print_reg_stack();
+    woa_left_reg = pop_register();
     
     print_string("Poped registers: left");
     str_number = to_string(woa_left_reg);
@@ -1705,7 +1733,14 @@ code
     print_nstring(str_number, &buffer + buffer_size - str_number);
     print_string("\n");
 
-    emit_string(file_handle, "\tadd ");
+    if binary_ops[op_index].type == BINARY_OPERATION_ADD then
+        emit_string(file_handle, "\tadd ");
+    else if binary_ops[op_index].type == BINARY_OPERATION_SUBTRACT then
+        emit_string(file_handle, "\tsub ");
+    else
+        print_string("write_op_addition: Unsupported operation type\n");
+        exit(1);
+    end end
     emit_string(file_handle, reg_names[woa_left_reg]);
     emit_string(file_handle, ", ");
     emit_string(file_handle, reg_names[woa_right_reg]);
@@ -1725,10 +1760,11 @@ code
 
     if binary_ops[wa_right_index].type == BINARY_OPERATION_UNARY then
         get_unary_op_value(file_handle, wa_right_index);
-    else if binary_ops[wa_right_index].type == BINARY_OPERATION_ADD then
+    else if binary_ops[wa_right_index].type == BINARY_OPERATION_ADD or binary_ops[wa_right_index].type == BINARY_OPERATION_SUBTRACT then
         write_op_addition(file_handle, wa_right_index);
     else 
-        print_string("Unsupported right type\n");
+        print_string("write_assignment: Unsupported right type\n");
+        exit(1);
     end end
 
     if binary_ops[op_index].left_type == TERM_TYPE_VARIABLE then
@@ -1741,7 +1777,7 @@ code
         emit_string(file_handle, reg_names[wa_right_reg]);
         emit_string(file_handle, "\n");
     else
-        print_string("Unsupported left type\n");
+        print_string("write_assignment: Unsupported left type\n");
     end
 end
 
