@@ -254,6 +254,7 @@ code
     keyword_count++;
 end
 
+@define TOKEN_COUNT 100000
 struct Token
     uint64 type;
     uint64 line;
@@ -262,7 +263,7 @@ struct Token
     pointer text;
 end
 
-Token[50000] tokens;
+Token[TOKEN_COUNT] tokens;
 uint64 token_count = 0;
 
 uint64 line = 1;
@@ -997,6 +998,11 @@ end
 
 proc consume_token(uint64 type)
 code
+    if token_index >= token_count then
+        print_string("Unexpected end of file\n");
+        exit(1);
+    end
+    
     if tokens[token_index].type != type then
         print_string("Expected token: ");
         print_token_type(type);
@@ -1089,6 +1095,7 @@ enum Binary_Operation_Type
     BINARY_OPERATION_LESS_THAN_EQUALS,
     BINARY_OPERATION_GREATER_THAN,
     BINARY_OPERATION_GREATER_THAN_EQUALS,
+    BINARY_OPERATION_UNARY,
 end
 
 enum Term_Type
@@ -1096,6 +1103,7 @@ enum Term_Type
     TERM_TYPE_LITERAL_STRING,
     TERM_TYPE_LITERAL_CHAR,
     TERM_TYPE_VARIABLE,
+    TERM_TYPE_UNARY_OPERATION,
     TERM_TYPE_BINARY_OPERATION,
     TERM_TYPE_PROCEDURE_CALL,
 end
@@ -1195,7 +1203,7 @@ vars
 code
     debug_string("Adding variable to procedure\n");
     avtp_current_proc = procedure_count - 1;
-    if procedures[avtp_current_proc].first_variable_index == NULL then
+    if procedures[avtp_current_proc].first_variable_index == NOT_FOUND then
         procedures[avtp_current_proc].first_variable_index = variable_index;
         procedures[avtp_current_proc].last_variable_index = variable_index;
     else
@@ -1289,10 +1297,54 @@ code
 
     add_variable(tokens[pvd_identifier].text, tokens[pvd_identifier].length, pvd_data_type, pvd_initial_value, scope, VARIABLE_KIND_LOCAL);
 end
+proc parse_factor() -> uint64
+vars
+    uint64 pe_term_index = 0;
+    uint64 pe_var_index = 0;
+    uint64 pe_op_index = 0;
+code
+    if tokens[token_index].type == TOKEN_LITERAL_INT then
+        pe_term_index = parse_literal_int();
+        return add_binary_op(BINARY_OPERATION_UNARY, pe_term_index, TERM_TYPE_LITERAL_INT, 0, 0);
+    else if tokens[token_index].type == TOKEN_IDENTIFIER then
+        pe_term_index = parse_identifier();
+        pe_var_index = find_variable(pe_term_index);
+        if pe_var_index != NOT_FOUND then
+            return add_binary_op(BINARY_OPERATION_UNARY, pe_var_index, TERM_TYPE_VARIABLE, 0, 0);
+        else
+            token_index = token_index - 1;
+            unknown_identifier();
+        end
+    else
+        unexpected_token();
+    end end
+end
+
+proc parse_multiplicative_expression() -> uint64
+code
+    return parse_factor();
+end
+
+proc parse_additive_expression() -> uint64
+vars
+    uint64 pae_left_index = 0;
+    uint64 pae_right_index = 0;
+code 
+    pae_left_index = parse_multiplicative_expression();
+
+    if tokens[token_index].type == TOKEN_PLUS then
+        consume_token(TOKEN_PLUS);
+        pae_right_index = parse_multiplicative_expression();
+
+        return add_binary_op(BINARY_OPERATION_ADD, pae_left_index, TERM_TYPE_BINARY_OPERATION, pae_right_index, TERM_TYPE_BINARY_OPERATION);
+    else
+        return pae_left_index;
+    end
+end
 
 proc parse_expression() -> uint64
 code
-    return parse_literal_int();
+    return parse_additive_expression();
 end
 
 proc add_statement_to_procedure(uint64 statement_index, uint64 proc_index)
@@ -1358,7 +1410,7 @@ code
 
         ps_expr_index = parse_expression();
 
-        ps_op_index = add_binary_op(BINARY_OPERATION_ASSIGNMENT, ps_var_index, TERM_TYPE_VARIABLE, ps_expr_index, TERM_TYPE_LITERAL_INT);
+        ps_op_index = add_binary_op(BINARY_OPERATION_ASSIGNMENT, ps_var_index, TERM_TYPE_VARIABLE, ps_expr_index, binary_ops[ps_expr_index].type);
 
         debug_string("Added binary op index: ");
         str_number = to_string(ps_op_index);
@@ -1396,7 +1448,7 @@ code
     consume_token(TOKEN_OPEN_PAREN);
     consume_token(TOKEN_CLOSE_PAREN);
 
-    while tokens[token_index].type != TOKEN_END do
+    while tokens[token_index].type != TOKEN_END and token_index < token_count do
         parse_statement(scope, procedure_count - 1);
     end
 
@@ -1440,28 +1492,111 @@ code
     emit_string(file_handle, "\tglobal proc_main\n\n");
 end
 
+proc write_var_init(uint64 file_handle, uint64 variable_index)
+vars
+    uint64 wvi_initial_value = 0;
+code
+    wvi_initial_value = variables[variable_index].initial_value;
+    if wvi_initial_value > 0x7FFFFFFF then
+        emit_string(file_handle, "\tmov r15, ");
+        str_number = to_string(wvi_initial_value);
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, "\n");
+        emit_string(file_handle, "\tmov qword [rbp - ");
+        str_number = to_string(variables[variable_index].rbp_offset);
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, "], r15\n");
+    else
+        emit_string(file_handle, "\tmov qword [rbp - ");
+        str_number = to_string(variables[variable_index].rbp_offset);
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, "], ");
+        str_number = to_string(wvi_initial_value);
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, " ; local var ");
+        emit_nstring(file_handle, variables[variable_index].name, variables[variable_index].name_length);
+        emit_string(file_handle, "\n");
+    end
+end
+
+uint8[] reg_r14 = "r14";
+uint8[] reg_r15 = "r15";
+
+proc get_unary_op_value(uint64 file_handle, uint64 op_index, pointer reg)
+vars
+    uint64 guov_left_index = 0;
+code
+    if binary_ops[op_index].left_type == TERM_TYPE_LITERAL_INT then
+        emit_string(file_handle, "\tmov ");
+        emit_string(file_handle, reg);
+        emit_string(file_handle, ", ");
+        str_number = to_string(binary_ops[op_index].left_index);
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, "\n");
+    else if binary_ops[op_index].left_type == TERM_TYPE_VARIABLE then
+        print_string("Unary op value is variable\n");
+
+        guov_left_index = binary_ops[op_index].left_index;
+        emit_string(file_handle, "\tmov ");
+        emit_string(file_handle, reg);
+        emit_string(file_handle, ", qword [rbp - ");
+        str_number = to_string(variables[guov_left_index].rbp_offset);
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, "]\n");
+    else
+        print_string("Unsupported unary type\n");
+        exit(1);
+    end end
+end
+
+proc write_op_addition(uint64 file_handle, uint64 op_index)
+vars
+    uint64 woa_left_index = 0;
+    uint64 woa_right_index = 0;
+    uint64 woa_left_value = 0;
+    uint64 woa_right_value = 0;
+code
+    woa_left_index = binary_ops[op_index].left_index;
+    woa_right_index = binary_ops[op_index].right_index;
+
+    if binary_ops[woa_left_index].type == BINARY_OPERATION_UNARY then
+        get_unary_op_value(file_handle, woa_left_index, reg_r15);
+    else
+        print_string("Unsupported left type\n");
+    end 
+
+    if binary_ops[woa_right_index].type == BINARY_OPERATION_UNARY then
+        get_unary_op_value(file_handle, woa_right_index, reg_r14);
+    else
+        print_string("Unsupported right type\n");
+    end 
+
+    emit_string(file_handle, "\tadd r15, r14\n");
+end
+
 proc write_assignment(uint64 file_handle, uint64 op_index)
 vars
     uint64 wa_left_index = 0;
     uint64 wa_right_index = 0;
+    uint64 wa_left_value = 0;
+    uint64 wa_right_value = 0;
 code
     wa_left_index = binary_ops[op_index].left_index;
     wa_right_index = binary_ops[op_index].right_index;
 
-    if binary_ops[op_index].right_type == TERM_TYPE_LITERAL_INT then
-        emit_string(file_handle, "\tmov r15, ");
-        str_number = to_string(binary_ops[op_index].right_index);
-        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
-        emit_string(file_handle, "\n");
+    if binary_ops[wa_right_index].type == BINARY_OPERATION_UNARY then
+        get_unary_op_value(file_handle, wa_right_index, reg_r15);
+    else if binary_ops[wa_right_index].type == BINARY_OPERATION_ADD then
+        write_op_addition(file_handle, wa_right_index);
     else 
         print_string("Unsupported right type\n");
-    end
+    end end
 
     if binary_ops[op_index].left_type == TERM_TYPE_VARIABLE then
         emit_string(file_handle, "\tmov qword [rbp - ");
         str_number = to_string(variables[wa_left_index].rbp_offset);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
-        emit_string(file_handle, "]\n");
+        emit_string(file_handle, "], r15\n");
     else
         print_string("Unsupported left type\n");
     end
@@ -1497,6 +1632,7 @@ end
 proc write_procedure_declaration(uint64 file_handle, uint64 procedure_index)
 vars
     uint64 wp_i = 0;
+    uint64 wp_variable_index = 0;
     uint64 wp_statement_index = 0;
 code
     debug_string("; writing procedure\n");
@@ -1514,11 +1650,18 @@ code
         str_number = to_string(procedures[procedure_index].variable_count);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, " local vars\n");
+
+        wp_i = 0;
+        wp_variable_index = procedures[procedure_index].first_variable_index;
+        while wp_i < procedures[procedure_index].variable_count do
+            write_var_init(file_handle, wp_variable_index);
+            wp_variable_index = variables[wp_variable_index].next_variable_index;
+            wp_i++;
+        end
     end
 
     wp_i = 0;
     wp_statement_index = procedures[procedure_index].first_statement_index;
-    ws_statement_index = 0;
     while wp_i < procedures[procedure_index].statement_count do
         write_statement(file_handle, wp_statement_index);
         wp_statement_index = statements[wp_statement_index].next_index;
@@ -1537,6 +1680,11 @@ proc write_program(uint64 file_handle)
 vars
     uint64 wp_i = 0;
 code
+    if find_procedure("main", 4) == NOT_FOUND then
+        print_string("No main procedure found\n");
+        exit(1);
+    end
+
     write_header(file_handle);
 
     debug_string("Writing program\n");

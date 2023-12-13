@@ -19,19 +19,17 @@
 
 proc main()
     uint64 sub;
-    uint64 var_64 = 1;
+    uint64 var_64 = 2147483648;
     uint64 var2_64 = 2;
+    uint64 var3_64 = 3;
 
-    sub = 1;
-    sub = 2;
-    var_64 = 2;
-    var2_64 = 3;
-
+    sub = 1 + 2 + 3;
+    
     // uint64 sum = var_64 + var2_64;
     // sub = var_64 - var2_64;
 end
 
-proc test_proc()
-    uint8 ch;
-    ch = 0;
-end
+// proc test_proc()
+//     uint8 ch;
+//     ch = 0;
+// end
