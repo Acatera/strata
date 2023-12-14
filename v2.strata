@@ -844,6 +844,8 @@ code
         i++;
         tokens[token_count].length = 2;
         tokens[token_count].type = TOKEN_DIVIDE_EQUALS;
+
+        token_count++;
     else if *file_contents == '/' then
         while *file_contents != '\n' and i < file_size do
             file_contents++;
@@ -855,6 +857,8 @@ code
         tokens[token_count].column = column;
         tokens[token_count].length = 1;
         tokens[token_count].type = TOKEN_DIVIDE;
+
+        token_count++;
     end end
 end
 
@@ -1345,17 +1349,36 @@ code
 end
 
 proc parse_multiplicative_expression() -> uint64
+vars
+    uint64 pme_op_index = 0;
+    uint64 pme_right_index = 0;
+    uint64 pme_op_type = 0;
 code
-    return parse_factor();
+    pme_op_index = parse_factor();
+
+    while tokens[token_index].type == TOKEN_MULTIPLY or tokens[token_index].type == TOKEN_DIVIDE do
+        if tokens[token_index].type == TOKEN_MULTIPLY then
+            consume_token(TOKEN_MULTIPLY);
+            pme_op_type = BINARY_OPERATION_MULTIPLY;
+        else
+            consume_token(TOKEN_DIVIDE);
+            pme_op_type = BINARY_OPERATION_DIVIDE;
+        end
+        pme_right_index = parse_factor();
+
+        pme_op_index = add_binary_op(pme_op_type, pme_op_index, TERM_TYPE_BINARY_OPERATION, pme_right_index, TERM_TYPE_BINARY_OPERATION);
+    end
+
+    return pme_op_index;
 end
 
 proc parse_additive_expression() -> uint64
 vars
-    uint64 pae_left_index = 0;
+    uint64 pae_op_index = 0;
     uint64 pae_right_index = 0;
     uint64 pae_op_type = 0;
 code 
-    pae_left_index = parse_multiplicative_expression();
+    pae_op_index = parse_multiplicative_expression();
 
     while tokens[token_index].type == TOKEN_PLUS or tokens[token_index].type == TOKEN_MINUS do
         if tokens[token_index].type == TOKEN_PLUS then
@@ -1365,12 +1388,12 @@ code
             consume_token(TOKEN_MINUS);
             pae_op_type = BINARY_OPERATION_SUBTRACT;
         end
-        pae_right_index = parse_additive_expression();
+        pae_right_index = parse_multiplicative_expression();
 
-        return add_binary_op(pae_op_type, pae_left_index, TERM_TYPE_BINARY_OPERATION, pae_right_index, TERM_TYPE_BINARY_OPERATION);
+        pae_op_index = add_binary_op(pae_op_type, pae_op_index, TERM_TYPE_BINARY_OPERATION, pae_right_index, TERM_TYPE_BINARY_OPERATION);
     end
    
-    return pae_left_index;
+    return pae_op_index;
 end
 
 proc parse_expression() -> uint64
@@ -1551,20 +1574,20 @@ code
 end
 
 enum Registers
-    REG_RAX = 1,
-    REG_RBX,
-    REG_RCX,
-    REG_RDX,
-    REG_RSI,
-    REG_RDI,
-    REG_R8,
-    REG_R9,
-    REG_R10,
-    REG_R11,
-    REG_R12,
-    REG_R13,
+    REG_R15 = 1,
     REG_R14,
-    REG_R15,
+    REG_R13,
+    REG_R12,
+    REG_R11,
+    REG_R10,
+    REG_R9,
+    REG_R8,
+    REG_RDI,
+    REG_RSI,
+    REG_RDX,
+    REG_RCX,
+    REG_RBX,
+    REG_RAX,
 end
 
 @define REG_COUNT 15
@@ -1574,25 +1597,43 @@ uint64 reg_stack_count = 0;
 uint64 regs_in_use = 0;
 uint64[REG_COUNT] reg_names;
 
-uint8[] reg_rax = "rax"; reg_names[REG_RAX] = &reg_rax;
-uint8[] reg_rbx = "rbx"; reg_names[REG_RBX] = &reg_rbx;
-uint8[] reg_rcx = "rcx"; reg_names[REG_RCX] = &reg_rcx;
-uint8[] reg_rdx = "rdx"; reg_names[REG_RDX] = &reg_rdx;
-uint8[] reg_rsi = "rsi"; reg_names[REG_RSI] = &reg_rsi;
-uint8[] reg_rdi = "rdi"; reg_names[REG_RDI] = &reg_rdi;
-uint8[] reg_r8 = "r8";   reg_names[REG_R8] = &reg_r8;
-uint8[] reg_r9 = "r9";   reg_names[REG_R9] = &reg_r9;
-uint8[] reg_r10 = "r10"; reg_names[REG_R10] = &reg_r10;
-uint8[] reg_r11 = "r11"; reg_names[REG_R11] = &reg_r11;
-uint8[] reg_r12 = "r12"; reg_names[REG_R12] = &reg_r12;
-uint8[] reg_r13 = "r13"; reg_names[REG_R13] = &reg_r13;
-uint8[] reg_r14 = "r14"; reg_names[REG_R14] = &reg_r14;
 uint8[] reg_r15 = "r15"; reg_names[REG_R15] = &reg_r15;
+uint8[] reg_r14 = "r14"; reg_names[REG_R14] = &reg_r14;
+uint8[] reg_r13 = "r13"; reg_names[REG_R13] = &reg_r13;
+uint8[] reg_r12 = "r12"; reg_names[REG_R12] = &reg_r12;
+uint8[] reg_r11 = "r11"; reg_names[REG_R11] = &reg_r11;
+uint8[] reg_r10 = "r10"; reg_names[REG_R10] = &reg_r10;
+uint8[] reg_r9 = "r9";   reg_names[REG_R9] = &reg_r9;
+uint8[] reg_r8 = "r8";   reg_names[REG_R8] = &reg_r8;
+uint8[] reg_rdi = "rdi"; reg_names[REG_RDI] = &reg_rdi;
+uint8[] reg_rsi = "rsi"; reg_names[REG_RSI] = &reg_rsi;
+uint8[] reg_rdx = "rdx"; reg_names[REG_RDX] = &reg_rdx;
+uint8[] reg_rcx = "rcx"; reg_names[REG_RCX] = &reg_rcx;
+uint8[] reg_rbx = "rbx"; reg_names[REG_RBX] = &reg_rbx;
+uint8[] reg_rax = "rax"; reg_names[REG_RAX] = &reg_rax;
 
-proc get_register() -> uint64
+proc get_register(uint64 op_type) -> uint64
 vars
     uint64 gr_i = 0;
 code
+    if regs_in_use >= REG_COUNT then
+        print_string("Out of registers\n");
+        exit(1);
+    end
+
+    if op_type == BINARY_OPERATION_MULTIPLY or op_type == BINARY_OPERATION_DIVIDE then
+        if reg_used[REG_RAX] == 0 then
+            reg_used[REG_RAX] = 1;
+            regs_in_use++;
+            reg_stack[reg_stack_count] = REG_RAX;
+            reg_stack_count++;
+            return REG_RAX;
+        else
+            print_string("get_register: Out of registers for multiplication\n");
+            exit(1);
+        end 
+    end
+
     gr_i = 1;
     while gr_i < REG_COUNT do
         if reg_used[gr_i] == 0 then
@@ -1631,12 +1672,24 @@ code
     reg_stack_count++;
 end
 
+proc peek_register() -> uint64
+vars
+    uint64 pr_reg = 0;
+code
+    if reg_stack_count == 0 then
+        print_string("Peek: Register stack underflow\n");
+        exit(1);
+    end
+
+    return reg_stack[reg_stack_count - 1];
+end
+
 proc pop_register() -> uint64
 vars
     uint64 pr_reg = 0;
 code
     if reg_stack_count == 0 then
-        print_string("Register stack underflow\n");
+        print_string("Pop: Register stack underflow\n");
         exit(1);
     end
     pr_reg = reg_stack[reg_stack_count - 1];
@@ -1664,12 +1717,12 @@ code
     print_string("\n");
 end
 
-proc get_unary_op_value(uint64 file_handle, uint64 op_index)
+proc get_unary_op_value(uint64 file_handle, uint64 op_index, uint64 parent_op_type)
 vars
     uint64 guov_left_index = 0;
     uint64 guov_free_reg = 0;
 code
-    guov_free_reg = get_register();
+    guov_free_reg = get_register(parent_op_type);
     if binary_ops[op_index].left_type == TERM_TYPE_LITERAL_INT then
         emit_string(file_handle, "\tmov ");
         emit_string(file_handle, reg_names[guov_free_reg]);
@@ -1693,6 +1746,60 @@ code
     end end
 end
 
+proc write_op_multiplication(uint64 file_handle, uint64 op_index)
+vars
+    uint64 wom_left_index = 0;
+    uint64 wom_right_index = 0;
+    uint64 wom_left_reg = 0;
+    uint64 wom_right_reg = 0;
+code
+    wom_left_index = binary_ops[op_index].left_index;
+    wom_right_index = binary_ops[op_index].right_index;
+
+    if binary_ops[wom_left_index].type == BINARY_OPERATION_UNARY then
+        get_unary_op_value(file_handle, wom_left_index, binary_ops[op_index].type);
+    else if binary_ops[wom_left_index].type == BINARY_OPERATION_MULTIPLY or binary_ops[wom_left_index].type == BINARY_OPERATION_DIVIDE then
+        write_op_multiplication(file_handle, wom_left_index);
+    else
+        print_string("write_op_multiplication: Unsupported left type\n");
+        exit(1);
+    end end 
+
+    if binary_ops[wom_right_index].type == BINARY_OPERATION_UNARY then
+        get_unary_op_value(file_handle, wom_right_index, BINARY_OPERATION_UNARY);
+    else if binary_ops[wom_right_index].type == BINARY_OPERATION_MULTIPLY or binary_ops[wom_right_index].type == BINARY_OPERATION_DIVIDE then
+        write_op_multiplication(file_handle, wom_right_index);
+    else 
+        print_string("write_op_multiplication: Unsupported right type ");
+        str_number = to_string(binary_ops[wom_right_index].type);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string("\n");
+        exit(1);
+    end end 
+
+    wom_right_reg = pop_register();
+    wom_left_reg = pop_register();
+
+    if binary_ops[op_index].type == BINARY_OPERATION_MULTIPLY then
+        emit_string(file_handle, "\tmul ");
+    else if binary_ops[op_index].type == BINARY_OPERATION_DIVIDE then
+        emit_string(file_handle, "\tcqo\n\tdiv ");
+    else
+        print_string("write_op_multiplication: Unsupported operation type\n");
+        exit(1);
+    end end
+
+    emit_string(file_handle, reg_names[wom_right_reg]);
+    emit_string(file_handle, "\n");
+
+    wom_right_reg = get_register(BINARY_OPERATION_UNARY);
+
+    emit_string(file_handle, "\tmov ");
+    emit_string(file_handle, reg_names[wom_right_reg]);
+    emit_string(file_handle, ", rax\n");
+    emit_string(file_handle, "\t; -- end mul or div --\n");
+end
+
 proc write_op_addition(uint64 file_handle, uint64 op_index)
 vars
     uint64 woa_left_index = 0;
@@ -1704,35 +1811,36 @@ code
     woa_right_index = binary_ops[op_index].right_index;
 
     if binary_ops[woa_left_index].type == BINARY_OPERATION_UNARY then
-        get_unary_op_value(file_handle, woa_left_index);
+        get_unary_op_value(file_handle, woa_left_index, binary_ops[op_index].type);
+    else if binary_ops[woa_left_index].type == BINARY_OPERATION_ADD or binary_ops[woa_left_index].type == BINARY_OPERATION_SUBTRACT then
+        write_op_addition(file_handle, woa_left_index);
+    else if binary_ops[woa_left_index].type == BINARY_OPERATION_MULTIPLY or binary_ops[woa_left_index].type == BINARY_OPERATION_DIVIDE then
+        write_op_multiplication(file_handle, woa_left_index);
     else
-        print_string("write_op_addition: Unsupported left type\n");
+        print_string("write_op_addition: Unsupported left type: ");
+        str_number = to_string(binary_ops[woa_left_index].type);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string("\n");
         exit(1);
-    end 
+    end end end
 
     if binary_ops[woa_right_index].type == BINARY_OPERATION_UNARY then
-        get_unary_op_value(file_handle, woa_right_index);
+        get_unary_op_value(file_handle, woa_right_index, binary_ops[op_index].type);
     else if binary_ops[woa_right_index].type == BINARY_OPERATION_ADD or binary_ops[woa_right_index].type == BINARY_OPERATION_SUBTRACT then
         write_op_addition(file_handle, woa_right_index);
+    else if binary_ops[woa_right_index].type == BINARY_OPERATION_MULTIPLY or binary_ops[woa_right_index].type == BINARY_OPERATION_DIVIDE then
+        write_op_multiplication(file_handle, woa_right_index);
     else 
-        print_string("write_op_addition: Unsupported right type ");
+        print_string("write_op_addition: Unsupported right type: ");
         str_number = to_string(binary_ops[woa_right_index].type);
         print_nstring(str_number, &buffer + buffer_size - str_number);
         print_string("\n");
         exit(1);
-    end end
+    end end end
 
     woa_right_reg = pop_register();
     woa_left_reg = pop_register();
     
-    print_string("Poped registers: left");
-    str_number = to_string(woa_left_reg);
-    print_nstring(str_number, &buffer + buffer_size - str_number);
-    print_string(" right");
-    str_number = to_string(woa_right_reg);
-    print_nstring(str_number, &buffer + buffer_size - str_number);
-    print_string("\n");
-
     if binary_ops[op_index].type == BINARY_OPERATION_ADD then
         emit_string(file_handle, "\tadd ");
     else if binary_ops[op_index].type == BINARY_OPERATION_SUBTRACT then
@@ -1746,7 +1854,7 @@ code
     emit_string(file_handle, reg_names[woa_right_reg]);
     emit_string(file_handle, "\n");
 
-    push_register(woa_left_reg);
+    woa_right_reg = get_register(binary_ops[op_index].type);
 end
 
 proc write_assignment(uint64 file_handle, uint64 op_index)
@@ -1759,13 +1867,15 @@ code
     wa_right_index = binary_ops[op_index].right_index;
 
     if binary_ops[wa_right_index].type == BINARY_OPERATION_UNARY then
-        get_unary_op_value(file_handle, wa_right_index);
+        get_unary_op_value(file_handle, wa_right_index, binary_ops[op_index].type);
     else if binary_ops[wa_right_index].type == BINARY_OPERATION_ADD or binary_ops[wa_right_index].type == BINARY_OPERATION_SUBTRACT then
         write_op_addition(file_handle, wa_right_index);
+    else if binary_ops[wa_right_index].type == BINARY_OPERATION_MULTIPLY or binary_ops[wa_right_index].type == BINARY_OPERATION_DIVIDE then
+        write_op_multiplication(file_handle, wa_right_index);
     else 
         print_string("write_assignment: Unsupported right type\n");
         exit(1);
-    end end
+    end end end
 
     if binary_ops[op_index].left_type == TERM_TYPE_VARIABLE then
         wa_right_reg = pop_register();
