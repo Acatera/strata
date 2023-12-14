@@ -260,6 +260,7 @@ uint64 TYPE_EXTERNAL_PROCEDURE     =  7 ;
 uint64 TYPE_USER_DEFINED           =  8 ;
 uint64 TYPE_DEFINE                 =  9 ;
 uint64 TYPE_STRUCT_POINTER         = 10 ;
+uint64 TYPE_PROCEDURE_FWD          = 11 ;
 
 uint64 VARIABLE_SCOPE_GLOBAL       = 0 ;
 
@@ -2657,7 +2658,9 @@ proc parseProcedureDeclaration ( )
     fgsIndex = findSymbol ( ppdIdentifier ) ;
 
     if fgsIndex != -1 then
-        _ = indentifierRedeclared ( ppdIdentifier ) ;
+        if gsType != [TYPE_PROCEDURE_FWD] then
+            _ = indentifierRedeclared ( ppdIdentifier ) ;
+        end
     end
 
     expectedToken = TOKEN_LEFT_PARENTHESIS ;
@@ -2680,60 +2683,67 @@ proc parseProcedureDeclaration ( )
         ppdHasReturnValue = 1 ;
     end
 
-    globalBoolParsingProcedure = 1 ;
-    ppdRbpOffset = 8 ;
-    ppdLocalVariableCount = 0 ;
-
-    if currentToken == [TOKEN_VARS] then
-        expectedToken = TOKEN_VARS ;
+    if currentToken == [TOKEN_SEMICOLON] then
+        expectedToken = TOKEN_SEMICOLON ;
         consumeToken ( ) ;
-        while true == 1 do 
-            parseVariableDeclaration ( ) ;
-            if currentToken == [TOKEN_CODE] then
-                break ;
-            end 
+
+        _ = addSymbol ( TYPE_PROCEDURE_FWD gvType VAR_KIND_USER_DEFINED ppdIdentifier paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ;
+    else 
+        _ = addSymbol ( TYPE_PROCEDURE gvType VAR_KIND_USER_DEFINED ppdIdentifier paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ;
+        
+        globalBoolParsingProcedure = 1 ;
+        ppdRbpOffset = 8 ;
+        ppdLocalVariableCount = 0 ;
+        
+        if currentToken == [TOKEN_VARS] then
+            expectedToken = TOKEN_VARS ;
+            consumeToken ( ) ;
+            while true == 1 do 
+                parseVariableDeclaration ( ) ;
+                if currentToken == [TOKEN_CODE] then
+                    break ;
+                end 
+            end
         end
+
+        ppdLocalVariableCount = ppdLocalVariableCount * 8 ;
+        _ = readString ( ppdIdentifier ) ; `
+        ;printf(`"[Trace] Procedure declaration: %s\n"`, stringAtPointer)
+        WriteToFile(`";==== proc %s ====\n"`, stringAtPointer)
+        WriteToFile(`"\tjmp %s_end\n%s:\n"`, stringAtPointer, stringAtPointer)
+        WriteToFile(`"\tpush rbp\n\tmov rbp, rsp\n"`)
+        WriteToFile(`"\tsub rsp, %d\n\n"`, [ppdLocalVariableCount])
+        `
+
+        expectedToken = TOKEN_CODE ;
+        consumeToken ( ) ;
+
+        globalAllowVariableDeclaration = 0 ;
+        ppdReturnStatementCount = 0 ;
+        parseStatements ( ) ;
+
+        globalAllowVariableDeclaration = 1 ;
+        globalBoolParsingProcedure = 0 ;
+        globalProcedureId = globalProcedureId + 1 ;
+
+        expectedToken = TOKEN_END ;
+        consumeToken ( ) ;
+
+        if ppdReturnStatementCount == 0 then 
+            if ppdHasReturnValue == 1 then 
+                _ = readString ( ppdIdentifier ) ; `
+                printf(`"Error: procedure %s has no return statement\n"`, stringAtPointer)
+                ExitProcess(1)`
+            end `
+            WriteToFile(`"\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
+        end
+
+
+        _ = readString ( ppdIdentifier ) ; `
+        ;printf(`"[Trace] Procedure declaration: %s with %d parameters\n"`, stringAtPointer, [paProArgumentCount])
+        WriteToFile(`"%s_end:\n"`, stringAtPointer)
+        WriteToFile(`";==== end proc %s ====\n\n"`, stringAtPointer)`
     end
-
-    _ = addSymbol ( TYPE_PROCEDURE gvType VAR_KIND_USER_DEFINED ppdIdentifier paProArgumentCount VARIABLE_SCOPE_GLOBAL ) ;
-
-    ppdLocalVariableCount = ppdLocalVariableCount * 8 ;
-    _ = readString ( ppdIdentifier ) ; `
-    ;printf(`"[Trace] Procedure declaration: %s\n"`, stringAtPointer)
-    WriteToFile(`";==== proc %s ====\n"`, stringAtPointer)
-    WriteToFile(`"\tjmp %s_end\n%s:\n"`, stringAtPointer, stringAtPointer)
-    WriteToFile(`"\tpush rbp\n\tmov rbp, rsp\n"`)
-    WriteToFile(`"\tsub rsp, %d\n\n"`, [ppdLocalVariableCount])
-    `
-
-    expectedToken = TOKEN_CODE ;
-    consumeToken ( ) ;
-
-    globalAllowVariableDeclaration = 0 ;
-    ppdReturnStatementCount = 0 ;
-    parseStatements ( ) ;
-
-    globalAllowVariableDeclaration = 1 ;
-    globalBoolParsingProcedure = 0 ;
-    globalProcedureId = globalProcedureId + 1 ;
-
-    expectedToken = TOKEN_END ;
-    consumeToken ( ) ;
-
-    if ppdReturnStatementCount == 0 then 
-        if ppdHasReturnValue == 1 then 
-            _ = readString ( ppdIdentifier ) ; `
-            printf(`"Error: procedure %s has no return statement\n"`, stringAtPointer)
-            ExitProcess(1)`
-        end `
-        WriteToFile(`"\tmov rsp, rbp\n\tpop rbp\n\tret\n"`)`
-    end
-
-
-    _ = readString ( ppdIdentifier ) ; `
-    ;printf(`"[Trace] Procedure declaration: %s with %d parameters\n"`, stringAtPointer, [paProArgumentCount])
-    WriteToFile(`"%s_end:\n"`, stringAtPointer)
-    WriteToFile(`";==== end proc %s ====\n\n"`, stringAtPointer)`
 endproc parseProcedureDeclaration
 
 uint64 prsIsEmptyResult = 0 ;
@@ -2784,6 +2794,7 @@ uint64 ppcPrcCallArgumentCount = 0 ;
 uint64 ppcShadowSpace = 0 ;
 uint64 ppcIndex = 0 ;
 uint64 ppcCallCounter = 0 ;
+uint64 ppcIsProcOrFwdProc = 0 ;
 proc parseProcedureCall ( )
     ppcCallCounter = ppcCallCounter + 1 ;
     ppcIdentifier = parseIdentifier ( ) ;
@@ -2797,7 +2808,14 @@ proc parseProcedureCall ( )
         _ = identifierUnknown ( ppcIdentifier ) ;
     end
 
-    if gsType == [TYPE_PROCEDURE] then 
+    ppcIsProcOrFwdProc = 0 ;
+    if gsType == [TYPE_PROCEDURE_FWD] then 
+        ppcIsProcOrFwdProc = 1 ;
+    else if gsType == [TYPE_PROCEDURE] then 
+        ppcIsProcOrFwdProc = 1 ;
+    end end
+
+    if ppcIsProcOrFwdProc == 1 then 
         ppcPrcArgumentCount = gsValue ;
         ppcShadowSpace = ppcPrcArgumentCount * 8 ;
         ppdRbpOffset = 8 ;
