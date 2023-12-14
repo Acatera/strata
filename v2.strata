@@ -1105,20 +1105,21 @@ end
 Variable[VARIABLE_COUNT] variables;
 uint64 variable_count = 0;
 
-enum Binary_Operation_Type
-    BINARY_OPERATION_ASSIGNMENT = 1,
-    BINARY_OPERATION_ADD,
-    BINARY_OPERATION_SUBTRACT,
-    BINARY_OPERATION_MULTIPLY,
-    BINARY_OPERATION_DIVIDE,
-    BINARY_OPERATION_MODULO,
-    BINARY_OPERATION_EQUALS,
-    BINARY_OPERATION_NOT_EQUALS,
-    BINARY_OPERATION_LESS_THAN,
-    BINARY_OPERATION_LESS_THAN_EQUALS,
-    BINARY_OPERATION_GREATER_THAN,
-    BINARY_OPERATION_GREATER_THAN_EQUALS,
-    BINARY_OPERATION_UNARY,
+enum Operation_Type
+    OPERATION_ASSIGNMENT = 1,
+    OPERATION_ADD,
+    OPERATION_SUBTRACT,
+    OPERATION_MULTIPLY,
+    OPERATION_DIVIDE,
+    OPERATION_MODULO,
+    OPERATION_EQUALS,
+    OPERATION_NOT_EQUALS,
+    OPERATION_LESS_THAN,
+    OPERATION_LESS_THAN_EQUALS,
+    OPERATION_GREATER_THAN,
+    OPERATION_GREATER_THAN_EQUALS,
+    OPERATION_UNARY_LOGICAL_NOT,
+    OPERATION_VALUE,
 end
 
 enum Term_Type
@@ -1333,24 +1334,29 @@ code
         consume_token(TOKEN_CLOSE_PAREN);
         return pe_op_index;
     else if tokens[token_index].type == TOKEN_MINUS and tokens[token_index + 1].type == TOKEN_LITERAL_INT then
+        // Unary minus
         consume_token(TOKEN_MINUS);
         pe_term_index = 0 - parse_literal_int();
-        return add_operation(BINARY_OPERATION_UNARY, pe_term_index, TERM_TYPE_LITERAL_INT, 0);
+        return add_operation(OPERATION_VALUE, pe_term_index, TERM_TYPE_LITERAL_INT, 0);
+    else if tokens[token_index].type == TOKEN_NOT then
+        consume_token(TOKEN_NOT);
+        pe_term_index = parse_factor();
+        return add_operation(OPERATION_UNARY_LOGICAL_NOT, pe_term_index, TERM_TYPE_UNARY_OPERATION, 0);
     else if tokens[token_index].type == TOKEN_LITERAL_INT then
         pe_term_index = parse_literal_int();
-        return add_operation(BINARY_OPERATION_UNARY, pe_term_index, TERM_TYPE_LITERAL_INT, 0);
+        return add_operation(OPERATION_VALUE, pe_term_index, TERM_TYPE_LITERAL_INT, 0);
     else if tokens[token_index].type == TOKEN_IDENTIFIER then
         pe_term_index = parse_identifier();
         pe_var_index = find_variable(pe_term_index);
         if pe_var_index != NOT_FOUND then
-            return add_operation(BINARY_OPERATION_UNARY, pe_var_index, TERM_TYPE_VARIABLE, 0);
+            return add_operation(OPERATION_VALUE, pe_var_index, TERM_TYPE_VARIABLE, 0);
         else
             token_index = token_index - 1;
             unknown_identifier();
         end
     else
         unexpected_token();
-    end end end end
+    end end end end end
 end
 
 proc parse_multiplicative_expression() -> uint64
@@ -1368,13 +1374,13 @@ code
     do
         if tokens[token_index].type == TOKEN_MULTIPLY then
             consume_token(TOKEN_MULTIPLY);
-            pme_op_type = BINARY_OPERATION_MULTIPLY;
+            pme_op_type = OPERATION_MULTIPLY;
         else if tokens[token_index].type == TOKEN_DIVIDE then
             consume_token(TOKEN_DIVIDE);
-            pme_op_type = BINARY_OPERATION_DIVIDE;
+            pme_op_type = OPERATION_DIVIDE;
         else
             consume_token(TOKEN_MODULO);
-            pme_op_type = BINARY_OPERATION_MODULO;
+            pme_op_type = OPERATION_MODULO;
         end end
         pme_right_index = parse_factor();
 
@@ -1396,10 +1402,10 @@ code
     while tokens[token_index].type == TOKEN_PLUS or tokens[token_index].type == TOKEN_MINUS do
         if tokens[token_index].type == TOKEN_PLUS then
             consume_token(TOKEN_PLUS);
-            pae_op_type = BINARY_OPERATION_ADD;
+            pae_op_type = OPERATION_ADD;
         else
             consume_token(TOKEN_MINUS);
-            pae_op_type = BINARY_OPERATION_SUBTRACT;
+            pae_op_type = OPERATION_SUBTRACT;
         end
         pae_right_index = parse_multiplicative_expression();
 
@@ -1427,22 +1433,22 @@ code
     do
         if tokens[token_index].type == TOKEN_EQUALS then
             consume_token(TOKEN_EQUALS);
-            pre_op_type = BINARY_OPERATION_EQUALS;
+            pre_op_type = OPERATION_EQUALS;
         else if tokens[token_index].type == TOKEN_NOT_EQUALS then
             consume_token(TOKEN_NOT_EQUALS);
-            pre_op_type = BINARY_OPERATION_NOT_EQUALS;
+            pre_op_type = OPERATION_NOT_EQUALS;
         else if tokens[token_index].type == TOKEN_LESS_THAN then
             consume_token(TOKEN_LESS_THAN);
-            pre_op_type = BINARY_OPERATION_LESS_THAN;
+            pre_op_type = OPERATION_LESS_THAN;
         else if tokens[token_index].type == TOKEN_LESS_THAN_EQUALS then
             consume_token(TOKEN_LESS_THAN_EQUALS);
-            pre_op_type = BINARY_OPERATION_LESS_THAN_EQUALS;
+            pre_op_type = OPERATION_LESS_THAN_EQUALS;
         else if tokens[token_index].type == TOKEN_GREATER_THAN then
             consume_token(TOKEN_GREATER_THAN);
-            pre_op_type = BINARY_OPERATION_GREATER_THAN;
+            pre_op_type = OPERATION_GREATER_THAN;
         else
             consume_token(TOKEN_GREATER_THAN_EQUALS);
-            pre_op_type = BINARY_OPERATION_GREATER_THAN_EQUALS;
+            pre_op_type = OPERATION_GREATER_THAN_EQUALS;
         end end end end end
         pre_right_index = parse_additive_expression();
 
@@ -1520,7 +1526,7 @@ code
 
         ps_expr_index = parse_expression();
 
-        ps_op_index = add_operation(BINARY_OPERATION_ASSIGNMENT, ps_var_index, TERM_TYPE_VARIABLE, ps_expr_index);
+        ps_op_index = add_operation(OPERATION_ASSIGNMENT, ps_var_index, TERM_TYPE_VARIABLE, ps_expr_index);
 
         debug_string("Added binary op index: ");
         str_number = to_string(ps_op_index);
@@ -1696,9 +1702,9 @@ code
     end
 
     if 
-        op_type == BINARY_OPERATION_MULTIPLY or 
-        op_type == BINARY_OPERATION_DIVIDE or 
-        op_type == BINARY_OPERATION_MODULO
+        op_type == OPERATION_MULTIPLY or 
+        op_type == OPERATION_DIVIDE or 
+        op_type == OPERATION_MODULO
     then
         if reg_used[REG_RAX] == 0 then
             reg_used[REG_RAX] = 1;
@@ -1819,13 +1825,14 @@ code
     end
 end
 
-proc get_unary_op_value(uint64 file_handle, uint64 op_index, uint64 parent_op_type)
+proc write_op_value(uint64 file_handle, uint64 op_index, uint64 parent_op_type)
 vars
     uint64 guov_left_index = 0;
     uint64 guov_free_reg = 0;
 code
     guov_free_reg = get_register(parent_op_type);
     if operations[op_index].value_type == TERM_TYPE_LITERAL_INT then
+        log_codegen("write_op_value: Unary op value is int literal\n");
         emit_string(file_handle, "\tmov ");
         emit_string(file_handle, reg_names[guov_free_reg]);
         emit_string(file_handle, ", ");
@@ -1833,8 +1840,7 @@ code
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, "\n");
     else if operations[op_index].value_type == TERM_TYPE_VARIABLE then
-        log_codegen("get_unary_op_value: Unary op value is variable\n");
-
+        log_codegen("write_op_value: Unary op value is variable\n");
         guov_left_index = operations[op_index].left_index;
         emit_string(file_handle, "\tmov ");
         emit_string(file_handle, reg_names[guov_free_reg]);
@@ -1843,9 +1849,9 @@ code
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, "]\n");
     else
-        print_string("get_unary_op_value: Unsupported unary type\n");
+        print_string("write_op_value: Unsupported unary type\n");
         exit(1);
-    end end
+    end end 
 end
 
 proc write_op_addition(uint64 file_handle, uint64 op_index);
@@ -1863,13 +1869,13 @@ code
     // Check for constant folding
     if operations[wom_left_index].value_type == TERM_TYPE_LITERAL_INT and operations[wom_right_index].value_type == TERM_TYPE_LITERAL_INT then
         log_codegen("write_op_multiplication: Constant folding\n");
-        wom_left_reg = get_register(BINARY_OPERATION_UNARY);
+        wom_left_reg = get_register(OPERATION_VALUE);
         emit_string(file_handle, "\tmov ");
         emit_string(file_handle, reg_names[wom_left_reg]);
         emit_string(file_handle, ", ");
-        if operations[op_index].type == BINARY_OPERATION_MULTIPLY then
+        if operations[op_index].type == OPERATION_MULTIPLY then
             str_number = to_string(operations[wom_left_index].left_index * operations[wom_right_index].left_index);
-        else if operations[op_index].type == BINARY_OPERATION_DIVIDE then
+        else if operations[op_index].type == OPERATION_DIVIDE then
             str_number = to_string(operations[wom_left_index].left_index / operations[wom_right_index].left_index);
         else
             str_number = to_string(operations[wom_left_index].left_index % operations[wom_right_index].left_index);
@@ -1879,17 +1885,17 @@ code
         return;
     end
 
-    if operations[wom_left_index].type == BINARY_OPERATION_UNARY then
+    if operations[wom_left_index].type == OPERATION_VALUE then
         log_codegen("write_op_multiplication: left - Unary\n");
-        get_unary_op_value(file_handle, wom_left_index, operations[op_index].type);
-    else if operations[wom_left_index].type == BINARY_OPERATION_ADD or operations[wom_left_index].type == BINARY_OPERATION_SUBTRACT then
+        write_op_value(file_handle, wom_left_index, operations[op_index].type);
+    else if operations[wom_left_index].type == OPERATION_ADD or operations[wom_left_index].type == OPERATION_SUBTRACT then
         // Handle addition and subtraction 
         log_codegen("write_op_multiplication: left - Addition or subtraction\n");
         write_op_addition(file_handle, wom_left_index);
     else if 
-        operations[wom_left_index].type == BINARY_OPERATION_MULTIPLY or 
-        operations[wom_left_index].type == BINARY_OPERATION_DIVIDE or 
-        operations[wom_left_index].type == BINARY_OPERATION_MODULO
+        operations[wom_left_index].type == OPERATION_MULTIPLY or 
+        operations[wom_left_index].type == OPERATION_DIVIDE or 
+        operations[wom_left_index].type == OPERATION_MODULO
     then
         // Handle multiplication, division and modulo
         log_codegen("write_op_multiplication: left - Multiplication, division or modulo\n");
@@ -1899,22 +1905,22 @@ code
         exit(1);
     end end end
 
-    if operations[wom_right_index].type == BINARY_OPERATION_UNARY then
+    if operations[wom_right_index].type == OPERATION_VALUE then
         // Check for division by zero
         if operations[wom_right_index].value_type == TERM_TYPE_LITERAL_INT and operations[wom_right_index].left_index == 0 then
             print_string("Division by zero\n");
             exit(1);
         end
         log_codegen("write_op_multiplication: right - Unary\n");
-        get_unary_op_value(file_handle, wom_right_index, BINARY_OPERATION_UNARY);
-    else if operations[wom_right_index].type == BINARY_OPERATION_ADD or operations[wom_right_index].type == BINARY_OPERATION_SUBTRACT then
+        write_op_value(file_handle, wom_right_index, OPERATION_VALUE);
+    else if operations[wom_right_index].type == OPERATION_ADD or operations[wom_right_index].type == OPERATION_SUBTRACT then
         // Handle addition and subtraction 
         log_codegen("write_op_multiplication: right - Addition or subtraction\n");
         write_op_addition(file_handle, wom_right_index);
     else if 
-        operations[wom_right_index].type == BINARY_OPERATION_MULTIPLY or 
-        operations[wom_right_index].type == BINARY_OPERATION_DIVIDE or 
-        operations[wom_right_index].type == BINARY_OPERATION_MODULO
+        operations[wom_right_index].type == OPERATION_MULTIPLY or 
+        operations[wom_right_index].type == OPERATION_DIVIDE or 
+        operations[wom_right_index].type == OPERATION_MODULO
     then
         // Handle multiplication, division and modulo
         log_codegen("write_op_multiplication: right - Multiplication, division or modulo\n");
@@ -1936,9 +1942,9 @@ code
         free_register(wom_left_reg);
     end
 
-    if operations[op_index].type == BINARY_OPERATION_MULTIPLY then
+    if operations[op_index].type == OPERATION_MULTIPLY then
         emit_string(file_handle, "\tmul ");
-    else if operations[op_index].type == BINARY_OPERATION_DIVIDE or operations[op_index].type == BINARY_OPERATION_MODULO then
+    else if operations[op_index].type == OPERATION_DIVIDE or operations[op_index].type == OPERATION_MODULO then
         emit_string(file_handle, "\tcqo\n\tdiv ");
     else
         print_string("write_op_multiplication: Unsupported operation type\n");
@@ -1948,11 +1954,11 @@ code
     emit_string(file_handle, reg_names[wom_right_reg]);
     emit_string(file_handle, "\n");
 
-     wom_right_reg = get_register(BINARY_OPERATION_UNARY);
+     wom_right_reg = get_register(OPERATION_VALUE);
 
     emit_string(file_handle, "\tmov ");
     emit_string(file_handle, reg_names[wom_right_reg]);
-    if operations[op_index].type == BINARY_OPERATION_MULTIPLY or operations[op_index].type == BINARY_OPERATION_DIVIDE then
+    if operations[op_index].type == OPERATION_MULTIPLY or operations[op_index].type == OPERATION_DIVIDE then
         // Multiplication and division stores result in rax
         emit_string(file_handle, ", rax\n");
     else
@@ -1976,11 +1982,11 @@ code
     // Constant folding for addition
     if operations[woa_left_index].value_type == TERM_TYPE_LITERAL_INT and operations[woa_right_index].value_type == TERM_TYPE_LITERAL_INT then
         log_codegen("write_op_addition: Constant folding\n");
-        woa_left_reg = get_register(BINARY_OPERATION_ADD);
+        woa_left_reg = get_register(OPERATION_ADD);
         emit_string(file_handle, "\tmov ");
         emit_string(file_handle, reg_names[woa_left_reg]);
         emit_string(file_handle, ", ");
-        if operations[op_index].type == BINARY_OPERATION_ADD then
+        if operations[op_index].type == OPERATION_ADD then
             str_number = to_string(operations[woa_left_index].left_index + operations[woa_right_index].left_index);
         else
             str_number = to_string(operations[woa_left_index].left_index - operations[woa_right_index].left_index);
@@ -1990,13 +1996,13 @@ code
         return;
     end
 
-    if operations[woa_left_index].type == BINARY_OPERATION_UNARY then
+    if operations[woa_left_index].type == OPERATION_VALUE then
         log_codegen("write_op_addition: left - Unary\n");
-        get_unary_op_value(file_handle, woa_left_index, operations[op_index].type);
-    else if operations[woa_left_index].type == BINARY_OPERATION_ADD or operations[woa_left_index].type == BINARY_OPERATION_SUBTRACT then
+        write_op_value(file_handle, woa_left_index, operations[op_index].type);
+    else if operations[woa_left_index].type == OPERATION_ADD or operations[woa_left_index].type == OPERATION_SUBTRACT then
         log_codegen("write_op_addition: left - Addition or subtraction\n");
         write_op_addition(file_handle, woa_left_index);
-    else if operations[woa_left_index].type == BINARY_OPERATION_MULTIPLY or operations[woa_left_index].type == BINARY_OPERATION_DIVIDE then
+    else if operations[woa_left_index].type == OPERATION_MULTIPLY or operations[woa_left_index].type == OPERATION_DIVIDE then
         log_codegen("write_op_addition: left - Multiplication or division\n");
         write_op_multiplication(file_handle, woa_left_index);
     else
@@ -2007,16 +2013,16 @@ code
         exit(1);
     end end end
 
-    if operations[woa_right_index].type == BINARY_OPERATION_UNARY then
+    if operations[woa_right_index].type == OPERATION_VALUE then
         log_codegen("write_op_addition: right - Unary\n");
-        get_unary_op_value(file_handle, woa_right_index, operations[op_index].type);
-    else if operations[woa_right_index].type == BINARY_OPERATION_ADD or operations[woa_right_index].type == BINARY_OPERATION_SUBTRACT then
+        write_op_value(file_handle, woa_right_index, operations[op_index].type);
+    else if operations[woa_right_index].type == OPERATION_ADD or operations[woa_right_index].type == OPERATION_SUBTRACT then
         log_codegen("write_op_addition: right - Addition or subtraction\n");
         write_op_addition(file_handle, woa_right_index);
     else if 
-        operations[woa_right_index].type == BINARY_OPERATION_MULTIPLY or 
-        operations[woa_right_index].type == BINARY_OPERATION_DIVIDE or
-        operations[woa_right_index].type == BINARY_OPERATION_MODULO
+        operations[woa_right_index].type == OPERATION_MULTIPLY or 
+        operations[woa_right_index].type == OPERATION_DIVIDE or
+        operations[woa_right_index].type == OPERATION_MODULO
     then
         log_codegen("write_op_addition: right - Multiplication, division or modulo\n");
         write_op_multiplication(file_handle, woa_right_index);
@@ -2031,9 +2037,9 @@ code
     woa_right_reg = pop_register();
     woa_left_reg = pop_register();
     
-    if operations[op_index].type == BINARY_OPERATION_ADD then
+    if operations[op_index].type == OPERATION_ADD then
         emit_string(file_handle, "\tadd ");
-    else if operations[op_index].type == BINARY_OPERATION_SUBTRACT then
+    else if operations[op_index].type == OPERATION_SUBTRACT then
         emit_string(file_handle, "\tsub ");
     else
         print_string("write_op_addition: Unsupported operation type\n");
@@ -2049,6 +2055,8 @@ code
     return;
 end
 
+proc write_unary_logical_not(uint64 file_handle, uint64 op_index);
+
 proc write_op_comparison(uint64 file_handle, uint64 op_index)
 vars
     uint64 woc_left_index = 0;
@@ -2059,41 +2067,47 @@ code
     woc_left_index = operations[op_index].left_index;
     woc_right_index = operations[op_index].right_index;
 
-    if operations[woc_left_index].type == BINARY_OPERATION_UNARY then
+    if operations[woc_left_index].type == OPERATION_VALUE then
         print_string("write_op_comparison: left - Unary\n");
-        get_unary_op_value(file_handle, woc_left_index, operations[op_index].type);
-    else if operations[woc_left_index].type == BINARY_OPERATION_ADD or operations[woc_left_index].type == BINARY_OPERATION_SUBTRACT then
+        write_op_value(file_handle, woc_left_index, operations[op_index].type);
+    else if operations[woc_left_index].type == OPERATION_ADD or operations[woc_left_index].type == OPERATION_SUBTRACT then
         print_string("write_op_comparison: left - Addition or subtraction\n");
         write_op_addition(file_handle, woc_left_index);
     else if 
-        operations[woc_left_index].type == BINARY_OPERATION_MULTIPLY or 
-        operations[woc_left_index].type == BINARY_OPERATION_DIVIDE or
-        operations[woc_left_index].type == BINARY_OPERATION_MODULO
+        operations[woc_left_index].type == OPERATION_MULTIPLY or 
+        operations[woc_left_index].type == OPERATION_DIVIDE or
+        operations[woc_left_index].type == OPERATION_MODULO
     then
         print_string("write_op_comparison: left - Multiplication, division or modulo\n");
         write_op_multiplication(file_handle, woc_left_index);
+    else if  operations[woc_left_index].type == OPERATION_UNARY_LOGICAL_NOT then
+        print_string("write_op_comparison: left - Unary logical not\n");
+        write_unary_logical_not(file_handle, woc_left_index);
     else 
         print_string("write_op_comparison: Unsupported left type\n");
         exit(1);
-    end end end
+    end end end end
 
-    if operations[woc_right_index].type == BINARY_OPERATION_UNARY then
+    if operations[woc_right_index].type == OPERATION_VALUE then
         print_string("write_op_comparison: right - Unary\n");
-        get_unary_op_value(file_handle, woc_right_index, operations[op_index].type);
-    else if operations[woc_right_index].type == BINARY_OPERATION_ADD or operations[woc_right_index].type == BINARY_OPERATION_SUBTRACT then
+        write_op_value(file_handle, woc_right_index, operations[op_index].type);
+    else if operations[woc_right_index].type == OPERATION_ADD or operations[woc_right_index].type == OPERATION_SUBTRACT then
         print_string("write_op_comparison: right - Addition or subtraction\n");
         write_op_addition(file_handle, woc_right_index);
     else if 
-        operations[woc_right_index].type == BINARY_OPERATION_MULTIPLY or 
-        operations[woc_right_index].type == BINARY_OPERATION_DIVIDE or
-        operations[woc_right_index].type == BINARY_OPERATION_MODULO
+        operations[woc_right_index].type == OPERATION_MULTIPLY or 
+        operations[woc_right_index].type == OPERATION_DIVIDE or
+        operations[woc_right_index].type == OPERATION_MODULO
     then
         print_string("write_op_comparison: right - Multiplication, division or modulo\n");
         write_op_multiplication(file_handle, woc_right_index);
+    else if  operations[woc_right_index].type == OPERATION_UNARY_LOGICAL_NOT then
+        print_string("write_op_comparison: right - Unary logical not\n");
+        write_unary_logical_not(file_handle, woc_right_index);
     else 
         print_string("write_op_comparison: Unsupported right type\n");
         exit(1);
-    end end end
+    end end end end
 
     woc_right_reg = pop_register();
     woc_left_reg = pop_register();
@@ -2104,19 +2118,19 @@ code
     emit_string(file_handle, reg_names[woc_right_reg]);
     emit_string(file_handle, "\n");
 
-    woc_right_reg = get_register(BINARY_OPERATION_UNARY);
+    woc_right_reg = get_register(OPERATION_VALUE);
 
-    if operations[op_index].type == BINARY_OPERATION_EQUALS then
+    if operations[op_index].type == OPERATION_EQUALS then
         emit_string(file_handle, "\tsete ");
-    else if operations[op_index].type == BINARY_OPERATION_NOT_EQUALS then
+    else if operations[op_index].type == OPERATION_NOT_EQUALS then
         emit_string(file_handle, "\tsetne ");
-    else if operations[op_index].type == BINARY_OPERATION_LESS_THAN then
+    else if operations[op_index].type == OPERATION_LESS_THAN then
         emit_string(file_handle, "\tsetl ");
-    else if operations[op_index].type == BINARY_OPERATION_LESS_THAN_EQUALS then
+    else if operations[op_index].type == OPERATION_LESS_THAN_EQUALS then
         emit_string(file_handle, "\tsetle ");
-    else if operations[op_index].type == BINARY_OPERATION_GREATER_THAN then
+    else if operations[op_index].type == OPERATION_GREATER_THAN then
         emit_string(file_handle, "\tsetg ");
-    else if operations[op_index].type == BINARY_OPERATION_GREATER_THAN_EQUALS then
+    else if operations[op_index].type == OPERATION_GREATER_THAN_EQUALS then
         emit_string(file_handle, "\tsetge ");
     else
         print_string("write_op_comparison: Unsupported operation type\n");
@@ -2127,6 +2141,47 @@ code
     emit_string(file_handle, "\n");
 
     emit_string(file_handle, "\t; -- end cmp --\n");
+    return;
+end
+
+proc write_unary_logical_not(uint64 file_handle, uint64 op_index)
+vars
+    uint64 wun_op_index = 0;
+    uint64 wun_reg = 0;
+code
+    wun_op_index = operations[op_index].left_index;
+
+    if operations[wun_op_index].type == OPERATION_VALUE then
+        print_string("write_unary_logical_not: Unary\n");
+        write_op_value(file_handle, wun_op_index, operations[op_index].type);
+    else if 
+        operations[wun_op_index].type == OPERATION_EQUALS or 
+        operations[wun_op_index].type == OPERATION_NOT_EQUALS or 
+        operations[wun_op_index].type == OPERATION_LESS_THAN or 
+        operations[wun_op_index].type == OPERATION_LESS_THAN_EQUALS or 
+        operations[wun_op_index].type == OPERATION_GREATER_THAN or 
+        operations[wun_op_index].type == OPERATION_GREATER_THAN_EQUALS
+    then
+        print_string("write_unary_logical_not: Comparison\n");
+        write_op_comparison(file_handle, wun_op_index);
+    else 
+        print_string("write_unary_logical_not: Unsupported left type\n");
+        exit(1);
+    end end 
+
+    wun_reg = pop_register();
+
+    emit_string(file_handle, "\tcmp ");
+    emit_string(file_handle, reg_lb_names[wun_reg]);
+    emit_string(file_handle, ", 0\n");
+
+    wun_reg = get_register(OPERATION_VALUE);
+
+    emit_string(file_handle, "\tsete ");
+    emit_string(file_handle, reg_lb_names[wun_reg]);
+    emit_string(file_handle, "\n");
+
+    emit_string(file_handle, "\t; -- end not --\n");
     return;
 end
 
@@ -2141,41 +2196,43 @@ code
     wa_left_index = operations[op_index].left_index;
     wa_right_index = operations[op_index].right_index;
 
-    if operations[wa_right_index].type == BINARY_OPERATION_UNARY then
+    if operations[wa_right_index].type == OPERATION_VALUE then
         log_codegen("write_assignment: Unary\n");
-        get_unary_op_value(file_handle, wa_right_index, operations[op_index].type);
-    else if operations[wa_right_index].type == BINARY_OPERATION_ADD or operations[wa_right_index].type == BINARY_OPERATION_SUBTRACT then
+        write_op_value(file_handle, wa_right_index, operations[op_index].type);
+    else if operations[wa_right_index].type == OPERATION_ADD or operations[wa_right_index].type == OPERATION_SUBTRACT then
         log_codegen("write_assignment: Addition or subtraction\n");
         write_op_addition(file_handle, wa_right_index);
     else if 
-        operations[wa_right_index].type == BINARY_OPERATION_MULTIPLY or 
-        operations[wa_right_index].type == BINARY_OPERATION_DIVIDE or
-        operations[wa_right_index].type == BINARY_OPERATION_MODULO 
+        operations[wa_right_index].type == OPERATION_MULTIPLY or 
+        operations[wa_right_index].type == OPERATION_DIVIDE or
+        operations[wa_right_index].type == OPERATION_MODULO 
     then
         log_codegen("write_assignment: Multiplication, division or modulo\n");
         write_op_multiplication(file_handle, wa_right_index);
     else if 
-        operations[wa_right_index].type == BINARY_OPERATION_EQUALS or 
-        operations[wa_right_index].type == BINARY_OPERATION_NOT_EQUALS or 
-        operations[wa_right_index].type == BINARY_OPERATION_LESS_THAN or 
-        operations[wa_right_index].type == BINARY_OPERATION_LESS_THAN_EQUALS or 
-        operations[wa_right_index].type == BINARY_OPERATION_GREATER_THAN or 
-        operations[wa_right_index].type == BINARY_OPERATION_GREATER_THAN_EQUALS
+        operations[wa_right_index].type == OPERATION_EQUALS or 
+        operations[wa_right_index].type == OPERATION_NOT_EQUALS or 
+        operations[wa_right_index].type == OPERATION_LESS_THAN or 
+        operations[wa_right_index].type == OPERATION_LESS_THAN_EQUALS or 
+        operations[wa_right_index].type == OPERATION_GREATER_THAN or 
+        operations[wa_right_index].type == OPERATION_GREATER_THAN_EQUALS
     then
         wa_is_comparison = 1;
         log_codegen("write_assignment: Comparison\n");
         write_op_comparison(file_handle, wa_right_index);
+    else if operations[wa_right_index].type == OPERATION_UNARY_LOGICAL_NOT then
+        log_codegen("write_assignment: Unary not\n");
+        write_unary_logical_not(file_handle, wa_right_index);
     else 
         print_string("write_assignment: Unsupported right type: ");
         str_number = to_string(operations[wa_right_index].type);
         print_nstring(str_number, &buffer + buffer_size - str_number);
         print_string("\n");
         exit(1);
-    end end end end
+    end end end end end
 
     if operations[op_index].value_type == TERM_TYPE_VARIABLE then
         wa_right_reg = pop_register();
-
         
         if wa_is_comparison then
             emit_string(file_handle, "\tmov byte [rbp - ");
@@ -2215,7 +2272,7 @@ code
     emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
     emit_string(file_handle, "\n");
 
-    if operations[ws_op_index].type == BINARY_OPERATION_ASSIGNMENT then
+    if operations[ws_op_index].type == OPERATION_ASSIGNMENT then
         write_assignment(file_handle, ws_op_index);
     else
         unexpected_token();
