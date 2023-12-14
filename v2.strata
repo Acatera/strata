@@ -1792,6 +1792,25 @@ code
     wom_left_index = operations[op_index].left_index;
     wom_right_index = operations[op_index].right_index;
 
+    // Check for constant folding
+    if operations[wom_left_index].value_type == TERM_TYPE_LITERAL_INT and operations[wom_right_index].value_type == TERM_TYPE_LITERAL_INT then
+        print_string("write_op_multiplication: Constant folding\n");
+        wom_left_reg = get_register(BINARY_OPERATION_UNARY);
+        emit_string(file_handle, "\tmov ");
+        emit_string(file_handle, reg_names[wom_left_reg]);
+        emit_string(file_handle, ", ");
+        if operations[op_index].type == BINARY_OPERATION_MULTIPLY then
+            str_number = to_string(operations[wom_left_index].left_index * operations[wom_right_index].left_index);
+        else if operations[op_index].type == BINARY_OPERATION_DIVIDE then
+            str_number = to_string(operations[wom_left_index].left_index / operations[wom_right_index].left_index);
+        else
+            str_number = to_string(operations[wom_left_index].left_index % operations[wom_right_index].left_index);
+        end end
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, "\n");
+        return;
+    end
+
     if operations[wom_left_index].type == BINARY_OPERATION_UNARY then
         print_string("write_op_multiplication: left - Unary\n");
         get_unary_op_value(file_handle, wom_left_index, operations[op_index].type);
@@ -1873,6 +1892,7 @@ code
         emit_string(file_handle, ", rdx\n");
     end
     emit_string(file_handle, "\t; -- end mul or div --\n");
+    return;
 end
 
 proc write_op_addition(uint64 file_handle, uint64 op_index)
@@ -1885,7 +1905,22 @@ code
     woa_left_index = operations[op_index].left_index;
     woa_right_index = operations[op_index].right_index;
 
-    // 
+    // Constant folding for addition
+    if operations[woa_left_index].value_type == TERM_TYPE_LITERAL_INT and operations[woa_right_index].value_type == TERM_TYPE_LITERAL_INT then
+        print_string("write_op_addition: Constant folding\n");
+        woa_left_reg = get_register(BINARY_OPERATION_ADD);
+        emit_string(file_handle, "\tmov ");
+        emit_string(file_handle, reg_names[woa_left_reg]);
+        emit_string(file_handle, ", ");
+        if operations[op_index].type == BINARY_OPERATION_ADD then
+            str_number = to_string(operations[woa_left_index].left_index + operations[woa_right_index].left_index);
+        else
+            str_number = to_string(operations[woa_left_index].left_index - operations[woa_right_index].left_index);
+        end
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, "\n");
+        return;
+    end
 
     if operations[woa_left_index].type == BINARY_OPERATION_UNARY then
         print_string("write_op_addition: left - Unary\n");
@@ -1943,6 +1978,7 @@ code
 
     woa_right_reg = get_register(operations[op_index].type);
     emit_string(file_handle, "\t; -- end add or sub --\n");
+    return;
 end
 
 proc write_assignment(uint64 file_handle, uint64 op_index)
