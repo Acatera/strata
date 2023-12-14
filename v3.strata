@@ -23,7 +23,7 @@ proc main()
     uint64 var2_64 = 2;
     uint64 var3_64 = 3;
 
-    sub = 4 / 2 * 16 + 8 / 2 / 4 - 4+1 / var3_64;
+    sub = 1 + 7 % 3 * 2;
 //    sub = 1 + 4 * 2;
     
     // uint64 sum = var_64 + var2_64;

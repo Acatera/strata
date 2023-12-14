@@ -1356,14 +1356,21 @@ vars
 code
     pme_op_index = parse_factor();
 
-    while tokens[token_index].type == TOKEN_MULTIPLY or tokens[token_index].type == TOKEN_DIVIDE do
+    while 
+        tokens[token_index].type == TOKEN_MULTIPLY or 
+        tokens[token_index].type == TOKEN_DIVIDE or 
+        tokens[token_index].type == TOKEN_MODULO
+    do
         if tokens[token_index].type == TOKEN_MULTIPLY then
             consume_token(TOKEN_MULTIPLY);
             pme_op_type = BINARY_OPERATION_MULTIPLY;
-        else
+        else if tokens[token_index].type == TOKEN_DIVIDE then
             consume_token(TOKEN_DIVIDE);
             pme_op_type = BINARY_OPERATION_DIVIDE;
-        end
+        else
+            consume_token(TOKEN_MODULO);
+            pme_op_type = BINARY_OPERATION_MODULO;
+        end end
         pme_right_index = parse_factor();
 
         pme_op_index = add_binary_op(pme_op_type, pme_op_index, TERM_TYPE_BINARY_OPERATION, pme_right_index, TERM_TYPE_BINARY_OPERATION);
@@ -1621,7 +1628,11 @@ code
         exit(1);
     end
 
-    if op_type == BINARY_OPERATION_MULTIPLY or op_type == BINARY_OPERATION_DIVIDE then
+    if 
+        op_type == BINARY_OPERATION_MULTIPLY or 
+        op_type == BINARY_OPERATION_DIVIDE or 
+        op_type == BINARY_OPERATION_MODULO
+    then
         if reg_used[REG_RAX] == 0 then
             reg_used[REG_RAX] = 1;
             regs_in_use++;
@@ -1758,7 +1769,11 @@ code
 
     if binary_ops[wom_left_index].type == BINARY_OPERATION_UNARY then
         get_unary_op_value(file_handle, wom_left_index, binary_ops[op_index].type);
-    else if binary_ops[wom_left_index].type == BINARY_OPERATION_MULTIPLY or binary_ops[wom_left_index].type == BINARY_OPERATION_DIVIDE then
+    else if 
+        binary_ops[wom_left_index].type == BINARY_OPERATION_MULTIPLY or 
+        binary_ops[wom_left_index].type == BINARY_OPERATION_DIVIDE or 
+        binary_ops[wom_left_index].type == BINARY_OPERATION_MODULO
+    then
         write_op_multiplication(file_handle, wom_left_index);
     else
         print_string("write_op_multiplication: Unsupported left type\n");
@@ -1767,7 +1782,11 @@ code
 
     if binary_ops[wom_right_index].type == BINARY_OPERATION_UNARY then
         get_unary_op_value(file_handle, wom_right_index, BINARY_OPERATION_UNARY);
-    else if binary_ops[wom_right_index].type == BINARY_OPERATION_MULTIPLY or binary_ops[wom_right_index].type == BINARY_OPERATION_DIVIDE then
+    else if 
+        binary_ops[wom_right_index].type == BINARY_OPERATION_MULTIPLY or 
+        binary_ops[wom_right_index].type == BINARY_OPERATION_DIVIDE or 
+        binary_ops[wom_right_index].type == BINARY_OPERATION_MODULO
+    then
         write_op_multiplication(file_handle, wom_right_index);
     else 
         print_string("write_op_multiplication: Unsupported right type ");
@@ -1782,7 +1801,7 @@ code
 
     if binary_ops[op_index].type == BINARY_OPERATION_MULTIPLY then
         emit_string(file_handle, "\tmul ");
-    else if binary_ops[op_index].type == BINARY_OPERATION_DIVIDE then
+    else if binary_ops[op_index].type == BINARY_OPERATION_DIVIDE or binary_ops[op_index].type == BINARY_OPERATION_MODULO then
         emit_string(file_handle, "\tcqo\n\tdiv ");
     else
         print_string("write_op_multiplication: Unsupported operation type\n");
@@ -1796,7 +1815,13 @@ code
 
     emit_string(file_handle, "\tmov ");
     emit_string(file_handle, reg_names[wom_right_reg]);
-    emit_string(file_handle, ", rax\n");
+    if binary_ops[op_index].type == BINARY_OPERATION_MULTIPLY or binary_ops[op_index].type == BINARY_OPERATION_DIVIDE then
+        // Multiplication and division stores result in rax
+        emit_string(file_handle, ", rax\n");
+    else
+        // Modulo stores remainder in rdx
+        emit_string(file_handle, ", rdx\n");
+    end
     emit_string(file_handle, "\t; -- end mul or div --\n");
 end
 
@@ -1828,7 +1853,11 @@ code
         get_unary_op_value(file_handle, woa_right_index, binary_ops[op_index].type);
     else if binary_ops[woa_right_index].type == BINARY_OPERATION_ADD or binary_ops[woa_right_index].type == BINARY_OPERATION_SUBTRACT then
         write_op_addition(file_handle, woa_right_index);
-    else if binary_ops[woa_right_index].type == BINARY_OPERATION_MULTIPLY or binary_ops[woa_right_index].type == BINARY_OPERATION_DIVIDE then
+    else if 
+        binary_ops[woa_right_index].type == BINARY_OPERATION_MULTIPLY or 
+        binary_ops[woa_right_index].type == BINARY_OPERATION_DIVIDE or
+        binary_ops[woa_right_index].type == BINARY_OPERATION_MODULO
+    then
         write_op_multiplication(file_handle, woa_right_index);
     else 
         print_string("write_op_addition: Unsupported right type: ");
@@ -1870,7 +1899,11 @@ code
         get_unary_op_value(file_handle, wa_right_index, binary_ops[op_index].type);
     else if binary_ops[wa_right_index].type == BINARY_OPERATION_ADD or binary_ops[wa_right_index].type == BINARY_OPERATION_SUBTRACT then
         write_op_addition(file_handle, wa_right_index);
-    else if binary_ops[wa_right_index].type == BINARY_OPERATION_MULTIPLY or binary_ops[wa_right_index].type == BINARY_OPERATION_DIVIDE then
+    else if 
+        binary_ops[wa_right_index].type == BINARY_OPERATION_MULTIPLY or 
+        binary_ops[wa_right_index].type == BINARY_OPERATION_DIVIDE or
+        binary_ops[wa_right_index].type == BINARY_OPERATION_MODULO 
+    then
         write_op_multiplication(file_handle, wa_right_index);
     else 
         print_string("write_assignment: Unsupported right type\n");
