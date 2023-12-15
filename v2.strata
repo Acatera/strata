@@ -30,6 +30,8 @@ extern proc WriteFile(pointer hFile, pointer lpBuffer, uint64 nNumberOfBytesToWr
 
 uint64 NOT_FOUND = 0;
 NOT_FOUND = 0 - 1;
+uint64 NO_RESULT = 0;
+NO_RESULT = 0 - 1;
 
 uint64 std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 
@@ -148,6 +150,12 @@ code
     return buffer_ptr;
 end
 
+proc print_number(uint64 value)
+code
+    str_number = to_string(value);
+    print_nstring(str_number, &buffer + buffer_size - str_number);
+end
+
 uint8* tn_ptr = 0;
 proc to_number(pointer text, uint64 length) -> uint64
 vars
@@ -244,6 +252,10 @@ enum TokenType
     TOKEN_ASSERT,
     TOKEN_TRUE,
     TOKEN_FALSE,
+    TOKEN_IF,
+    TOKEN_THEN,
+    TOKEN_ELSE,
+    TOKEN_ELIF,
 end
 
 struct Keyword
@@ -467,6 +479,11 @@ add_keyword(TOKEN_END, "end", 3, "TOKEN_TYPE_END");
 add_keyword(TOKEN_ASSERT, "assert", 6, "TOKEN_TYPE_ASSERT");
 add_keyword(TOKEN_TRUE, "true", 4, "TOKEN_TYPE_TRUE");
 add_keyword(TOKEN_FALSE, "false", 5, "TOKEN_TYPE_FALSE");
+
+add_keyword(TOKEN_IF, "if", 2, "TOKEN_TYPE_IF");
+add_keyword(TOKEN_THEN, "then", 4, "TOKEN_TYPE_THEN");
+add_keyword(TOKEN_ELSE, "else", 4, "TOKEN_TYPE_ELSE");
+add_keyword(TOKEN_ELIF, "elif", 4, "TOKEN_TYPE_ELIF");
 
 proc lex_identifier()
 vars
@@ -1147,6 +1164,7 @@ enum Operation_Type
     OPERATION_UNARY_LOGICAL_NOT,
     OPERATION_VALUE,
     OPERATION_ASSERT,
+    OPERATION_IF,
 end
 
 enum Term_Type
@@ -1171,6 +1189,88 @@ end
 @define BINARY_OP_COUNT 1000
 Operation[BINARY_OP_COUNT] operations;
 uint64 operations_count = 0;
+
+struct Conditional_Code
+    uint64 block_index;
+    uint64 op_condition_index;
+    uint64 statements_count;
+    uint64 first_statement_index;
+    uint64 last_statement_index;
+    uint64 next_index;
+end
+
+struct If_Statement
+    uint64 block_index;
+    uint64 conditionals_count;
+    uint64 first_conditional_index;
+    uint64 last_conditional_index;
+    uint64 else_index;
+end
+
+@define CONDITIONAL_COUNT 1000
+Conditional_Code[CONDITIONAL_COUNT] conditionals;
+uint64 conditionals_count = 0;
+
+@define IF_STATEMENT_COUNT 1000
+If_Statement[IF_STATEMENT_COUNT] if_structs;
+uint64 if_structs_count = 0;
+
+// This is used to uniquely identify a block of code. It is used to jump to the end of the block
+uint64 block_scope_index = 0; 
+
+proc create_conditional_code(uint64 op_condition_index) -> uint64
+code
+    if conditionals_count >= CONDITIONAL_COUNT then
+        print_string("Conditional count exceeded\n");
+        exit(1);
+    end
+
+    conditionals[conditionals_count].op_condition_index = op_condition_index;
+    conditionals[conditionals_count].block_index = block_scope_index;
+    conditionals[conditionals_count].statements_count = 0;
+    conditionals[conditionals_count].first_statement_index = NOT_FOUND;
+    conditionals[conditionals_count].last_statement_index = NOT_FOUND;
+    conditionals[conditionals_count].next_index = NOT_FOUND;
+    
+    conditionals_count++;
+    block_scope_index++;
+
+    return conditionals_count - 1;
+end
+
+proc create_if_struct(uint64 conditional_index) -> uint64
+code
+    if if_structs_count >= IF_STATEMENT_COUNT then
+        print_string("If statement count exceeded\n");
+        exit(1);
+    end
+
+    if_structs[if_structs_count].block_index = block_scope_index;
+    if_structs[if_structs_count].first_conditional_index = conditional_index;
+    if_structs[if_structs_count].last_conditional_index = conditional_index;
+    if_structs[if_structs_count].conditionals_count = 1;
+    if_structs[if_structs_count].else_index = NOT_FOUND;
+
+    if_structs_count++;
+    block_scope_index++;
+
+    return if_structs_count - 1;
+end
+
+proc add_conditional_to_if_struct(uint64 if_struct_index, uint64 conditional_index)
+vars
+    uint64 aci_last_conditional_index = 0;
+code
+    // Get last conditional index
+    aci_last_conditional_index = if_structs[if_struct_index].last_conditional_index;
+    
+    // Set next index of last conditional to current conditional
+    conditionals[aci_last_conditional_index].next_index = conditional_index;
+
+    // Set last conditional index of if struct to current conditional
+    if_structs[if_struct_index].conditionals_count = if_structs[if_struct_index].conditionals_count + 1;
+    if_structs[if_struct_index].last_conditional_index = conditional_index;
+end
 
 proc add_operation(uint64 type, uint64 left_index, uint64 value_type, uint64 right_index) -> uint64
 code
@@ -1214,7 +1314,7 @@ code
     return statement_count - 1;
 end
 
-proc add_procedure(pointer name, uint64 name_length)
+proc add_procedure(pointer name, uint64 name_length) -> uint64
 code
     if procedure_count >= PROCEDURE_COUNT then
         print_string("Procedure count exceeded\n");
@@ -1229,7 +1329,10 @@ code
     procedures[procedure_count].statement_count = 0;
     procedures[procedure_count].first_statement_index = NOT_FOUND;
     procedures[procedure_count].last_statement_index = NOT_FOUND;
+    
     procedure_count++;
+
+    return procedure_count - 1;
 end
 
 proc find_procedure(pointer name, uint64 name_length) -> uint64
@@ -1550,7 +1653,7 @@ code
     procedures[proc_index].statement_count = procedures[proc_index].statement_count + 1;
 end
 
-proc parse_assert_statement(uint64 scope, uint64 proc_index)
+proc parse_assert_statement(uint64 scope, uint64 proc_index) -> uint64
 vars
     uint64 pas_expr_index = 0;
     uint64 pas_op_index = 0;
@@ -1563,13 +1666,140 @@ code
     pas_expr_index = parse_expression();
     pas_op_index = add_operation(OPERATION_ASSERT, pas_expr_index, TERM_TYPE_BINARY_OPERATION, 0);
     pas_statement_index = create_statement(pas_op_index, procedures[proc_index].last_statement_index, NULL);
-    add_statement_to_procedure(pas_statement_index, proc_index);
 
     consume_token(TOKEN_CLOSE_PAREN);
     consume_token(TOKEN_SEMICOLON);
+
+    return pas_statement_index;
 end
 
-proc parse_statement(uint64 scope, uint64 proc_index)
+proc parse_statement(uint64 scope, uint64 proc_index) -> uint64; // Forward declaration
+
+proc add_statement_to_conditional(uint64 statement_index, uint64 conditional_index)
+vars
+    uint64 astc_last_statement_index = 0;
+code
+    debug_string("Adding statement ");
+    str_number = to_string(statement_index);
+    debug_nstring(str_number, &buffer + buffer_size - str_number);
+    debug_string(" to conditional ");
+    str_number = to_string(conditional_index);
+    debug_nstring(str_number, &buffer + buffer_size - str_number);
+    debug_string("\n");
+
+    if conditionals[conditional_index].statements_count == 0 then
+        conditionals[conditional_index].first_statement_index = statement_index;
+    else
+        astc_last_statement_index = conditionals[conditional_index].last_statement_index;
+        statements[astc_last_statement_index].next_index = statement_index;
+    end
+    conditionals[conditional_index].last_statement_index = statement_index;
+
+    conditionals[conditional_index].statements_count = conditionals[conditional_index].statements_count + 1;
+end
+
+proc parse_elif_statement(uint64 scope, uint64 proc_index) -> uint64
+vars
+    uint64 pes_expr_index = 0;
+    uint64 pes_cond_index = 0;
+    uint64 pes_else_cond_index = 0;
+    uint64 pes_current_statement = 0;
+code
+    consume_token(TOKEN_ELIF);
+
+    // conditional block(s) -> else (optional)
+    // Parse expression
+    pes_expr_index = parse_expression();
+    // Create a conditional code block from the expression
+    pes_cond_index = create_conditional_code(pes_expr_index);
+
+    consume_token(TOKEN_THEN);
+
+    while tokens[token_index].type != TOKEN_END and tokens[token_index].type != TOKEN_ELSE and tokens[token_index].type != TOKEN_ELIF do
+        debug_string("Parsing `elif` statement\n");
+        pes_current_statement = parse_statement(scope, proc_index);
+
+        // Some statements return NULL, like variable declarations
+        // These should not be added to the conditional
+        if pes_current_statement != NULL then
+            add_statement_to_conditional(pes_current_statement, pes_cond_index);
+        end
+    end
+
+    return pes_cond_index;
+end
+
+proc parse_if_statement(uint64 scope, uint64 proc_index) -> uint64
+vars
+    uint64 pis_expr_index = 0;
+    uint64 pis_cond_index = 0;
+    uint64 pis_next_cond_index = 0;
+    uint64 pis_else_cond_index = 0;
+    uint64 pis_if_struct_index = 0;
+    uint64 pis_op_index = 0;
+    uint64 pis_statement_index = 0;
+    uint64 pis_current_statement = 0;
+code 
+    consume_token(TOKEN_IF);
+
+    // proc -> statement -> operation(IF) -> if_struct -> conditional block(s) -> else (optional)
+    // Parse expression
+    pis_expr_index = parse_expression();
+    // Create a conditional code block from the expression
+    pis_cond_index = create_conditional_code(pis_expr_index);
+    // Create an if struct to hold the conditional code block(s)
+    pis_if_struct_index = create_if_struct(pis_cond_index);
+    // Create an Operation for the if statement
+    pis_op_index = add_operation(OPERATION_IF, pis_if_struct_index, NULL, NULL);
+    // Create a Statement for the Operation
+    pis_statement_index = create_statement(pis_op_index, procedures[proc_index].last_statement_index, NULL);
+
+    consume_token(TOKEN_THEN);
+
+    while tokens[token_index].type != TOKEN_END and tokens[token_index].type != TOKEN_ELSE and tokens[token_index].type != TOKEN_ELIF do
+        debug_string("Parsing `then` statement\n");
+        pis_current_statement = parse_statement(scope, proc_index);
+
+        // Some statements return NULL, like variable declarations
+        // These should not be added to the conditional
+        if pis_current_statement != NULL then
+            add_statement_to_conditional(pis_current_statement, pis_cond_index);
+        end
+    end
+
+    while tokens[token_index].type == TOKEN_ELIF do
+        pis_next_cond_index = parse_elif_statement(scope, proc_index);
+        // conditionals[pis_cond_index].next_index = pis_next_cond_index;
+        add_conditional_to_if_struct(pis_if_struct_index, pis_next_cond_index);
+    end  
+
+    if tokens[token_index].type == TOKEN_ELSE then
+        consume_token(TOKEN_ELSE);
+        debug_string("Parsed else\n");
+
+        // Create a conditional code block from the expression
+        pis_else_cond_index = create_conditional_code(NO_RESULT);
+        // Add the conditional code block to the if struct
+        if_structs[pis_if_struct_index].else_index = pis_else_cond_index;
+
+        while tokens[token_index].type != TOKEN_END do
+            debug_string("Parsing `else` statement\n");
+            pis_current_statement = parse_statement(scope, proc_index);
+
+            // Some statements return NULL, like variable declarations
+            // These should not be added to the conditional
+            if pis_current_statement != NULL then
+                add_statement_to_conditional(pis_current_statement, pis_else_cond_index);
+            end
+        end
+    end
+
+    consume_token(TOKEN_END);
+
+    return pis_statement_index;
+end
+
+proc parse_statement(uint64 scope, uint64 proc_index) -> uint64
 vars
     uint64 ps_identifier = 0;
     uint64 ps_data_type = 0;
@@ -1580,8 +1810,11 @@ vars
 code
     if is_data_type_token(tokens[token_index].type) then
         parse_variable_declaration(scope);
+        return NO_RESULT;
     else if tokens[token_index].type == TOKEN_ASSERT then
-        parse_assert_statement(scope, proc_index);
+        return parse_assert_statement(scope, proc_index);
+    else if tokens[token_index].type == TOKEN_IF then
+        return parse_if_statement(scope, proc_index);
     else if tokens[token_index].type == TOKEN_IDENTIFIER then
         ps_identifier = parse_identifier();
 
@@ -1620,19 +1853,19 @@ code
 
         ps_statement_index = create_statement(ps_op_index, procedures[proc_index].last_statement_index, NULL);
 
-        add_statement_to_procedure(ps_statement_index, proc_index);
-
         consume_token(TOKEN_SEMICOLON);
+
+        return ps_statement_index;
     else
         unexpected_token();
-    end end end
+    end end end end
 end
 
 proc parse_procedure_declaration(uint64 scope)
 vars
     uint64 ppd_identifier = 0;
-    pointer ppd_proc_pointer = 0;
     uint64 ppd_proc_index = 0;
+    uint64 ppd_current_statement = 0;
 code
     consume_token(TOKEN_PROC_DECL);
     ppd_identifier = parse_identifier();
@@ -1644,15 +1877,21 @@ code
         redeclared_identifier();
     end
 
-    add_procedure(tokens[ppd_identifier].text, tokens[ppd_identifier].length);
+    ppd_proc_index = add_procedure(tokens[ppd_identifier].text, tokens[ppd_identifier].length);
 
     consume_token(TOKEN_OPEN_PAREN);
     consume_token(TOKEN_CLOSE_PAREN);
 
     while tokens[token_index].type != TOKEN_END and token_index < token_count do
-        parse_statement(scope, procedure_count - 1);
-    end
+        ppd_current_statement = parse_statement(scope, ppd_proc_index);
 
+        // Some statements return NULL, like variable declarations
+        // These should not be added to the procedure
+        if ppd_current_statement != NO_RESULT then
+            add_statement_to_procedure(ppd_current_statement, ppd_proc_index);
+        end
+    end
+    
     consume_token(TOKEN_END);
 end
 
@@ -1694,6 +1933,12 @@ vars
 code
     es_length = string_length(text);
     emit_nstring(handle, text, es_length);
+end
+
+proc emit_num_string(uint64 handle, uint64 number)
+code
+    str_number = to_string(number);
+    emit_nstring(handle, str_number, &buffer + buffer_size - str_number);
 end
 
 proc write_header(uint64 file_handle)
@@ -2223,17 +2468,17 @@ code
     wos_right_index = operations[op_index].right_index;
 
     if operations[wos_left_index].type == OPERATION_VALUE then
-        print_string("write_op_shift: left - Unary\n");
+        log_codegen("write_op_shift: left - Unary\n");
         write_op_value(file_handle, wos_left_index, OPERATION_VALUE);
     else if operations[wos_left_index].type == OPERATION_ADD or operations[wos_left_index].type == OPERATION_SUBTRACT then
-        print_string("write_op_shift: left - Addition or subtraction\n");
+        log_codegen("write_op_shift: left - Addition or subtraction\n");
         write_op_addition(file_handle, wos_left_index);
     else if 
         operations[wos_left_index].type == OPERATION_MULTIPLY or 
         operations[wos_left_index].type == OPERATION_DIVIDE or
         operations[wos_left_index].type == OPERATION_MODULO
     then
-        print_string("write_op_shift: left - Multiplication, division or modulo\n");
+        log_codegen("write_op_shift: left - Multiplication, division or modulo\n");
         write_op_multiplication(file_handle, wos_left_index);
     else 
         print_string("write_op_shift: Unsupported left type\n");
@@ -2241,17 +2486,17 @@ code
     end end end
 
     if operations[wos_right_index].type == OPERATION_VALUE then
-        print_string("write_op_shift: right - Unary\n");
+        log_codegen("write_op_shift: right - Unary\n");
         write_op_value(file_handle, wos_right_index, operations[op_index].type);
     else if operations[wos_right_index].type == OPERATION_ADD or operations[wos_right_index].type == OPERATION_SUBTRACT then
-        print_string("write_op_shift: right - Addition or subtraction\n");
+        log_codegen("write_op_shift: right - Addition or subtraction\n");
         write_op_addition(file_handle, wos_right_index);
     else if 
         operations[wos_right_index].type == OPERATION_MULTIPLY or 
         operations[wos_right_index].type == OPERATION_DIVIDE or
         operations[wos_right_index].type == OPERATION_MODULO
     then
-        print_string("write_op_shift: right - Multiplication, division or modulo\n");
+        log_codegen("write_op_shift: right - Multiplication, division or modulo\n");
         write_op_multiplication(file_handle, wos_right_index);
     else 
         print_string("write_op_shift: Unsupported right type\n");
@@ -2297,23 +2542,23 @@ code
     woc_right_index = operations[op_index].right_index;
 
     if operations[woc_left_index].type == OPERATION_VALUE then
-        print_string("write_op_comparison: left - Unary\n");
+        log_codegen("write_op_comparison: left - Unary\n");
         write_op_value(file_handle, woc_left_index, operations[op_index].type);
     else if operations[woc_left_index].type == OPERATION_ADD or operations[woc_left_index].type == OPERATION_SUBTRACT then
-        print_string("write_op_comparison: left - Addition or subtraction\n");
+        log_codegen("write_op_comparison: left - Addition or subtraction\n");
         write_op_addition(file_handle, woc_left_index);
     else if 
         operations[woc_left_index].type == OPERATION_MULTIPLY or 
         operations[woc_left_index].type == OPERATION_DIVIDE or
         operations[woc_left_index].type == OPERATION_MODULO
     then
-        print_string("write_op_comparison: left - Multiplication, division or modulo\n");
+        log_codegen("write_op_comparison: left - Multiplication, division or modulo\n");
         write_op_multiplication(file_handle, woc_left_index);
     else if operations[woc_left_index].type == OPERATION_UNARY_LOGICAL_NOT then
-        print_string("write_op_comparison: left - Unary logical not\n");
+        log_codegen("write_op_comparison: left - Unary logical not\n");
         write_unary_logical_not(file_handle, woc_left_index);
     else if operations[woc_left_index].type == OPERATION_LEFT_SHIFT or operations[woc_left_index].type == OPERATION_RIGHT_SHIFT then
-        print_string("write_op_comparison: left - Shift\n");
+        log_codegen("write_op_comparison: left - Shift\n");
         write_op_shift(file_handle, woc_left_index);
     else 
         print_string("write_op_comparison: Unsupported left type\n");
@@ -2321,23 +2566,23 @@ code
     end end end end end
 
     if operations[woc_right_index].type == OPERATION_VALUE then
-        print_string("write_op_comparison: right - Unary\n");
+        log_codegen("write_op_comparison: right - Unary\n");
         write_op_value(file_handle, woc_right_index, operations[op_index].type);
     else if operations[woc_right_index].type == OPERATION_ADD or operations[woc_right_index].type == OPERATION_SUBTRACT then
-        print_string("write_op_comparison: right - Addition or subtraction\n");
+        log_codegen("write_op_comparison: right - Addition or subtraction\n");
         write_op_addition(file_handle, woc_right_index);
     else if 
         operations[woc_right_index].type == OPERATION_MULTIPLY or 
         operations[woc_right_index].type == OPERATION_DIVIDE or
         operations[woc_right_index].type == OPERATION_MODULO
     then
-        print_string("write_op_comparison: right - Multiplication, division or modulo\n");
+        log_codegen("write_op_comparison: right - Multiplication, division or modulo\n");
         write_op_multiplication(file_handle, woc_right_index);
     else if  operations[woc_right_index].type == OPERATION_UNARY_LOGICAL_NOT then
-        print_string("write_op_comparison: right - Unary logical not\n");
+        log_codegen("write_op_comparison: right - Unary logical not\n");
         write_unary_logical_not(file_handle, woc_right_index);
     else if operations[woc_right_index].type == OPERATION_LEFT_SHIFT or operations[woc_right_index].type == OPERATION_RIGHT_SHIFT then
-        print_string("write_op_comparison: right - Shift\n");
+        log_codegen("write_op_comparison: right - Shift\n");
         write_op_shift(file_handle, woc_right_index);
     else 
         print_string("write_op_comparison: Unsupported right type\n");
@@ -2387,10 +2632,10 @@ code
     wun_op_index = operations[op_index].left_index;
 
     if operations[wun_op_index].type == OPERATION_VALUE then
-        print_string("write_unary_logical_not: Unary\n");
+        log_codegen("write_unary_logical_not: Unary\n");
         write_op_value(file_handle, wun_op_index, operations[op_index].type);
     else if is_comparison_operation(operations[wun_op_index].type) then
-        print_string("write_unary_logical_not: Comparison\n");
+        log_codegen("write_unary_logical_not: Comparison\n");
         write_op_comparison(file_handle, wun_op_index);
     else 
         print_string("write_unary_logical_not: Unsupported left type\n");
@@ -2421,20 +2666,20 @@ code
     woum_op_index = operations[op_index].left_index;
 
     if operations[woum_op_index].type == OPERATION_VALUE or operations[woum_op_index].type == OPERATION_UNARY_MINUS then
-        print_string("write_op_unary_minus: Unary\n");
+        log_codegen("write_op_unary_minus: Unary\n");
         write_op_value(file_handle, woum_op_index, operations[op_index].type);
     else if operations[woum_op_index].type == OPERATION_ADD or operations[woum_op_index].type == OPERATION_SUBTRACT then
-        print_string("write_op_unary_minus: Addition or subtraction\n");
+        log_codegen("write_op_unary_minus: Addition or subtraction\n");
         write_op_addition(file_handle, woum_op_index);
     else if 
         operations[woum_op_index].type == OPERATION_MULTIPLY or 
         operations[woum_op_index].type == OPERATION_DIVIDE or
         operations[woum_op_index].type == OPERATION_MODULO
     then
-        print_string("write_op_unary_minus: Multiplication, division or modulo\n");
+        log_codegen("write_op_unary_minus: Multiplication, division or modulo\n");
         write_op_multiplication(file_handle, woum_op_index);
     else if operations[woum_op_index].type == OPERATION_LEFT_SHIFT or operations[woum_op_index].type == OPERATION_RIGHT_SHIFT then
-        print_string("write_op_unary_minus: Shift\n");
+        log_codegen("write_op_unary_minus: Shift\n");
         write_op_shift(file_handle, woum_op_index);
     else 
         print_string("write_op_unary_minus: Unsupported left type ");
@@ -2488,7 +2733,7 @@ code
         log_codegen("write_assignment: Unary not\n");
         write_unary_logical_not(file_handle, wa_right_index);
     else if operations[wa_right_index].type == OPERATION_UNARY_MINUS then
-        print_string("write_assignment: Unary minus\n");
+        log_codegen("write_assignment: Unary minus\n");
         write_op_unary_minus(file_handle, wa_right_index);
     else if operations[wa_right_index].type == OPERATION_LEFT_SHIFT or operations[wa_right_index].type == OPERATION_RIGHT_SHIFT then
         log_codegen("write_assignment: Shift\n");
@@ -2554,6 +2799,120 @@ code
     emit_string(file_handle, "\t; -- end assert --\n");
 end
 
+proc write_statement(uint64 file_handle, uint64 statement_index); // Forward declaration
+
+proc write_conditional_code(uint64 file_handle, uint64 op_index, uint64 parent_block_index, uint64 next_block_index)
+vars 
+    uint64 wcc_block_index = 0;
+    uint64 wcc_cond_index = 0;
+    uint64 wcc_reg = 0;
+    uint64 wcc_statement_count = 0;
+    uint64 wcc_current_statement_index = 0;
+code
+    wcc_block_index = conditionals[op_index].block_index;
+    wcc_cond_index = conditionals[op_index].op_condition_index;
+
+    log_codegen("write_conditional_code: start\n");
+    emit_string(file_handle, "\t; conditional block ");
+    emit_num_string(file_handle, wcc_block_index);
+    emit_string(file_handle, "\n");
+    emit_string(file_handle, "block_");
+    emit_num_string(file_handle, wcc_block_index);
+    emit_string(file_handle, ":\n");
+
+    if wcc_cond_index != NO_RESULT then
+        if operations[wcc_cond_index].type == OPERATION_VALUE then
+            write_op_value(file_handle, wcc_cond_index, OPERATION_VALUE);
+        else
+            write_op_comparison(file_handle, wcc_cond_index);
+        end
+
+        // The comparision must only happen if condition operation is set.
+        // Otherwise, the condition is always true. (eg: else block)
+        wcc_reg = pop_register();
+
+        emit_string(file_handle, "\tcmp ");
+        emit_string(file_handle, reg_lb_names[wcc_reg]);
+        emit_string(file_handle, ", 1\n");
+        emit_string(file_handle, "\tjne block_");
+        emit_num_string(file_handle, next_block_index);
+        emit_string(file_handle, "\n");
+    end
+
+    wcc_statement_count = 0;
+    wcc_current_statement_index = conditionals[op_index].first_statement_index;
+    while wcc_statement_count < conditionals[op_index].statements_count do
+        write_statement(file_handle, wcc_current_statement_index);
+        wcc_current_statement_index = statements[wcc_current_statement_index].next_index;
+        wcc_statement_count++;
+    end
+
+    emit_string(file_handle, "\tjmp block_");
+    emit_num_string(file_handle, parent_block_index);
+    emit_string(file_handle, "\n");
+end
+
+proc write_if_statement(uint64 file_handle, uint64 op_index)
+vars
+    uint64 wis_if_struct_index = 0;
+    uint64 wis_cond_index = 0;
+    uint64 wis_cond_count = 0;
+    uint64 wis_block_index = 0;
+    uint64 wis_next_index = 0;
+    uint64 wis_next_block_index = 0;
+    uint64 wis_else_index = 0;
+code
+    log_codegen("write_if_statement: start\n");
+
+    if operations[op_index].type != OPERATION_IF then
+        print_string("write_if_statement: Expected if operation\n");
+        exit(1);
+    end
+
+    // if_struct index is stored in left_index
+    wis_if_struct_index = operations[op_index].left_index;
+
+    wis_block_index = if_structs[wis_if_struct_index].block_index;
+
+    emit_string(file_handle, "\t; if statement ");
+    emit_num_string(file_handle, wis_block_index);
+    emit_string(file_handle, "\n");
+
+    // Write conditional code
+    wis_cond_index = if_structs[wis_if_struct_index].first_conditional_index;
+
+    wis_cond_count = 0;
+    while wis_cond_count < if_structs[wis_if_struct_index].conditionals_count do
+        wis_next_index = conditionals[wis_cond_index].next_index;
+
+        // If this is not the last conditional, pass the block index of the next conditional
+        if wis_next_index != NOT_FOUND then
+            wis_next_block_index = conditionals[wis_next_index].block_index;
+        else
+            // else pass the block index of the else block, if it exists
+            wis_else_index = if_structs[wis_if_struct_index].else_index;
+            if wis_else_index != NOT_FOUND then
+                wis_next_block_index = conditionals[wis_else_index].block_index;
+            else
+                // else pass the block index of the parent
+                wis_next_block_index = wis_block_index;
+            end
+        end
+        write_conditional_code(file_handle, wis_cond_index, wis_block_index, wis_next_block_index);
+        wis_cond_index = wis_next_index;
+        wis_cond_count++;
+    end
+
+    // Write else block
+    if if_structs[wis_if_struct_index].else_index != NOT_FOUND then
+        write_conditional_code(file_handle, if_structs[wis_if_struct_index].else_index, wis_block_index, wis_block_index);
+    end
+
+    emit_string(file_handle, "block_");
+    emit_num_string(file_handle, wis_block_index);
+    emit_string(file_handle, ": ; end-if statement\n\n");
+end
+
 uint64 ws_statement_index = 0;
 proc write_statement(uint64 file_handle, uint64 statement_index)
 vars
@@ -2576,9 +2935,11 @@ code
         write_assignment(file_handle, ws_op_index);
     else if operations[ws_op_index].type == OPERATION_ASSERT then
         write_assert(file_handle, ws_op_index);
+    else if operations[ws_op_index].type == OPERATION_IF then
+        write_if_statement(file_handle, ws_op_index);
     else
         unexpected_token();
-    end end
+    end end end
 
     ws_statement_index++;
 end

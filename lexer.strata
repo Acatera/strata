@@ -153,16 +153,20 @@ proc push_token ( tokenType value line col )
     ;printf(`" %d %d\n"`, [rbp+32], [rbp+40])`
 endproc push_token
 
-array stringBuffer = uint8 [ 100000 ] ;
+array stringBuffer = uint8 [ 150000 ] ;
 uint64 sbIndex = 0 ;
 uint64 stringBufferTop = 0 ;
-array stringPointers = uint64 [ 5000 ] ;
+array stringPointers = uint64 [ 7500 ] ;
 uint64 stringPointersTop = 0 ;
 
 array stringToPush = uint8 [ 256 ] ;
 uint64 freeStringIndex = 0 ;
 uint8 freeChar = 0 ;
 proc push_identifier ( ) 
+    if stringPointersTop > 7500 then `
+        printf(`"[\#27[91mERROR\#27[0m] Too many identifiers\n"`)
+        ExitProcess(1) `
+    end
     freeStringIndex = 0 ;
     freeChar = token [ freeStringIndex ] ;
     stringPointers [ stringPointersTop ] = stringBufferTop ;
