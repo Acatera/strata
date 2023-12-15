@@ -236,6 +236,8 @@ enum TokenType
     TOKEN_LESS_THAN_EQUALS,
     TOKEN_GREATER_THAN,
     TOKEN_GREATER_THAN_EQUALS,
+    TOKEN_LSHIFT,
+    TOKEN_RSHIFT,
     TOKEN_PROC_DECL,
     TOKEN_END,
 end
@@ -440,6 +442,9 @@ add_keyword(TOKEN_DIVIDE, "/", 1, "TOKEN_TYPE_DIVIDE");
 add_keyword(TOKEN_DIVIDE_EQUALS, "/=", 2, "TOKEN_TYPE_DIVIDE_EQUALS");
 add_keyword(TOKEN_MODULO, "%%", 1, "TOKEN_TYPE_MODULO");
 add_keyword(TOKEN_MODULO_EQUALS, "%%=", 2, "TOKEN_TYPE_MODULO_EQUALS");
+
+add_keyword(TOKEN_LSHIFT, "<<", 1, "TOKEN_TYPE_LEFT_SHIFT");
+add_keyword(TOKEN_RSHIFT, ">>", 1, "TOKEN_TYPE_LEFT_SHIFT");
 
 // Comparison operators
 add_keyword(TOKEN_LESS_THAN, "<", 1, "TOKEN_TYPE_LESS_THAN");
@@ -707,9 +712,15 @@ code
         column++;
         tokens[token_count].length = 2;
         tokens[token_count].type = TOKEN_LESS_THAN_EQUALS;
+    else if *file_contents == '<' then
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_LSHIFT;
     else
         tokens[token_count].type = TOKEN_LESS_THAN;
-    end
+    end end
 
     token_count++;
 end
@@ -731,9 +742,15 @@ code
         column++;
         tokens[token_count].length = 2;
         tokens[token_count].type = TOKEN_GREATER_THAN_EQUALS;
+    else if *file_contents == '>' then
+        file_contents++;
+        i++;
+        column++;
+        tokens[token_count].length = 2;
+        tokens[token_count].type = TOKEN_RSHIFT;
     else
         tokens[token_count].type = TOKEN_GREATER_THAN;
-    end
+    end end
 
     token_count++;
 end
@@ -1118,6 +1135,8 @@ enum Operation_Type
     OPERATION_LESS_THAN_EQUALS,
     OPERATION_GREATER_THAN,
     OPERATION_GREATER_THAN_EQUALS,
+    OPERATION_LEFT_SHIFT,
+    OPERATION_RIGHT_SHIFT,
     OPERATION_UNARY_LOGICAL_NOT,
     OPERATION_VALUE,
 end
@@ -1415,13 +1434,37 @@ code
     return pae_op_index;
 end
 
+proc parse_shift_expression() -> uint64
+vars
+    uint64 pse_op_index = 0;
+    uint64 pse_right_index = 0;
+    uint64 pse_op_type = 0;
+code
+    pse_op_index = parse_additive_expression();
+
+    while tokens[token_index].type == TOKEN_LSHIFT or tokens[token_index].type == TOKEN_RSHIFT do
+        if tokens[token_index].type == TOKEN_LSHIFT then
+            consume_token(TOKEN_LSHIFT);
+            pse_op_type = OPERATION_LEFT_SHIFT;
+        else
+            consume_token(TOKEN_RSHIFT);
+            pse_op_type = OPERATION_RIGHT_SHIFT;
+        end
+        pse_right_index = parse_additive_expression();
+
+        pse_op_index = add_operation(pse_op_type, pse_op_index, TERM_TYPE_BINARY_OPERATION, pse_right_index);
+    end
+   
+    return pse_op_index;
+end
+
 proc parse_relational_expression() -> uint64
 vars
     uint64 pre_op_index = 0;
     uint64 pre_right_index = 0;
     uint64 pre_op_type = 0;
 code
-    pre_op_index = parse_additive_expression();
+    pre_op_index = parse_shift_expression();
 
     while 
         tokens[token_index].type == TOKEN_EQUALS or 
@@ -1450,7 +1493,7 @@ code
             consume_token(TOKEN_GREATER_THAN_EQUALS);
             pre_op_type = OPERATION_GREATER_THAN_EQUALS;
         end end end end end
-        pre_right_index = parse_additive_expression();
+        pre_right_index = parse_shift_expression();
 
         pre_op_index = add_operation(pre_op_type, pre_op_index, TERM_TYPE_BINARY_OPERATION, pre_right_index);
     end
@@ -1725,6 +1768,26 @@ code
         end 
     end
 
+    if op_type == OPERATION_LEFT_SHIFT or op_type == OPERATION_RIGHT_SHIFT then
+        if reg_used[REG_RCX] == 0 then
+            reg_used[REG_RCX] = 1;
+            regs_in_use++;
+            reg_stack[reg_stack_count] = REG_RCX;
+            reg_stack_count++;
+            return REG_RCX;
+        else
+            //TEMP: This is a hack to get shift working
+            emit_string(output_file_handle, "\tpush rcx\n");
+            reg_used[REG_RCX] = reg_used[REG_RCX] + 1;
+            // regs_in_use++;
+            reg_stack[reg_stack_count] = REG_RCX;
+            reg_stack_count++;
+            return REG_RCX;
+            // print_string("Out of registers\n");
+            // exit(1);
+        end 
+    end
+
     gr_i = 1;
     while gr_i < REG_COUNT do
         if reg_used[gr_i] == 0 then
@@ -1746,6 +1809,13 @@ code
     if reg == REG_RAX and reg_used[REG_RAX] > 1 then
         emit_string(output_file_handle, "\tpop rax\n");
         reg_used[REG_RAX] = reg_used[REG_RAX] - 1;
+        reg_stack_count = reg_stack_count - 1;
+        return;
+    end
+
+    if reg == REG_RCX and reg_used[REG_RCX] > 1 then
+        emit_string(output_file_handle, "\tpop rcx\n");
+        reg_used[REG_RCX] = reg_used[REG_RCX] - 1;
         reg_stack_count = reg_stack_count - 1;
         return;
     end
@@ -2055,6 +2125,78 @@ code
     return;
 end
 
+proc write_op_shift(uint64 file_handle, uint64 op_index)
+vars
+    uint64 wos_left_index = 0;
+    uint64 wos_right_index = 0;
+    uint64 wos_left_reg = 0;
+    uint64 wos_right_reg = 0;
+code
+    wos_left_index = operations[op_index].left_index;
+    wos_right_index = operations[op_index].right_index;
+
+    if operations[wos_left_index].type == OPERATION_VALUE then
+        print_string("write_op_shift: left - Unary\n");
+        write_op_value(file_handle, wos_left_index, OPERATION_VALUE);
+    else if operations[wos_left_index].type == OPERATION_ADD or operations[wos_left_index].type == OPERATION_SUBTRACT then
+        print_string("write_op_shift: left - Addition or subtraction\n");
+        write_op_addition(file_handle, wos_left_index);
+    else if 
+        operations[wos_left_index].type == OPERATION_MULTIPLY or 
+        operations[wos_left_index].type == OPERATION_DIVIDE or
+        operations[wos_left_index].type == OPERATION_MODULO
+    then
+        print_string("write_op_shift: left - Multiplication, division or modulo\n");
+        write_op_multiplication(file_handle, wos_left_index);
+    else 
+        print_string("write_op_shift: Unsupported left type\n");
+        exit(1);
+    end end end
+
+    if operations[wos_right_index].type == OPERATION_VALUE then
+        print_string("write_op_shift: right - Unary\n");
+        write_op_value(file_handle, wos_right_index, operations[op_index].type);
+    else if operations[wos_right_index].type == OPERATION_ADD or operations[wos_right_index].type == OPERATION_SUBTRACT then
+        print_string("write_op_shift: right - Addition or subtraction\n");
+        write_op_addition(file_handle, wos_right_index);
+    else if 
+        operations[wos_right_index].type == OPERATION_MULTIPLY or 
+        operations[wos_right_index].type == OPERATION_DIVIDE or
+        operations[wos_right_index].type == OPERATION_MODULO
+    then
+        print_string("write_op_shift: right - Multiplication, division or modulo\n");
+        write_op_multiplication(file_handle, wos_right_index);
+    else 
+        print_string("write_op_shift: Unsupported right type\n");
+        exit(1);
+    end end end
+
+    wos_right_reg = pop_register();
+    wos_left_reg = pop_register();
+
+    if wos_right_reg != REG_RCX then
+        emit_string(file_handle, "\tmov rcx, ");
+        emit_string(file_handle, reg_names[wos_right_reg]);
+        emit_string(file_handle, "\n");
+        free_register(wos_right_reg);
+    end
+
+    if operations[op_index].type == OPERATION_LEFT_SHIFT then
+        emit_string(file_handle, "\tshl ");
+    else if operations[op_index].type == OPERATION_RIGHT_SHIFT then
+        emit_string(file_handle, "\tshr ");
+    else
+        print_string("write_op_shift: Unsupported operation type\n");
+        exit(1);
+    end end
+    emit_string(file_handle, reg_names[wos_left_reg]);
+    emit_string(file_handle, ", cl\n");
+
+    wos_right_reg = get_register(OPERATION_VALUE);
+    emit_string(file_handle, "\t; -- end shift --\n");
+    return;
+end
+
 proc write_unary_logical_not(uint64 file_handle, uint64 op_index);
 
 proc write_op_comparison(uint64 file_handle, uint64 op_index)
@@ -2080,13 +2222,16 @@ code
     then
         print_string("write_op_comparison: left - Multiplication, division or modulo\n");
         write_op_multiplication(file_handle, woc_left_index);
-    else if  operations[woc_left_index].type == OPERATION_UNARY_LOGICAL_NOT then
+    else if operations[woc_left_index].type == OPERATION_UNARY_LOGICAL_NOT then
         print_string("write_op_comparison: left - Unary logical not\n");
         write_unary_logical_not(file_handle, woc_left_index);
+    else if operations[woc_left_index].type == OPERATION_LEFT_SHIFT or operations[woc_left_index].type == OPERATION_RIGHT_SHIFT then
+        print_string("write_op_comparison: left - Shift\n");
+        write_op_shift(file_handle, woc_left_index);
     else 
         print_string("write_op_comparison: Unsupported left type\n");
         exit(1);
-    end end end end
+    end end end end end
 
     if operations[woc_right_index].type == OPERATION_VALUE then
         print_string("write_op_comparison: right - Unary\n");
@@ -2104,10 +2249,13 @@ code
     else if  operations[woc_right_index].type == OPERATION_UNARY_LOGICAL_NOT then
         print_string("write_op_comparison: right - Unary logical not\n");
         write_unary_logical_not(file_handle, woc_right_index);
+    else if operations[woc_right_index].type == OPERATION_LEFT_SHIFT or operations[woc_right_index].type == OPERATION_RIGHT_SHIFT then
+        print_string("write_op_comparison: right - Shift\n");
+        write_op_shift(file_handle, woc_right_index);
     else 
         print_string("write_op_comparison: Unsupported right type\n");
         exit(1);
-    end end end end
+    end end end end end
 
     woc_right_reg = pop_register();
     woc_left_reg = pop_register();
@@ -2223,13 +2371,16 @@ code
     else if operations[wa_right_index].type == OPERATION_UNARY_LOGICAL_NOT then
         log_codegen("write_assignment: Unary not\n");
         write_unary_logical_not(file_handle, wa_right_index);
+    else if operations[wa_right_index].type == OPERATION_LEFT_SHIFT or operations[wa_right_index].type == OPERATION_RIGHT_SHIFT then
+        log_codegen("write_assignment: Shift\n");
+        write_op_shift(file_handle, wa_right_index);
     else 
         print_string("write_assignment: Unsupported right type: ");
         str_number = to_string(operations[wa_right_index].type);
         print_nstring(str_number, &buffer + buffer_size - str_number);
         print_string("\n");
         exit(1);
-    end end end end end
+    end end end end end end
 
     if operations[op_index].value_type == TERM_TYPE_VARIABLE then
         wa_right_reg = pop_register();
