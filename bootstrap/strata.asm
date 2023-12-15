@@ -4,706 +4,15 @@ default rel
 
 %include "inc/std.inc"
 ; %define DEBUG 0
-;state machine
-section .data
-	EXPECTING_ANYTHING dq 0
-section .text
-
-section .data
-	EXPECTING_IDENTIFIER dq 1
-section .text
-
-section .data
-	EXPECTING_ASSIGNMENT dq 2
-section .text
-
-section .data
-	EXPECTING_CONSTANT_INTEGER dq 3
-section .text
-
-section .data
-	EXPECTING_SEMICOLON dq 4
-section .text
-
-section .data
-	machineState dq 0
-section .text
-; array of pointers to statements of any sort
-section .bss
-	program resq 65536
-section .text
-
-section .data
-	programCount dq 0
-section .text
-
-section .data
-	currentProcArgCount dq 0
-section .text
-
-section .data
-	currentProcArgIndex dq 0
-section .text
-section .bss
-	tokens resq 65536
-section .text
-
-section .data
-	tokenCount dq 0
-section .text
-
-section .data
-	tokenSize dq 4
-section .text
-
-section .data
-	tokenI dq 0
-section .text
-
-section .data
-	tokenTypeIndex dq 0
-section .text
-
-section .data
-	tokenTypeValue dq 0
-section .text
-
-section .data
-	tokenLineIndex dq 0
-section .text
-
-section .data
-	tokenLineValue dq 0
-section .text
-
-section .data
-	tokenStartIndex dq 0
-section .text
-
-section .data
-	tokenStartValue dq 0
-section .text
-
-section .data
-	tokenLengthIndex dq 0
-section .text
-
-section .data
-	tokenLengthValue dq 0
-section .text
+%define SOURCE_CODE_SIZE 1024*2048
+%define TINY_BUFFER_SIZE 64
+%define SMALL_BUFFER_SIZE 64
+%define MED_BUFFER_SIZE 256
+%define OPERATOR_BUFFER_SIZE 64
 
 section .data
 	currentTokenType dq 0
 section .text
-
-section .data
-	nextBLockId dq 0
-section .text
-
-section .data
-	currentLine dq 1
-section .text
-
-section .data
-	currentTokenStart dq 0
-section .text
-
-section .data
-	currentTokenLength dq 0
-section .text
-section .bss
-	currentIdentifier resb 256
-section .text
-section .bss
-	irStack resq 65536
-section .text
-
-section .data
-	irStackCount dq 0
-section .text
-
-section .data
-	irStackTokenTypeIndex dq 0
-section .text
-
-section .data
-	irStackTokenValueIndex dq 0
-section .text
-
-section .data
-	irStackTokenTypeValue dq 0
-section .text
-
-section .data
-	irStackTokenValueValue dq 0
-section .text
-
-section .data
-	irStackSize dq 2
-section .text
-
-section .data
-	irStackI dq 0
-section .text
-
-section .data
-	tokenTypeToPush dq 0
-section .text
-
-section .data
-	tokenValueToPush dq 0
-section .text
-
-	jmp pushTokenToIRStack_end
-pushTokenToIRStack:
-
-    ;printf(roStr_0, [tokenTypeToPush], [tokenValueToPush])
-    	push qword [irStackCount]
-	push qword [irStackSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	pop rax
-	mov qword [irStackTokenTypeIndex], rax
-	push qword [irStackCount]
-	push qword [irStackSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [irStackTokenValueIndex], rax
-
-    ;printf(roStr_1, [irStackTokenTypeIndex])
-    ;printf(roStr_2, [irStackTokenValueIndex])
-    	mov rax, [irStackTokenTypeIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, irStack
-	add rdx, rax
-	mov rax, [tokenTypeToPush]
-	mov [rdx], rax
-	mov rax, [irStackTokenValueIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, irStack
-	add rdx, rax
-	mov rax, [tokenValueToPush]
-	mov [rdx], rax
-	push qword [irStackCount]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [irStackCount], rax
-
-	ret
-pushTokenToIRStack_end:
-
-	jmp incrementCurrentLine_end
-incrementCurrentLine:
-	push qword [currentLine]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [currentLine], rax
-
-	ret
-incrementCurrentLine_end:
-
-	jmp writeVariableDeclaration_end
-writeVariableDeclaration:
-
-	ret
-writeVariableDeclaration_end:
-
-section .data
-	printHumanTokenTypeArg1 dq 0
-section .text
-
-	jmp printHumanTokenType_end
-printHumanTokenType:
-
-;.if_0:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 1
-	jne .else_0
-;then_0:
-
-        printf(roStr_3)
-        
-	jmp .end_0
-.else_0:
-
-;.if_1:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 2
-	jne .else_1
-;then_1:
-
-        printf(roStr_4)
-        
-	jmp .end_1
-.else_1:
-
-;.if_2:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 3
-	jne .else_2
-;then_2:
-
-        printf(roStr_5)
-        
-	jmp .end_2
-.else_2:
-
-;.if_3:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 4
-	jne .else_3
-;then_3:
-
-        printf(roStr_6)
-        
-	jmp .end_3
-.else_3:
-
-;.if_4:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 5
-	jne .else_4
-;then_4:
-
-        printf(roStr_7)
-        
-	jmp .end_4
-.else_4:
-
-;.if_5:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 6
-	jne .else_5
-;then_5:
-
-        printf(roStr_8)
-        
-	jmp .end_5
-.else_5:
-
-;.if_6:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 7
-	jne .else_6
-;then_6:
-
-        printf(roStr_9)
-        
-	jmp .end_6
-.else_6:
-
-;.if_7:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 8
-	jne .else_7
-;then_7:
-
-        printf(roStr_10)
-        
-	jmp .end_7
-.else_7:
-
-;.if_8:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 9
-	jne .else_8
-;then_8:
-
-        printf(roStr_11)
-        
-	jmp .end_8
-.else_8:
-
-;.if_9:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 10
-	jne .else_9
-;then_9:
-
-        printf(roStr_12)
-        
-	jmp .end_9
-.else_9:
-
-;.if_10:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 11
-	jne .else_10
-;then_10:
-
-        printf(roStr_13)
-        
-	jmp .end_10
-.else_10:
-
-;.if_11:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 12
-	jne .else_11
-;then_11:
-
-        printf(roStr_14)
-        
-	jmp .end_11
-.else_11:
-
-;.if_12:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 256
-	jne .else_12
-;then_12:
-
-        printf(roStr_15)
-        
-	jmp .end_12
-.else_12:
-
-;.if_13:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 257
-	jne .else_13
-;then_13:
-
-        printf(roStr_16)
-        
-	jmp .end_13
-.else_13:
-
-;.if_14:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 258
-	jne .else_14
-;then_14:
-
-        printf(roStr_17)
-        
-	jmp .end_14
-.else_14:
-
-;.if_15:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 259
-	jne .else_15
-;then_15:
-
-        printf(roStr_18)
-        
-	jmp .end_15
-.else_15:
-
-;.if_16:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 260
-	jne .else_16
-;then_16:
-
-        printf(roStr_19)
-        
-	jmp .end_16
-.else_16:
-
-;.if_17:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 261
-	jne .else_17
-;then_17:
-
-        printf(roStr_20)
-        
-	jmp .end_17
-.else_17:
-
-;.if_18:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 262
-	jne .else_18
-;then_18:
-
-        printf(roStr_21)
-        
-	jmp .end_18
-.else_18:
-
-;.if_19:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 263
-	jne .else_19
-;then_19:
-
-        printf(roStr_22)
-        
-	jmp .end_19
-.else_19:
-
-;.if_20:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 264
-	jne .else_20
-;then_20:
-
-        printf(roStr_23)
-        
-	jmp .end_20
-.else_20:
-
-;.if_21:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 265
-	jne .else_21
-;then_21:
-
-        printf(roStr_24)
-        
-	jmp .end_21
-.else_21:
-
-;.if_22:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 266
-	jne .else_22
-;then_22:
-
-        printf(roStr_25)
-        
-	jmp .end_22
-.else_22:
-
-;.if_23:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 267
-	jne .else_23
-;then_23:
-
-        printf(roStr_26)
-        
-	jmp .end_23
-.else_23:
-
-;.if_24:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 268
-	jne .else_24
-;then_24:
-
-        printf(roStr_27)
-        
-	jmp .end_24
-.else_24:
-
-;.if_25:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 269
-	jne .else_25
-;then_25:
-
-        printf(roStr_28)
-        
-	jmp .end_25
-.else_25:
-
-;.if_26:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 270
-	jne .else_26
-;then_26:
-
-        printf(roStr_29)
-        
-	jmp .end_26
-.else_26:
-
-;.if_27:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 16
-	jne .else_27
-;then_27:
-
-        printf(roStr_30)
-        
-	jmp .end_27
-.else_27:
-
-;.if_28:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 17
-	jne .else_28
-;then_28:
-
-        printf(roStr_31)
-        
-	jmp .end_28
-.else_28:
-
-;.if_29:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 18
-	jne .else_29
-;then_29:
-
-        printf(roStr_32)
-        
-	jmp .end_29
-.else_29:
-
-;.if_30:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 19
-	jne .else_30
-;then_30:
-
-        printf(roStr_33)
-        
-	jmp .end_30
-.else_30:
-
-;.if_31:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 20
-	jne .else_31
-;then_31:
-
-        printf(roStr_34)
-        
-	jmp .end_31
-.else_31:
-
-;.if_32:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 21
-	jne .else_32
-;then_32:
-
-        printf(roStr_35)
-        
-	jmp .end_32
-.else_32:
-
-;.if_33:
-	mov r15, [printHumanTokenTypeArg1]
-	cmp r15, 22
-	jne .else_33
-;then_33:
-
-        printf(roStr_36)
-        
-	jmp .end_33
-.else_33:
-
-        printf(roStr_37, [printHumanTokenTypeArg1])
-        
-.end_33:
-
-.end_32:
-
-.end_31:
-
-.end_30:
-
-.end_29:
-
-.end_28:
-
-.end_27:
-
-.end_26:
-
-.end_25:
-
-.end_24:
-
-.end_23:
-
-.end_22:
-
-.end_21:
-
-.end_20:
-
-.end_19:
-
-.end_18:
-
-.end_17:
-
-.end_16:
-
-.end_15:
-
-.end_14:
-
-.end_13:
-
-.end_12:
-
-.end_11:
-
-.end_10:
-
-.end_9:
-
-.end_8:
-
-.end_7:
-
-.end_6:
-
-.end_5:
-
-.end_4:
-
-.end_3:
-
-.end_2:
-
-.end_1:
-
-.end_0:
-
-	ret
-printHumanTokenType_end:
-
-	jmp printUnexpectedToken_end
-printUnexpectedToken:
-
-    printf(roStr_38, [currentLine])
-    	push qword [tokenTypeValue]
-	pop rax
-	mov qword [printHumanTokenTypeArg1], rax
-
-call printHumanTokenType
-
-    ExitProcess(1)
-    
-	ret
-printUnexpectedToken_end:
-
-%define SOURCE_CODE_SIZE 1024*1024
-%define TINY_BUFFER_SIZE 32
-%define SMALL_BUFFER_SIZE 64
-%define MED_BUFFER_SIZE 256
-%define OPERATOR_BUFFER_SIZE 16
 
 %macro _reset_counters_ 0
     ; r8 - offset in source code, token start
@@ -846,10 +155,11 @@ struc SymbolTable
     .SymbolCount resq 1
     .size equ $ - .Pointer
 
-%define MAX_TOKEN_COUNT 1024 * 16
+%define MAX_TOKEN_COUNT 1024 * 128
 
 %define BLOCK_ITEM_SIZE 8
 section .bss
+    currentProcArgCount resq 1
     szSourceCode resb SOURCE_CODE_SIZE
     szTokenValue resb SMALL_BUFFER_SIZE
     pBufferTiny resb TINY_BUFFER_SIZE
@@ -857,7 +167,7 @@ section .bss
     ptr2Buffer64 resb SMALL_BUFFER_SIZE
     ptr3Buffer64 resb SMALL_BUFFER_SIZE
     ptrBuffer256 resb MED_BUFFER_SIZE
-    blockStack resb 256 * Block.size ; todo - revisit this
+    blockStack resb 512 * Block.size ; todo - revisit this
     blockCount resq 1
     lpProcessInformation resb 24
     lpStartupInfo resb 104
@@ -866,15 +176,15 @@ section .bss
     bProcessingIfCondition resq 1
     dqCurrentLine resq 1
     dqLineStart resq 1
-    pOperatorStack resq 32
+    pOperatorStack resq 64
     dqOperatorCount resq 1
-    pOperandStack resq 32
+    pOperandStack resq 64
     dqOperandCount resq 1
     dqStatementOpCount resq 1
     
-    szNames resb 1024 * 64
+    szNames resb 2048 * 128
     pszNameEndPointer resq 1
-    pNames resb 1024 * Name.size
+    pNames resb 2048 * Name.size
     dqNameCount resq 1
 
     hndSourceFile resq 1
@@ -886,9 +196,9 @@ section .bss
     szFilenameWithoutExtension resb 256
     lpExitCode resq 1
 
-    memory resb 1024 * 1024
+    memory resb 1024 * 2048
     pFreePointer resq 1
-    symbolTables resb 256 * SymbolTable.size
+    symbolTables resb 512 * SymbolTable.size
 
     dqSymbolTableCount resq 1
     pCurrentSymbolTable resq 1
@@ -896,8 +206,8 @@ section .bss
     dqCurrentAssignedOperandValue resq 1 ; this is used to store the offset from rbp, in case of paramaters
     dqCurrentParamValue resq 1 ; this is used to store the offset from rbp, in case of paramaters
 
-%define CONST_STRING_COUNT 1024
-%define CONST_STRING_CAPACITY 1024*256 
+%define CONST_STRING_COUNT 1048
+%define CONST_STRING_CAPACITY 1048*256 
 
     ; constant string literals
     ; allow for 1024 constant string literal pointers
@@ -928,7 +238,6 @@ section .text
     global _start
     extern CreateFileA
     extern ReadFile
-    extern WriteFile
     extern CloseHandle
     extern DeleteFileA
     extern GetLastError
@@ -1016,14 +325,14 @@ _start:
     jmp .arg_loop
 
 .arg_loop_found_space:
-;.if_34:
+;.if_0:
     cmp r8, 0
-	jne .end_34
-;then_34:
+	jne .end_0
+;then_0:
 
     inc rdi
     jmp .arg_loop
-.end_34:
+.end_0:
 
 
 .if_first_arg:
@@ -1072,8 +381,8 @@ _start:
     InitStandardOutput()
 
     ; print input and output file names
-    printf(roStr_39, szSourceFile)
-    printf(roStr_40, szDestFile)
+    printf(roStr_0, szSourceFile)
+    printf(roStr_1, szDestFile)
 
     ; Preparing the parameters for CreateFileA to open a file for reading
     mov rcx, szSourceFile                       ; First parameter: Pointer to the filename (LPCSTR)
@@ -1088,15 +397,15 @@ _start:
     add rsp, 4*8 + 3*8
 
     ; check if the file handle is valid
-;.if_35:
+;.if_1:
     cmp rax, 0
-	jge .end_35
-;then_35:
+	jge .end_1
+;then_1:
 
         call GetLastError
-        printf(roStr_41, szSourceFile, rax)
+        printf(roStr_2, szSourceFile, rax)
         ExitProcess(1)
-.end_35:
+.end_1:
 
 
     ; file opened
@@ -1112,16 +421,18 @@ _start:
     call ReadFile
 
     ; check if the function succeeded
-;.if_36:
+;.if_2:
     cmp rax, 0
-	jne .end_36
-;then_36:
+	jne .end_2
+;then_2:
 
         call GetLastError
-        printf(roStr_42, rax)
+        printf(roStr_3, rax)
         ExitProcess(1)
-.end_36:
+.end_2:
 
+
+    printf(roStr_4, [dwBytesRead], szSourceFile)
 
     ; Preparing the parameters for CreateFileA to open a file for writing
     mov rcx, szDestFile                         ; Pointer to the filename (LPCSTR)
@@ -1136,20 +447,20 @@ _start:
     add rsp, 4*8 + 3*8
 
     ; check if the function succeeded
-;.if_37:
+;.if_3:
     cmp rax, 0
-	jge .end_37
-;then_37:
+	jge .end_3
+;then_3:
 
         call GetLastError
-        printf(roStr_43, szDestFile, rax)
+        printf(roStr_5, szDestFile, rax)
         ExitProcess(1)
-.end_37:
+.end_3:
 
 
     mov [hndDestFile], rax
 
-    printf(roStr_44, szSourceFile)
+    printf(roStr_6, szSourceFile)
 
     ; initialize string count
     mov rax, 0
@@ -1203,29 +514,21 @@ _start:
     add r8, 2
     mov [dqLineStart], r8
     sub r8, 2
-    	push qword [currentLine]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [currentLine], rax
 
-    ;printf(roStr_45, [currentLine])
+    ;printf(roStr_7, [currentLine])
 
 
 .token_found:
     ; is token length 0?
-;.if_38:
+;.if_4:
     cmp r9, 0
-	jne .end_38
-;then_38:
+	jne .end_4
+;then_4:
 
         inc rdi
         inc r8
         jmp .read_token_loop
-.end_38:
+.end_4:
 
 
 .print_token:
@@ -1236,443 +539,440 @@ _start:
     mov rbp, rsp
     sub rsp, 8 ; reserve space on the stack for the token type
     mov [rbp], word 0 ; initialize token type to 0
-	push 0
-	pop rax
-	mov qword [currentTokenType], rax
 
-;.if_39:
+;.if_5:
     CompareTokenWith(szKeywordIf)
-    jne .else_39
-;then_39:
+    jne .else_5
+;then_5:
 
     mov [rbp], word KeywordIf
     	push 256
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_39
-.else_39:
+	jmp .end_5
+.else_5:
 
-;.if_40:
+;.if_6:
     CompareTokenWith(szKeywordThen)
-    jne .else_40
-;then_40:
+    jne .else_6
+;then_6:
 
     mov [rbp], word KeywordThen
     	push 257
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_40
-.else_40:
+	jmp .end_6
+.else_6:
 
-;.if_41:
+;.if_7:
     CompareTokenWith(szKeywordElse)
-    jne .else_41
-;then_41:
+    jne .else_7
+;then_7:
 
     mov [rbp], word KeywordElse
     	push 258
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_41
-.else_41:
+	jmp .end_7
+.else_7:
 
-;.if_42:
+;.if_8:
     CompareTokenWith(szKeywordEndProc)
-    jne .else_42
-;then_42:
+    jne .else_8
+;then_8:
 
     mov [rbp], word KeywordEndProc
     	push 270
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_42
-.else_42:
+	jmp .end_8
+.else_8:
 
-;.if_43:
+;.if_9:
     CompareTokenWith(szKeywordEnd)
-    jne .else_43
-;then_43:
+    jne .else_9
+;then_9:
 
     mov [rbp], word KeywordEnd
     	push 259
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_43
-.else_43:
+	jmp .end_9
+.else_9:
 
-;.if_44:
+;.if_10:
     CompareTokenWith(szKeywordWhile)
-    jne .else_44
-;then_44:
+    jne .else_10
+;then_10:
 
     mov [rbp], word KeywordWhile
     	push 260
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_44
-.else_44:
+	jmp .end_10
+.else_10:
 
-;.if_45:
+;.if_11:
     CompareTokenWith(szKeywordDo)
-    jne .else_45
-;then_45:
+    jne .else_11
+;then_11:
 
     mov [rbp], word KeywordDo
     	push 261
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_45
-.else_45:
+	jmp .end_11
+.else_11:
 
-;.if_46:
+;.if_12:
     CompareTokenWith(szKeywordContinue)
-    jne .else_46
-;then_46:
+    jne .else_12
+;then_12:
 
     mov [rbp], word KeywordContinue
     	push 262
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_46
-.else_46:
+	jmp .end_12
+.else_12:
 
-;.if_47:
+;.if_13:
     CompareTokenWith(szKeywordBreak)
-    jne .else_47
-;then_47:
+    jne .else_13
+;then_13:
 
     mov [rbp], word KeywordBreak
     	push 263
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_47
-.else_47:
+	jmp .end_13
+.else_13:
 
-;.if_48:
+;.if_14:
     CompareTokenWith(szKeywordUInt8)
-    jne .else_48
-;then_48:
+    jne .else_14
+;then_14:
 
     mov [rbp], word KeywordDefineUInt8
     	push 264
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_48
-.else_48:
+	jmp .end_14
+.else_14:
 
-;.if_49:
+;.if_15:
     CompareTokenWith(szKeywordUInt64)
-    jne .else_49
-;then_49:
+    jne .else_15
+;then_15:
 
     mov [rbp], word KeywordDefineUInt64
     	push 265
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_49
-.else_49:
+	jmp .end_15
+.else_15:
 
-;.if_50:
+;.if_16:
     CompareTokenWith(szKeywordEval)
-    jne .else_50
-;then_50:
+    jne .else_16
+;then_16:
 
     mov [rbp], word KeywordEval
     	push 267
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_50
-.else_50:
+	jmp .end_16
+.else_16:
 
-;.if_51:
+;.if_17:
     CompareTokenWith(szKeywordArray)
-    jne .else_51
-;then_51:
+    jne .else_17
+;then_17:
 
     mov [rbp], word KeywordArray
     	push 268
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_51
-.else_51:
+	jmp .end_17
+.else_17:
 
-;.if_52:
+;.if_18:
     CompareTokenWith(szKeywordProc)
-    jne .else_52
-;then_52:
+    jne .else_18
+;then_18:
 
     mov [rbp], word KeywordProc
     	push 269
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_52
-.else_52:
+	jmp .end_18
+.else_18:
 
-;.if_53:
+;.if_19:
     CompareTokenWith(szKeywordForward)
-    jne .else_53
-;then_53:
+    jne .else_19
+;then_19:
 
     mov [rbp], word KeywordForward
     	push 269
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_53
-.else_53:
+	jmp .end_19
+.else_19:
 
-;.if_54:
+;.if_20:
     CompareTokenWith(szOperatorEquals)
-    jne .else_54
-;then_54:
+    jne .else_20
+;then_20:
 
     mov [rbp], word OperatorEquals
     	push 1
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_54
-.else_54:
+	jmp .end_20
+.else_20:
 
-;.if_55:
+;.if_21:
     CompareTokenWith(szOperatorNotEquals)
-    jne .else_55
-;then_55:
+    jne .else_21
+;then_21:
 
     mov [rbp], word OperatorNotEquals
     	push 2
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_55
-.else_55:
+	jmp .end_21
+.else_21:
 
-;.if_56:
+;.if_22:
     CompareTokenWith(szOperatorLessOrEqual)
-    jne .else_56
-;then_56:
+    jne .else_22
+;then_22:
 
     mov [rbp], word OperatorLessOrEqual
     	push 4
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_56
-.else_56:
+	jmp .end_22
+.else_22:
 
-;.if_57:
+;.if_23:
     CompareTokenWith(szOperatorLess)
-    jne .else_57
-;then_57:
+    jne .else_23
+;then_23:
 
     mov [rbp], word OperatorLess
     	push 3
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_57
-.else_57:
+	jmp .end_23
+.else_23:
 
-;.if_58:
+;.if_24:
     CompareTokenWith(szOperatorGreaterOrEqual)
-    jne .else_58
-;then_58:
+    jne .else_24
+;then_24:
 
     mov [rbp], word OperatorGreaterOrEqual
     	push 6
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_58
-.else_58:
+	jmp .end_24
+.else_24:
 
-;.if_59:
+;.if_25:
     CompareTokenWith(szOperatorGreater)
-    jne .else_59
-;then_59:
+    jne .else_25
+;then_25:
 
     mov [rbp], word OperatorGreater
     	push 5
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_59
-.else_59:
+	jmp .end_25
+.else_25:
 
-;.if_60:
+;.if_26:
     CompareTokenWith(szOperatorAssignment)
-    jne .else_60
-;then_60:
+    jne .else_26
+;then_26:
 
     mov [rbp], word OperatorAssignment
     	push 7
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_60
-.else_60:
+	jmp .end_26
+.else_26:
 
-;.if_61:
+;.if_27:
     CompareTokenWith(szOperatorPlus)
-    jne .else_61
-;then_61:
+    jne .else_27
+;then_27:
 
     mov [rbp], word OperatorPlus
     	push 8
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_61
-.else_61:
+	jmp .end_27
+.else_27:
 
-;.if_62:
+;.if_28:
     CompareTokenWith(szOperatorMinus)
-    jne .else_62
-;then_62:
+    jne .else_28
+;then_28:
 
     mov [rbp], word OperatorMinus
     	push 9
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_62
-.else_62:
+	jmp .end_28
+.else_28:
 
-;.if_63:
+;.if_29:
     CompareTokenWith(szOperatorMultiply)
-    jne .else_63
-;then_63:
+    jne .else_29
+;then_29:
 
     mov [rbp], word OperatorMultiply
     	push 10
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_63
-.else_63:
+	jmp .end_29
+.else_29:
 
-;.if_64:
+;.if_30:
     CompareTokenWith(szOperatorDivide)
-    jne .else_64
-;then_64:
+    jne .else_30
+;then_30:
 
     mov [rbp], word OperatorDivide
     	push 11
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_64
-.else_64:
+	jmp .end_30
+.else_30:
 
-;.if_65:
+;.if_31:
     CompareTokenWith(szOperatorModulo)
-    jne .else_65
-;then_65:
+    jne .else_31
+;then_31:
 
     mov [rbp], word OperatorModulo
     	push 12
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_65
-.else_65:
+	jmp .end_31
+.else_31:
 
-;.if_66:
+;.if_32:
     CompareTokenWith(szStatementEnd)
-    jne .else_66
-;then_66:
+    jne .else_32
+;then_32:
 
     mov [rbp], word StatemendEnd
     	push 20
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_66
-.else_66:
+	jmp .end_32
+.else_32:
 
-;.if_67:
+;.if_33:
     CompareTokenWith(szSquareBracketOpen)
-    jne .else_67
-;then_67:
+    jne .else_33
+;then_33:
 
     mov [rbp], word SquareBracketOpen
     	push 21
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_67
-.else_67:
+	jmp .end_33
+.else_33:
 
-;.if_68:
+;.if_34:
     CompareTokenWith(szSquareBracketClose)
-    jne .else_68
-;then_68:
+    jne .else_34
+;then_34:
 
     mov [rbp], word SquareBracketClose
     	push 22
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_68
-.else_68:
+	jmp .end_34
+.else_34:
 
-;.if_69:
+;.if_35:
     CompareTokenWith(szParenOpen)
-    jne .else_69
-;then_69:
+    jne .else_35
+;then_35:
 
     mov [rbp], word ParenOpen
     	push 23
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_69
-.else_69:
+	jmp .end_35
+.else_35:
 
-;.if_70:
+;.if_36:
     CompareTokenWith(szParenClose)
-    jne .else_70
-;then_70:
+    jne .else_36
+;then_36:
 
     mov [rbp], word ParenClose
     	push 24
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_70
-.else_70:
+	jmp .end_36
+.else_36:
 
     ; check if token is a number
     PushCallerSavedRegs()
     strcpy(ptrBuffer64, r10, r9)
     mov rcx, ptrBuffer64
     call atoi
-;.if_71:
+;.if_37:
     cmp rdx, 0
-	je .else_71
-;then_71:
+	je .else_37
+;then_37:
 
         mov [rbp], word OperandInteger
         	push 19
 	pop rax
 	mov qword [currentTokenType], rax
 
-	jmp .end_71
-.else_71:
+	jmp .end_37
+.else_37:
 
         ; otherwise, it's a literal
         mov [rbp], word OperandLiteral
@@ -1680,72 +980,72 @@ _start:
 	pop rax
 	mov qword [currentTokenType], rax
 
-.end_71:
+.end_37:
 
     PopCallerSavedRegs()
-.end_70:
+.end_36:
 
-.end_69:
+.end_35:
 
-.end_68:
+.end_34:
 
-.end_67:
+.end_33:
 
-.end_66:
+.end_32:
 
-.end_65:
+.end_31:
 
-.end_64:
+.end_30:
 
-.end_63:
+.end_29:
 
-.end_62:
+.end_28:
 
-.end_61:
+.end_27:
 
-.end_60:
+.end_26:
 
-.end_59:
+.end_25:
 
-.end_58:
+.end_24:
 
-.end_57:
+.end_23:
 
-.end_56:
+.end_22:
 
-.end_55:
+.end_21:
 
-.end_54:
+.end_20:
 
-.end_53:
+.end_19:
 
-.end_52:
+.end_18:
 
-.end_51:
+.end_17:
 
-.end_50:
+.end_16:
 
-.end_49:
+.end_15:
 
-.end_48:
+.end_14:
 
-.end_47:
+.end_13:
 
-.end_46:
+.end_12:
 
-.end_45:
+.end_11:
 
-.end_44:
+.end_10:
 
-.end_43:
+.end_9:
 
-.end_42:
+.end_8:
 
-.end_41:
+.end_7:
 
-.end_40:
+.end_6:
 
-.end_39:
+.end_5:
 
     ; test if token type is 0
     push rax
@@ -1779,104 +1079,12 @@ _start:
     inc dword [dwTokenCount]
     multipop rax, rbx, rcx, rdx, r15
 
-    mov [currentTokenStart], r8
-    mov [currentTokenLength], r9
-
     PushCallerSavedRegs()
     PushCalleeSavedRegs()
-
-	push qword [tokenCount]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 0
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenTypeIndex], rax
-	push qword [tokenCount]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenLineIndex], rax
-	push qword [tokenCount]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 2
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenStartIndex], rax
-	push qword [tokenCount]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 3
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenLengthIndex], rax
-	mov rax, [tokenTypeIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	mov rax, [currentTokenType]
-	mov [rdx], rax
-	mov rax, [tokenLineIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	mov rax, [currentLine]
-	mov [rdx], rax
-	mov rax, [tokenStartIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	mov rax, [currentTokenStart]
-	mov [rdx], rax
-	mov rax, [tokenLengthIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	mov rax, [currentTokenLength]
-	mov [rdx], rax
-	push qword [tokenCount]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenCount], rax
+    mov r10, szSourceCode
+    add r8, r10
+    strcpy(szTokenValue, r8, r9)
+    printf(roStr_8, szTokenValue)
 
     PopCalleeSavedRegs()
     PopCallerSavedRegs()
@@ -1904,7 +1112,7 @@ _start:
     jmp .asm_literal_loop
 
 .asm_newline:
-    call incrementCurrentLine
+
     jmp .after_asm_newline
 
 .asm_literal_end:
@@ -1932,101 +1140,6 @@ _start:
     multipop rax, rbx, rcx, rdx, r10, r14
     PushCallerSavedRegs()
     PushCalleeSavedRegs()
-	push 17
-	pop rax
-	mov qword [currentTokenType], rax
-	push qword [tokenCount]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 0
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenTypeIndex], rax
-	push qword [tokenCount]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenLineIndex], rax
-	push qword [tokenCount]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 2
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenStartIndex], rax
-	push qword [tokenCount]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 3
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenLengthIndex], rax
-	mov rax, [tokenTypeIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	mov rax, [currentTokenType]
-	mov [rdx], rax
-	mov rax, [tokenLineIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	mov rax, [currentLine]
-	mov [rdx], rax
-	mov rax, [tokenStartIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	mov rax, [currentTokenStart]
-	mov [rdx], rax
-	mov rax, [tokenLengthIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	mov rax, [currentTokenLength]
-	mov [rdx], rax
-	push qword [tokenCount]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenCount], rax
 
     PopCalleeSavedRegs()
     PopCallerSavedRegs()
@@ -2070,101 +1183,6 @@ _start:
     multipop rax, rbx, rcx, rdx, r10, r14
     PushCallerSavedRegs()
     PushCalleeSavedRegs()
-	push 16
-	pop rax
-	mov qword [currentTokenType], rax
-	push qword [tokenCount]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 0
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenTypeIndex], rax
-	push qword [tokenCount]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenLineIndex], rax
-	push qword [tokenCount]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 2
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenStartIndex], rax
-	push qword [tokenCount]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 3
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenLengthIndex], rax
-	mov rax, [tokenTypeIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	mov rax, [currentTokenType]
-	mov [rdx], rax
-	mov rax, [tokenLineIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	mov rax, [currentLine]
-	mov [rdx], rax
-	mov rax, [tokenStartIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	mov rax, [currentTokenStart]
-	mov [rdx], rax
-	mov rax, [tokenLengthIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	mov rax, [currentTokenLength]
-	mov [rdx], rax
-	push qword [tokenCount]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenCount], rax
 
     PopCalleeSavedRegs()
     PopCallerSavedRegs()
@@ -2173,78 +1191,13 @@ _start:
 
 .source_code_parsed:
     mov r15d, dword [dwTokenCount]
-    printf(roStr_46, r15)
+    printf(roStr_9, r15)
     mov r14, 0
     mov r13, tokenList
     mov rcx, pNames
     call push_symbol_table
     mov rax, memory
     mov qword [pFreePointer], rax
-	push 0
-	pop rax
-	mov qword [tokenI], rax
-
-.while_72:
-	mov r15, [tokenI]
-	cmp r15, [tokenCount]
-	jge .end_72
-;do_72:
-	push qword [tokenI]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 0
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenTypeIndex], rax
-	push qword [tokenI]
-	push qword [tokenSize]
-	pop rax
-	pop rcx
-	xor rdx, rdx
-	mul rcx
-	push rax
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenLineIndex], rax
-	mov rax, [tokenTypeIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	push qword [rdx]
-	pop rax
-	mov qword [tokenTypeValue], rax
-	mov rax, [tokenLineIndex]
-	mov rdx, 8
-	mul rdx
-	mov rdx, tokens
-	add rdx, rax
-	push qword [rdx]
-	pop rax
-	mov qword [tokenLineValue], rax
-	push qword [tokenI]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenI], rax
-
-    jmp .while_72
-    ; end while_72
-.end_72:
 
 %define NextToken() nextToken
 %macro nextToken 0
@@ -2317,7 +1270,7 @@ _start:
 %ifdef DEBUG    
     push rbx
     mov ebx, dword [dwTokenCount]
-    printf(roStr_47, rbx)
+    printf(roStr_10, rbx)
     pop rbx
 %endif
 
@@ -2338,41 +1291,41 @@ _start:
     mov [wScopedBlockCurrentId], r10
 
 %define currentToken.Type word [rdx + Token.TokenType]
-%define currentToken.Start dword [rdx + Token.TokenStart]
-%define currentToken.Length dword [rdx + Token.TokenLength]
+%define currentToken.Start qword [rdx + Token.TokenStart]
+%define currentToken.Length qword [rdx + Token.TokenLength]
 
 .while_counter_less_than_token_count:
     mov rbx, [tokenIndex]
     cmp ebx, [dwTokenCount]
     jge .end_counter_less_than_token_count
     mov r14w, currentToken.Type
-    ; printf(roStr_48, r14)
+    ; printf(roStr_11, r14)
 %ifdef DEBUG    
     PushCallerSavedRegs()
-    printf(roStr_49, rbx)
+    printf(roStr_12, rbx)
     PopCallerSavedRegs()
 %endif
-;.if_73:
+;.if_38:
     cmp currentToken.Type, defKeywordThen
-	jne .end_73
-;then_73:
+	jne .end_38
+;then_38:
    
         push r15    
         xor r15, r15
         mov [bProcessingIfCondition], r15
         pop r15
-.end_73:
+.end_38:
 
-;.if_74:
+;.if_39:
     cmp currentToken.Type, defKeywordDo
-	jne .end_74
-;then_74:
+	jne .end_39
+;then_39:
    
         push r15    
         xor r15, r15
         mov [bProcessingIfCondition], r15
         pop r15
-.end_74:
+.end_39:
 
 
     cmp qword [bProcessingIfCondition], 0
@@ -2381,34 +1334,34 @@ _start:
 
 .continue_processing:
 
-;.if_75:
+;.if_40:
     cmp currentToken.Type, defOperandAsmLiteral
-	jne .end_75
-;then_75:
+	jne .end_40
+;then_40:
 
         PushCallerSavedRegs()
   
         ; write asm code
-        mov r10d, currentToken.Start
+        mov r10, currentToken.Start
         mov r11, szSourceCode
         add r10, r11
         inc r10 ; skip leading '0x40'
-        mov r11d, currentToken.Length
+        mov r11, currentToken.Length
         dec r11 ; skip trailing '0x40'
 
         WriteFile([hndDestFile], r10, r11, dwBytesWritten)
 
         PopCallerSavedRegs()
         NextToken()
-.end_75:
+.end_40:
  ; keyword 'if'
-;.if_76:
+;.if_41:
     cmp currentToken.Type, defKeywordIf
-	jne .end_76
-;then_76:
+	jne .end_41
+;then_41:
 
         PushCallerSavedRegs()
-        sprintf(ptrBuffer64, roStr_50, [wScopedBlockCurrentId])
+        sprintf(ptrBuffer64, roStr_13, [wScopedBlockCurrentId])
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
 
         PushBlockToken(defKeywordIf, [wScopedBlockCurrentId])
@@ -2420,28 +1373,28 @@ _start:
         pop r15
         PopCallerSavedRegs()
         NextToken()
-.end_76:
+.end_41:
 ; keyword 'then'
-;.if_77:
+;.if_42:
     cmp currentToken.Type, defKeywordThen
-	jne .end_77
-;then_77:
+	jne .end_42
+;then_42:
 
         PushCallerSavedRegs()
         PeekBlockToken()
         mov rbx, [rax + Block.TokenType]
 
         %ifdef DEBUG
-            printf(roStr_51, rbx)
+            printf(roStr_14, rbx)
         %endif 
-;.if_78:
+;.if_43:
     cmp bx, KeywordIf
-	je .end_78
-;then_78:
+	je .end_43
+;then_43:
 
-            printf(roStr_52, szSourceFile)
+            printf(roStr_15, szSourceFile)
             jmp .exit
-.end_78:
+.end_43:
 
         
         push rax ; rax stores pointer to block struct
@@ -2452,26 +1405,26 @@ _start:
         inc r11d ; skip 'if' token
         sub r10d, r11d ; r10d stores number of tokens in if condition
         
-;.if_79:
+;.if_44:
     cmp r10d, 3
-	je .end_79
-;then_79:
+	je .end_44
+;then_44:
 
-;.if_80:
+;.if_45:
     cmp r10d, 1
-	je .end_80
-;then_80:
+	je .end_45
+;then_45:
 
-                printf(roStr_53, r10)
+                printf(roStr_16, r10)
                 jmp .exit
-.end_80:
+.end_45:
 
-.end_79:
+.end_44:
 
-;.if_81:
+;.if_46:
     cmp r10d, 3
-	jne .else_81
-;then_81:
+	jne .else_46
+;then_46:
 
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
@@ -2479,13 +1432,13 @@ _start:
             PushCallerSavedRegs()
             call compile_condition_3
             PopCallerSavedRegs()
-	jmp .end_81
-.else_81:
+	jmp .end_46
+.else_46:
 
-;.if_82:
+;.if_47:
     cmp r10d, 1
-	jne .end_82
-;then_82:
+	jne .end_47
+;then_47:
 
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
@@ -2493,16 +1446,16 @@ _start:
             PushCallerSavedRegs()
             call compile_condition_1
             PopCallerSavedRegs()
-.end_82:
+.end_47:
 
-.end_81:
+.end_46:
 
     
         pop rax ; rax stores pointer to block struct
         
         mov bx, word [rax + Block.BlockId]
         and rbx, 0xffff
-        sprintf(ptrBuffer64, roStr_54, rbx)
+        sprintf(ptrBuffer64, roStr_17, rbx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
         ; bx stores block id
         mov cx, bx
@@ -2515,88 +1468,88 @@ _start:
 
         PopCallerSavedRegs()
         NextToken()
-.end_77:
+.end_42:
 ; keyword 'else'
-;.if_83:
+;.if_48:
     cmp currentToken.Type, defKeywordElse
-	jne .end_83
-;then_83:
+	jne .end_48
+;then_48:
 
         PushCallerSavedRegs()
 
         PeekBlockToken()
         push rax
         mov rbx, [rax + Block.TokenType]
-;.if_84:
+;.if_49:
     cmp bx, KeywordThen
-	je .end_84
-;then_84:
+	je .end_49
+;then_49:
 
-            printf(roStr_55, szSourceFile)
+            printf(roStr_18, szSourceFile)
             jmp .exit
-.end_84:
+.end_49:
 
         
         pop rax
         mov bx, word [rax + Block.BlockId]
         and rbx, 0xffff 
-        sprintf(ptrBuffer64, roStr_56, rbx, rbx)
+        sprintf(ptrBuffer64, roStr_19, rbx, rbx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
 
         PopCallerSavedRegs()
         NextToken()
-.end_83:
+.end_48:
 ; keyword 'end'
-;.if_85:
+;.if_50:
     cmp currentToken.Type, defKeywordEnd
-	jne .end_85
-;then_85:
+	jne .end_50
+;then_50:
 
         PushCallerSavedRegs()
 
         PeekBlockToken()
         push rax
         mov rbx, [rax + Block.TokenType]
-;.if_86:
+;.if_51:
     cmp bx, KeywordThen
-	je .end_86
-;then_86:
+	je .end_51
+;then_51:
 
-;.if_87:
+;.if_52:
     cmp bx, KeywordElse
-	je .end_87
-;then_87:
+	je .end_52
+;then_52:
 
-;.if_88:
+;.if_53:
     cmp bx, KeywordDo
-	je .end_88
-;then_88:
+	je .end_53
+;then_53:
 
-                    printf(roStr_57, szSourceFile)
+                    printf(roStr_20, szSourceFile)
                     jmp .exit
                     
-.end_88:
+.end_53:
 
-.end_87:
+.end_52:
 
-.end_86:
+.end_51:
 
-;.if_89:
+;.if_54:
     cmp bx, KeywordDo
-	jne .end_89
-;then_89:
+	jne .end_54
+;then_54:
 
             mov bx, word [rax + Block.BlockId]
             and rbx, 0xffff 
-            sprintf(ptrBuffer64, roStr_58, rbx, rbx)
+            sprintf(ptrBuffer64, roStr_21, rbx, rbx)
             WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
-.end_89:
+.end_54:
 
         
         pop rax
         mov bx, word [rax + Block.BlockId]
         and rbx, 0xffff 
-        sprintf(ptrBuffer64, roStr_59, rbx)
+        sprintf(ptrBuffer64, roStr_22, rbx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
 
         QuickPopBlockToken() ; pop 'then' or 'do'
@@ -2604,15 +1557,15 @@ _start:
 
         PopCallerSavedRegs()
         NextToken()
-.end_85:
+.end_50:
 ; keyword 'while'
-;.if_90:
+;.if_55:
     cmp currentToken.Type, defKeywordWhile
-	jne .end_90
-;then_90:
+	jne .end_55
+;then_55:
 
         PushCallerSavedRegs()
-        sprintf(ptrBuffer64, roStr_60, [wScopedBlockCurrentId])
+        sprintf(ptrBuffer64, roStr_23, [wScopedBlockCurrentId])
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
 
         PushBlockToken(defKeywordWhile, [wScopedBlockCurrentId])
@@ -2625,28 +1578,28 @@ _start:
         inc word [wScopedBlockCurrentId]
         PopCallerSavedRegs()
         NextToken()
-.end_90:
+.end_55:
 ; keyword 'do'
-;.if_91:
+;.if_56:
     cmp currentToken.Type, defKeywordDo
-	jne .end_91
-;then_91:
+	jne .end_56
+;then_56:
 
         PushCallerSavedRegs()
         PeekBlockToken()
         mov rbx, [rax + Block.TokenType]
 
         %ifdef DEBUG
-            printf(roStr_61, rbx)
+            printf(roStr_24, rbx)
         %endif 
-;.if_92:
+;.if_57:
     cmp bx, KeywordWhile
-	je .end_92
-;then_92:
+	je .end_57
+;then_57:
 
-            printf(roStr_62, szSourceFile)
+            printf(roStr_25, szSourceFile)
             jmp .exit
-.end_92:
+.end_57:
 
         
         push rax ; rax stores pointer to block struct
@@ -2657,26 +1610,26 @@ _start:
         inc r11d ; skip 'if' token
         sub r10d, r11d ; r10d stores number of tokens in if condition
         
-;.if_93:
+;.if_58:
     cmp r10d, 3
-	je .end_93
-;then_93:
+	je .end_58
+;then_58:
 
-;.if_94:
+;.if_59:
     cmp r10d, 1
-	je .end_94
-;then_94:
+	je .end_59
+;then_59:
 
-                printf(roStr_63, r10)
+                printf(roStr_26, r10)
                 jmp .exit
-.end_94:
+.end_59:
 
-.end_93:
+.end_58:
 
-;.if_95:
+;.if_60:
     cmp r10d, 3
-	jne .else_95
-;then_95:
+	jne .else_60
+;then_60:
 
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
@@ -2684,13 +1637,13 @@ _start:
             PushCallerSavedRegs()
             call compile_while_condition_3
             PopCallerSavedRegs()
-	jmp .end_95
-.else_95:
+	jmp .end_60
+.else_60:
 
-;.if_96:
+;.if_61:
     cmp r10d, 1
-	jne .end_96
-;then_96:
+	jne .end_61
+;then_61:
 
             mov rcx, r11 ; rcx stores token index of first token of if condition
             mov dx, word [rax + Block.BlockId]
@@ -2698,9 +1651,9 @@ _start:
             PushCallerSavedRegs()
             call compile_condition_1
             PopCallerSavedRegs()
-.end_96:
+.end_61:
 
-.end_95:
+.end_60:
 
 
     
@@ -2708,7 +1661,7 @@ _start:
         
         mov bx, word [rax + Block.BlockId]
         and rbx, 0xffff
-        sprintf(ptrBuffer64, roStr_64, rbx)
+        sprintf(ptrBuffer64, roStr_27, rbx)
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
         ; bx stores block id
         mov cx, bx
@@ -2721,12 +1674,12 @@ _start:
 
         PopCallerSavedRegs()
         NextToken()
-.end_91:
+.end_56:
 ; keyword 'continue'
-;.if_97:
+;.if_62:
     cmp currentToken.Type, defKeywordContinue
-	jne .end_97
-;then_97:
+	jne .end_62
+;then_62:
 
         PushCallerSavedRegs()
 
@@ -2739,40 +1692,40 @@ _start:
         mov r15, blockStack
         add r15, rax
         multipop rax, rdx
-.while_98:
+.while_63:
     cmp rbx, 0
-	jle .end_98
-;do_98:
+	jle .end_63
+;do_63:
 
             dec rbx
             sub r15, Block.size
             mov r10w, word [r15 + Block.TokenType]
-;.if_99:
+;.if_64:
     cmp r10, KeywordWhile
-	jne .end_99
-;then_99:
+	jne .end_64
+;then_64:
 
                 mov r10w, [r15 + Block.BlockId]
                 and r10, 0xffff
-                sprintf(ptrBuffer64, roStr_65, r10)
+                sprintf(ptrBuffer64, roStr_28, r10)
                 WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
-.end_99:
+.end_64:
 
-    jmp .while_98
-    ; end while_98
-.end_98:
+    jmp .while_63
+    ; end while_63
+.end_63:
 
 
         pop r15
 
         PopCallerSavedRegs()
         NextToken()
-.end_97:
+.end_62:
 ; keyword 'break'
-;.if_100:
+;.if_65:
     cmp currentToken.Type, defKeywordBreak
-	jne .end_100
-;then_100:
+	jne .end_65
+;then_65:
 
         PushCallerSavedRegs()
 
@@ -2785,40 +1738,40 @@ _start:
         mov r15, blockStack
         add r15, rax
         multipop rax, rdx
-.while_101:
+.while_66:
     cmp rbx, 0
-	jle .end_101
-;do_101:
+	jle .end_66
+;do_66:
 
             dec rbx
             sub r15, Block.size
             mov r10w, word [r15 + Block.TokenType]
-;.if_102:
+;.if_67:
     cmp r10, KeywordWhile
-	jne .end_102
-;then_102:
+	jne .end_67
+;then_67:
 
                 mov r10w, [r15 + Block.BlockId]
                 and r10, 0xffff
-                sprintf(ptrBuffer64, roStr_66, r10)
+                sprintf(ptrBuffer64, roStr_29, r10)
                 WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
-.end_102:
+.end_67:
 
-    jmp .while_101
-    ; end while_101
-.end_101:
+    jmp .while_66
+    ; end while_66
+.end_66:
 
 
         pop r15
 
         PopCallerSavedRegs()
         NextToken()
-.end_100:
+.end_65:
  ; keyword 'uint64'
-;.if_103:
+;.if_68:
     cmp currentToken.Type, defKeywordDefineUInt64
-	jne .end_103
-;then_103:
+	jne .end_68
+;then_68:
 
         PushCallerSavedRegs()
 
@@ -2833,18 +1786,18 @@ _start:
         
         ; get identifier
         mov r12w, word [rbx + Token.TokenType]
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
-;.if_104:
+;.if_69:
     cmp r12w, defOperandLiteral
-	je .end_104
-;then_104:
+	je .end_69
+;then_69:
 
-            printf(roStr_67)
+            printf(roStr_30)
             jmp .exit
-.end_104:
+.end_69:
 
 
         strcpy(ptrBuffer64, r13, r15)
@@ -2859,27 +1812,27 @@ _start:
         ; check if assignment operator is next
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]
-;.if_105:
+;.if_70:
     cmp r12w, defOperatorAssignment
-	je .end_105
-;then_105:
+	je .end_70
+;then_70:
 
             push rbx
-            printf(roStr_68)
+            printf(roStr_31)
             pop rbx
             sub rbx, Token.size
             mov r13, qword [rbx + Token.Line]
             mov r14, qword [rbx + Token.Column]
-            printf(roStr_69, r13, r14)
+            printf(roStr_32, r13, r14)
             jmp .exit
-.end_105:
+.end_70:
 
 
         ; get value
         add rbx, Token.size
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptr2Buffer64, r13, r15)
@@ -2889,18 +1842,18 @@ _start:
 
         ; todo - write them at the top of asm file
         ; write variable declaration
-        sprintf(ptrBuffer256, roStr_70, ptrBuffer64, ptr2Buffer64)
+        sprintf(ptrBuffer256, roStr_33, ptrBuffer64, ptr2Buffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
         PopCallerSavedRegs()
         SkipTokens(3)
         NextToken()
-.end_103:
+.end_68:
  ; keyword 'uint8'
-;.if_106:
+;.if_71:
     cmp currentToken.Type, defKeywordDefineUInt8
-	jne .end_106
-;then_106:
+	jne .end_71
+;then_71:
 
         PushCallerSavedRegs()
 
@@ -2915,18 +1868,18 @@ _start:
         
         ; get identifier
         mov r12w, word [rbx + Token.TokenType]
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
-;.if_107:
+;.if_72:
     cmp r12w, defOperandLiteral
-	je .end_107
-;then_107:
+	je .end_72
+;then_72:
 
-            printf(roStr_71)
+            printf(roStr_34)
             jmp .exit
-.end_107:
+.end_72:
 
 
         strcpy(ptrBuffer64, r13, r15)
@@ -2941,27 +1894,27 @@ _start:
         ; check if assignment operator is next
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]
-;.if_108:
+;.if_73:
     cmp r12w, defOperatorAssignment
-	je .end_108
-;then_108:
+	je .end_73
+;then_73:
 
             push rbx
-            printf(roStr_72)
+            printf(roStr_35)
             pop rbx
             sub rbx, Token.size
             mov r13, qword [rbx + Token.Line]
             mov r14, qword [rbx + Token.Column]
-            printf(roStr_73, r13, r14)
+            printf(roStr_36, r13, r14)
             jmp .exit
-.end_108:
+.end_73:
 
 
         ; get value
         add rbx, Token.size
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptr2Buffer64, r13, r15)
@@ -2971,18 +1924,18 @@ _start:
 
         ; todo - write them at the top of asm file
         ; write variable declaration
-        sprintf(ptrBuffer256, roStr_74, ptrBuffer64, ptr2Buffer64)
+        sprintf(ptrBuffer256, roStr_37, ptrBuffer64, ptr2Buffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
         PopCallerSavedRegs()
         SkipTokens(3)
         NextToken()
-.end_106:
+.end_71:
 ; literal 
-;.if_109:
+;.if_74:
     cmp currentToken.Type, defOperandLiteral
-	jne .end_109
-;then_109:
+	jne .end_74
+;then_74:
 
         PushCallerSavedRegs()
 
@@ -2994,13 +1947,13 @@ _start:
         mov rbx, tokenList
         add rbx, rax
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptr3Buffer64, r13, r15) ; literal name
 
-        printf(roStr_75, ptr3Buffer64)
+        printf(roStr_38, ptr3Buffer64)
    
         ; fetch data type from names table
         multipush rax, rcx
@@ -3010,26 +1963,26 @@ _start:
         mov r11, rdx ; data type size in bytes
         mov [dqCurrentAssignedOperandValue], r8  ; value (or pointer to a structure)
         multipop rax, rcx
-        printf(roStr_76, ptr3Buffer64, r15)
+        printf(roStr_39, ptr3Buffer64, r15)
         
-;.if_110:
+;.if_75:
     cmp r15, TYPE_PROC
-	jne .else_110
-;then_110:
+	jne .else_75
+;then_75:
 
-            sprintf(ptrBuffer256, roStr_77, ptr3Buffer64)
+            sprintf(ptrBuffer256, roStr_40, ptr3Buffer64)
             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
             multipop rax, rbx, rdx, r10, r11, r12, r13, r14, r15
 
             PopCallerSavedRegs()
             NextToken()
-	jmp .end_110
-.else_110:
+	jmp .end_75
+.else_75:
 
-;.if_111:
+;.if_76:
     cmp r15, TYPE_ARRAY
-	jne .else_111
-;then_111:
+	jne .else_76
+;then_76:
 
             mov qword [dqStatementOpCount], 1
             
@@ -3040,8 +1993,8 @@ _start:
             ; read index
             add rbx, Token.size
             movzx r12, word [rbx + Token.TokenType]
-            movzx r13, word [rbx + Token.TokenStart]
-            movzx r14, word [rbx + Token.TokenLength]
+            mov r13, qword [rbx + Token.TokenStart]
+            mov r14, qword [rbx + Token.TokenLength]
             mov r15, szSourceCode
             add r15, r13
             mov r10, r12 ; store index type
@@ -3060,111 +2013,111 @@ _start:
             ; read value
             add rbx, Token.size
             movzx r12, word [rbx + Token.TokenType]
-            movzx r13, word [rbx + Token.TokenStart]
-            movzx r14, word [rbx + Token.TokenLength]
+            mov r13, qword [rbx + Token.TokenStart]
+            mov r14, qword [rbx + Token.TokenLength]
             mov r15, szSourceCode
             add r15, r13
 
             strcpy(ptr2Buffer64, r15, r14)
             inc qword [dqStatementOpCount]
-;.if_112:
+;.if_77:
     cmp r10w, defOperandInteger
-	jne .else_112
-;then_112:
+	jne .else_77
+;then_77:
 
-;.if_113:
+;.if_78:
     cmp r11, 1
-	jne .else_113
-;then_113:
+	jne .else_78
+;then_78:
 
-                    sprintf(ptrBuffer256, roStr_78, ptr3Buffer64, ptrBuffer64)
+                    sprintf(ptrBuffer256, roStr_41, ptr3Buffer64, ptrBuffer64)
                     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_113
-.else_113:
+	jmp .end_78
+.else_78:
 
-;.if_114:
+;.if_79:
     cmp r11, 8
-	jne .else_114
-;then_114:
+	jne .else_79
+;then_79:
 
-                    sprintf(ptrBuffer256, roStr_79, ptrBuffer64, ptr3Buffer64)
+                    sprintf(ptrBuffer256, roStr_42, ptrBuffer64, ptr3Buffer64)
                     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_114
-.else_114:
+	jmp .end_79
+.else_79:
 
-                    printf(roStr_80, r11)
-                    printf(roStr_81, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                    printf(roStr_43, r11)
+                    printf(roStr_44, qword [rbx + Token.Line], qword [rbx + Token.Column])
                     jmp .exit
-.end_114:
+.end_79:
 
-.end_113:
+.end_78:
 
-	jmp .end_112
-.else_112:
+	jmp .end_77
+.else_77:
 
-;.if_115:
+;.if_80:
     cmp r11, 1
-	jne .else_115
-;then_115:
+	jne .else_80
+;then_80:
 
-                sprintf(ptrBuffer256, roStr_82, ptr3Buffer64, ptrBuffer64)
+                sprintf(ptrBuffer256, roStr_45, ptr3Buffer64, ptrBuffer64)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_115
-.else_115:
+	jmp .end_80
+.else_80:
 
-;.if_116:
+;.if_81:
     cmp r11, 8
-	jne .else_116
-;then_116:
+	jne .else_81
+;then_81:
 
-                sprintf(ptrBuffer256, roStr_83, ptrBuffer64, ptr3Buffer64)
+                sprintf(ptrBuffer256, roStr_46, ptrBuffer64, ptr3Buffer64)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_116
-.else_116:
+	jmp .end_81
+.else_81:
 
-                printf(roStr_84, r11)
-                printf(roStr_85, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                printf(roStr_47, r11)
+                printf(roStr_48, qword [rbx + Token.Line], qword [rbx + Token.Column])
                 jmp .exit
-.end_116:
+.end_81:
 
-.end_115:
+.end_80:
 
-.end_112:
+.end_77:
 
-;.if_117:
+;.if_82:
     cmp r12w, defOperandInteger
-	jne .else_117
-;then_117:
+	jne .else_82
+;then_82:
 
-;.if_118:
+;.if_83:
     cmp r11, 1
-	jne .else_118
-;then_118:
+	jne .else_83
+;then_83:
 
-                    sprintf(ptrBuffer256, roStr_86, ptr2Buffer64)
+                    sprintf(ptrBuffer256, roStr_49, ptr2Buffer64)
                     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_118
-.else_118:
+	jmp .end_83
+.else_83:
 
-;.if_119:
+;.if_84:
     cmp r11, 8
-	jne .else_119
-;then_119:
+	jne .else_84
+;then_84:
 
-                    sprintf(ptrBuffer256, roStr_87, ptr2Buffer64)
+                    sprintf(ptrBuffer256, roStr_50, ptr2Buffer64)
                     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_119
-.else_119:
+	jmp .end_84
+.else_84:
 
-                    printf(roStr_88, r11)
-                    printf(roStr_89, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                    printf(roStr_51, r11)
+                    printf(roStr_52, qword [rbx + Token.Line], qword [rbx + Token.Column])
                     jmp .exit
-.end_119:
+.end_84:
 
-.end_118:
+.end_83:
 
-	jmp .end_117
-.else_117:
+	jmp .end_82
+.else_82:
 
                 multipush rax, rcx
                 mov rcx, ptr2Buffer64
@@ -3172,71 +2125,71 @@ _start:
                 mov r15, rax
                 mov r11, rdx ; data type size in bytes
                 multipop rax, rcx 
-;.if_120:
+;.if_85:
     cmp r8, 0
-	je .else_120
-;then_120:
+	je .else_85
+;then_85:
 
-                    sprintf(ptrBuffer256, roStr_90, r8)
+                    sprintf(ptrBuffer256, roStr_53, r8)
                     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_120
-.else_120:
+	jmp .end_85
+.else_85:
 
-;.if_121:
+;.if_86:
     cmp r11, 1
-	jne .else_121
-;then_121:
+	jne .else_86
+;then_86:
 
-                        sprintf(ptrBuffer256, roStr_91, ptr2Buffer64)
+                        sprintf(ptrBuffer256, roStr_54, ptr2Buffer64)
                         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_121
-.else_121:
+	jmp .end_86
+.else_86:
 
-;.if_122:
+;.if_87:
     cmp r11, 8
-	jne .else_122
-;then_122:
+	jne .else_87
+;then_87:
 
-                        sprintf(ptrBuffer256, roStr_92, ptr2Buffer64)
+                        sprintf(ptrBuffer256, roStr_55, ptr2Buffer64)
                         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_122
-.else_122:
+	jmp .end_87
+.else_87:
 
-                        printf(roStr_93, r11)
-                        printf(roStr_94, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                        printf(roStr_56, r11)
+                        printf(roStr_57, qword [rbx + Token.Line], qword [rbx + Token.Column])
                         jmp .exit
-.end_122:
+.end_87:
 
-.end_121:
+.end_86:
 
-.end_120:
+.end_85:
 
-.end_117:
+.end_82:
 
             ; todo - verify that the next token is a ';'
             add rbx, Token.size
-	jmp .end_111
-.else_111:
+	jmp .end_76
+.else_76:
 
             ; check if assignment operator is next
             add rbx, Token.size
             mov r12w, word [rbx + Token.TokenType]
-;.if_123:
+;.if_88:
     cmp r12w, defOperatorAssignment
-	je .end_123
-;then_123:
+	je .end_88
+;then_88:
 
-                printf(roStr_95)
+                printf(roStr_58)
                 jmp .exit
-.end_123:
+.end_88:
 
 
             add rbx, Token.size
             mov r12w, word [rbx + Token.TokenType]
 
             movzx r12, word [rbx + Token.TokenType]
-            movzx r13, word [rbx + Token.TokenStart]
-            movzx r14, word [rbx + Token.TokenLength]
+            mov r13, qword [rbx + Token.TokenStart]
+            mov r14, qword [rbx + Token.TokenLength]
             mov r15, szSourceCode
             add r15, r13
             strcpy(ptrBuffer64, r15, r14) 
@@ -3249,31 +2202,31 @@ _start:
             mov r11, rdx ; data type size in bytes
             multipop rax, rcx
 
-            printf(roStr_96, r15, ptrBuffer64)
+            printf(roStr_59, r15, ptrBuffer64)
             
-;.if_124:
+;.if_89:
     cmp r15, TYPE_PROC
-	jne .end_124
-;then_124:
+	jne .end_89
+;then_89:
 
-                printf(roStr_97)
+                printf(roStr_60)
                 ; look for opening parenthesis
                 add rbx, Token.size
                 mov qword [dqStatementOpCount], 3
                 
                 add rbx, Token.size
                 mov r12w, word [rbx + Token.TokenType]
-                movzx r13, word [rbx + Token.TokenStart]
-                movzx r14, word [rbx + Token.TokenLength]
+                mov r13, qword [rbx + Token.TokenStart]
+                mov r14, qword [rbx + Token.TokenLength]
                 mov r15, szSourceCode
                 add r15, r13
                 strcpy(ptr2Buffer64, r15, r14) 
                 xor r10, r10
                 
-.while_125:
+.while_90:
     cmp r12w, defParenClose
-	je .end_125
-;do_125:
+	je .end_90
+;do_90:
 
                     ; just advance to parenthesis close
                     ; then we walk back and process the arguments
@@ -3281,16 +2234,16 @@ _start:
                     add rbx, Token.size
                     mov r12w, word [rbx + Token.TokenType]
                     add r10, 8
-    jmp .while_125
-    ; end while_125
-.end_125:
+    jmp .while_90
+    ; end while_90
+.end_90:
 
 
                 ; go back to last argument
                 sub rbx, Token.size
                 mov r12w, word [rbx + Token.TokenType]
-                movzx r13, word [rbx + Token.TokenStart]
-                movzx r14, word [rbx + Token.TokenLength]
+                mov r13, qword [rbx + Token.TokenStart]
+                mov r14, qword [rbx + Token.TokenLength]
                 mov r15, szSourceCode
                 add r15, r13
                 strcpy(ptr2Buffer64, r15, r14)
@@ -3302,44 +2255,44 @@ _start:
                 mov r11, rdx ; data type size in bytes
                 mov [dqCurrentParamValue], r8  ; value (or pointer to a structure)
                 multipop rax, rcx, r10
-.while_126:
+.while_91:
     cmp r12w, defParenOpen
-	je .end_126
-;do_126:
+	je .end_91
+;do_91:
 
-;.if_127:
+;.if_92:
     cmp r12w, defOperandInteger
-	jne .else_127
-;then_127:
+	jne .else_92
+;then_92:
 
                         ; push to operator stack
-                        sprintf(ptrBuffer256, roStr_98, ptr2Buffer64)
+                        sprintf(ptrBuffer256, roStr_61, ptr2Buffer64)
                         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_127
-.else_127:
+	jmp .end_92
+.else_92:
 
-;.if_128:
+;.if_93:
     cmp r8, 0
-	je .else_128
-;then_128:
+	je .else_93
+;then_93:
 
                             ; push to operator stack
-                            sprintf(ptrBuffer256, roStr_99, [dqCurrentParamValue])
+                            sprintf(ptrBuffer256, roStr_62, [dqCurrentParamValue])
                             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_128
-.else_128:
+	jmp .end_93
+.else_93:
 
                             ; push to operator stack
-                            sprintf(ptrBuffer256, roStr_100, ptr2Buffer64)
+                            sprintf(ptrBuffer256, roStr_63, ptr2Buffer64)
                             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-.end_128:
+.end_93:
 
-.end_127:
+.end_92:
 
                     sub rbx, Token.size
                     mov r12w, word [rbx + Token.TokenType]
-                    movzx r13, word [rbx + Token.TokenStart]
-                    movzx r14, word [rbx + Token.TokenLength]
+                    mov r13, qword [rbx + Token.TokenStart]
+                    mov r14, qword [rbx + Token.TokenLength]
                     mov r15, szSourceCode
                     add r15, r13
                     strcpy(ptr2Buffer64, r15, r14) 
@@ -3351,45 +2304,45 @@ _start:
                     mov r11, rdx ; data type size in bytes
                     mov [dqCurrentParamValue], r8  ; value (or pointer to a structure)
                     multipop rax, rcx, r10
-    jmp .while_126
-    ; end while_126
-.end_126:
+    jmp .while_91
+    ; end while_91
+.end_91:
 
 
 
                 inc qword [dqStatementOpCount] ; skip ')' token
                 inc qword [dqStatementOpCount] ; skip ';' token
-                sprintf(ptrBuffer256, roStr_101, ptrBuffer64, ptr3Buffer64)
+                sprintf(ptrBuffer256, roStr_64, ptrBuffer64, ptr3Buffer64)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-                sprintf(ptrBuffer256, roStr_102, r10)
+                sprintf(ptrBuffer256, roStr_65, r10)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
                 multipop rax, rbx, rdx, r10, r11, r12, r13, r14, r15
 
                 PopCallerSavedRegs()
                 SkipTokens([dqStatementOpCount])
                 NextToken()
-.end_124:
+.end_89:
 
-.while_129:
+.while_94:
     cmp r12w, defStatemendEnd
-	je .end_129
-;do_129:
+	je .end_94
+;do_94:
 
-;.if_130:
+;.if_95:
     cmp r12w, defOperandInteger
-	jne .else_130
-;then_130:
+	jne .else_95
+;then_95:
 
                     ; push to operator stack
-                    sprintf(ptrBuffer256, roStr_103, ptrBuffer64)
+                    sprintf(ptrBuffer256, roStr_66, ptrBuffer64)
                     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_130
-.else_130:
+	jmp .end_95
+.else_95:
 
-;.if_131:
+;.if_96:
     cmp r12w, defOperandLiteral
-	jne .else_131
-;then_131:
+	jne .else_96
+;then_96:
 
                     ; fetch data type from names table
                     multipush rax, rcx
@@ -3399,44 +2352,44 @@ _start:
                     mov r11, rdx ; data type size in bytes
                     mov r10, r8 ; value (or pointer to a structure)
                     multipop rax, rcx
-;.if_132:
+;.if_97:
     cmp r15, TYPE_ARRAY
-	jne .else_132
-;then_132:
+	jne .else_97
+;then_97:
 
                         push rax
                         ; todo - verify that the next token is a '['
                         add rbx, Token.size * 2
                         movzx r12, word [rbx + Token.TokenType]
-                        movzx r13, word [rbx + Token.TokenStart]
-                        movzx r14, word [rbx + Token.TokenLength]
+                        mov r13, qword [rbx + Token.TokenStart]
+                        mov r14, qword [rbx + Token.TokenLength]
                         mov r15, szSourceCode
                         add r15, r13
                         strcpy(ptr2Buffer64, r15, r14) 
-;.if_133:
+;.if_98:
     cmp r11, 1
-	jne .else_133
-;then_133:
+	jne .else_98
+;then_98:
 
-                            sprintf(ptrBuffer256, roStr_104, ptrBuffer64, ptr2Buffer64)
-	jmp .end_133
-.else_133:
+                            sprintf(ptrBuffer256, roStr_67, ptrBuffer64, ptr2Buffer64)
+	jmp .end_98
+.else_98:
 
-;.if_134:
+;.if_99:
     cmp r11, 8
-	jne .else_134
-;then_134:
+	jne .else_99
+;then_99:
 
-                            sprintf(ptrBuffer256, roStr_105, ptr2Buffer64, ptrBuffer64)
-	jmp .end_134
-.else_134:
+                            sprintf(ptrBuffer256, roStr_68, ptr2Buffer64, ptrBuffer64)
+	jmp .end_99
+.else_99:
 
-                            printf(roStr_106, r11)
-                            printf(roStr_107, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                            printf(roStr_69, r11)
+                            printf(roStr_70, qword [rbx + Token.Line], qword [rbx + Token.Column])
                             jmp .exit
-.end_134:
+.end_99:
 
-.end_133:
+.end_98:
 
                         
                         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
@@ -3445,66 +2398,66 @@ _start:
                         mov [dqStatementOpCount], rax
                         pop rax
                         add rbx, Token.size
-	jmp .end_132
-.else_132:
+	jmp .end_97
+.else_97:
 
-;.if_135:
+;.if_100:
     cmp r10, 0
-	je .else_135
-;then_135:
+	je .else_100
+;then_100:
 
                             ; push to operator stack
-                            sprintf(ptrBuffer256, roStr_108, r10)
+                            sprintf(ptrBuffer256, roStr_71, r10)
                             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_135
-.else_135:
+	jmp .end_100
+.else_100:
     
                             ; push to operator stack
-                            sprintf(ptrBuffer256, roStr_109, ptrBuffer64)
+                            sprintf(ptrBuffer256, roStr_72, ptrBuffer64)
                             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-.end_135:
+.end_100:
 
-.end_132:
+.end_97:
 
-	jmp .end_131
-.else_131:
+	jmp .end_96
+.else_96:
 
-;.if_136:
+;.if_101:
     cmp r12w, defOperandInteger
-	je .end_136
-;then_136:
+	je .end_101
+;then_101:
 
                     multipush rax, rcx, rdx
                     mov rcx, r12
                     call push_operator
                     multipop rax, rcx, rdx
-.end_136:
+.end_101:
 
-.end_131:
+.end_96:
 
-.end_130:
+.end_95:
 
                 add rbx, Token.size
                 movzx r12, word [rbx + Token.TokenType]
-                movzx r13, word [rbx + Token.TokenStart]
-                movzx r14, word [rbx + Token.TokenLength]
+                mov r13, qword [rbx + Token.TokenStart]
+                mov r14, qword [rbx + Token.TokenLength]
                 mov r15, szSourceCode
                 add r15, r13
                 strcpy(ptrBuffer64, r15, r14)
                 inc qword [dqStatementOpCount]
-    jmp .while_129
-    ; end while_129
-.end_129:
+    jmp .while_94
+    ; end while_94
+.end_94:
 
-.while_137:
+.while_102:
     cmp qword[dqOperatorCount], 0
-	jl .end_137
-;do_137:
+	jl .end_102
+;do_102:
 
                 call write_operator
-    jmp .while_137
-    ; end while_137
-.end_137:
+    jmp .while_102
+    ; end while_102
+.end_102:
 
             
              ; fetch data type from names table
@@ -3515,56 +2468,56 @@ _start:
             mov r11, rdx ; data type size in bytes
             multipop rax, rcx
             
-;.if_138:
+;.if_103:
     cmp r15, 0
-	jne .end_138
-;then_138:
+	jne .end_103
+;then_103:
 
-                printf(roStr_110, ptr3Buffer64)
+                printf(roStr_73, ptr3Buffer64)
                 jmp .exit
-.end_138:
+.end_103:
 
-;.if_139:
+;.if_104:
     cmp r15, TYPE_UINT8
-	jne .else_139
-;then_139:
+	jne .else_104
+;then_104:
 
-                sprintf(ptrBuffer256, roStr_111, ptr3Buffer64)
-	jmp .end_139
-.else_139:
+                sprintf(ptrBuffer256, roStr_74, ptr3Buffer64)
+	jmp .end_104
+.else_104:
 
-;.if_140:
+;.if_105:
     cmp r15, TYPE_UINT64
-	jne .else_140
-;then_140:
+	jne .else_105
+;then_105:
 
                 mov r10, [dqCurrentAssignedOperandValue]
-;.if_141:
+;.if_106:
     cmp r10, 0
-	je .else_141
-;then_141:
+	je .else_106
+;then_106:
 
-                    sprintf(ptrBuffer256, roStr_112, r10)
-	jmp .end_141
-.else_141:
+                    sprintf(ptrBuffer256, roStr_75, r10)
+	jmp .end_106
+.else_106:
 
-                    sprintf(ptrBuffer256, roStr_113, ptr3Buffer64)
-.end_141:
+                    sprintf(ptrBuffer256, roStr_76, ptr3Buffer64)
+.end_106:
 
-	jmp .end_140
-.else_140:
+	jmp .end_105
+.else_105:
 
-                printf(roStr_114, ptr3Buffer64, r11)
-                printf(roStr_115, qword [rbx + Token.Line], qword [rbx + Token.Column])
+                printf(roStr_77, ptr3Buffer64, r11)
+                printf(roStr_78, qword [rbx + Token.Line], qword [rbx + Token.Column])
                 jmp .exit
-.end_140:
+.end_105:
 
-.end_139:
+.end_104:
 
             WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-.end_111:
+.end_76:
 
-.end_110:
+.end_75:
 
 
         multipop rax, rbx, rdx, r10, r11, r12, r13, r14, r15
@@ -3572,12 +2525,12 @@ _start:
         PopCallerSavedRegs()
         SkipTokens([dqStatementOpCount])
         NextToken()
-.end_109:
+.end_74:
 ; eval 
-;.if_142:
+;.if_107:
     cmp currentToken.Type, defKeywordEval
-	jne .end_142
-;then_142:
+	jne .end_107
+;then_107:
 
         PushCallerSavedRegs()
 
@@ -3593,76 +2546,76 @@ _start:
         ; todo - check if assignment operator is present
 
         movzx r12, word [rbx + Token.TokenType]
-        movzx r13, word [rbx + Token.TokenStart]
-        movzx r14, word [rbx + Token.TokenLength]
+        mov r13, qword [rbx + Token.TokenStart]
+        mov r14, qword [rbx + Token.TokenLength]
         mov r15, szSourceCode
         add r15, r13
         strcpy(ptrBuffer64, r15, r14) 
         mov qword [dqStatementOpCount], 1
         
-.while_143:
+.while_108:
     cmp r12w, defStatemendEnd
-	je .end_143
-;do_143:
+	je .end_108
+;do_108:
 
-;.if_144:
+;.if_109:
     cmp r12w, defOperandInteger
-	jne .else_144
-;then_144:
+	jne .else_109
+;then_109:
 
                 ; push to operator stack
-                sprintf(ptrBuffer256, roStr_116, ptrBuffer64)
+                sprintf(ptrBuffer256, roStr_79, ptrBuffer64)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_144
-.else_144:
+	jmp .end_109
+.else_109:
 
-;.if_145:
+;.if_110:
     cmp r12w, defOperandLiteral
-	jne .else_145
-;then_145:
+	jne .else_110
+;then_110:
 
                 ; push to operator stack
-                sprintf(ptrBuffer256, roStr_117, ptrBuffer64)
+                sprintf(ptrBuffer256, roStr_80, ptrBuffer64)
                 WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
-	jmp .end_145
-.else_145:
+	jmp .end_110
+.else_110:
 
-;.if_146:
+;.if_111:
     cmp r12w, defOperandInteger
-	je .end_146
-;then_146:
+	je .end_111
+;then_111:
 
                 multipush rax, rcx, rdx
                 mov rcx, r12
                 call push_operator
                 multipop rax, rcx, rdx
-.end_146:
+.end_111:
 
-.end_145:
+.end_110:
 
-.end_144:
+.end_109:
 
             add rbx, Token.size
             movzx r12, word [rbx + Token.TokenType]
-            movzx r13, word [rbx + Token.TokenStart]
-            movzx r14, word [rbx + Token.TokenLength]
+            mov r13, qword [rbx + Token.TokenStart]
+            mov r14, qword [rbx + Token.TokenLength]
             mov r15, szSourceCode
             add r15, r13
             strcpy(ptrBuffer64, r15, r14)
             inc qword [dqStatementOpCount]
-    jmp .while_143
-    ; end while_143
-.end_143:
+    jmp .while_108
+    ; end while_108
+.end_108:
 
-.while_147:
+.while_112:
     cmp qword[dqOperatorCount], 0
-	jl .end_147
-;do_147:
+	jl .end_112
+;do_112:
 
             call write_operator
-    jmp .while_147
-    ; end while_147
-.end_147:
+    jmp .while_112
+    ; end while_112
+.end_112:
 
 
         multipop rax, rbx, rdx, r11, r12, r13, r14, r15
@@ -3670,12 +2623,12 @@ _start:
         PopCallerSavedRegs()
         SkipTokens([dqStatementOpCount])
         NextToken()
-.end_142:
+.end_107:
 ; array 
-;.if_148:
+;.if_113:
     cmp currentToken.Type, defKeywordArray
-	jne .end_148
-;then_148:
+	jne .end_113
+;then_113:
 
         PushCallerSavedRegs()
 
@@ -3689,8 +2642,8 @@ _start:
         ; look ahead for identifier
         add rbx, Token.size
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptrBuffer64, r13, r15) ; literal name
@@ -3698,42 +2651,42 @@ _start:
         ; check if assignment operator is next
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]
-;.if_149:
+;.if_114:
     cmp r12w, defOperatorAssignment
-	je .end_149
-;then_149:
+	je .end_114
+;then_114:
 
-            printf(roStr_118)
+            printf(roStr_81)
             jmp .exit
-.end_149:
+.end_114:
 
 
         ; get element type
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]
-;.if_150:
+;.if_115:
     cmp r12w, defKeywordDefineUInt8
-	jne .else_150
-;then_150:
+	jne .else_115
+;then_115:
 
             mov r11, 1
-	jmp .end_150
-.else_150:
+	jmp .end_115
+.else_115:
 
-;.if_151:
+;.if_116:
     cmp r12w, defKeywordDefineUInt64
-	jne .else_151
-;then_151:
+	jne .else_116
+;then_116:
 
             mov r11, 8
-	jmp .end_151
-.else_151:
+	jmp .end_116
+.else_116:
 
-            printf(roStr_119)
+            printf(roStr_82)
             jmp .exit
-.end_151:
+.end_116:
 
-.end_150:
+.end_115:
 
 
         ; skip '['
@@ -3743,18 +2696,18 @@ _start:
         ; get array size
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]
-;.if_152:
+;.if_117:
     cmp r12w, defOperandInteger
-	je .end_152
-;then_152:
+	je .end_117
+;then_117:
 
-            printf(roStr_120)
+            printf(roStr_83)
             jmp .exit
-.end_152:
+.end_117:
 
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptr2Buffer64, r13, r15) ; array size
@@ -3766,14 +2719,14 @@ _start:
         ; check if ';' is present
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]
-;.if_153:
+;.if_118:
     cmp r12w, defStatemendEnd
-	je .end_153
-;then_153:
+	je .end_118
+;then_118:
 
-            printf(roStr_121)
+            printf(roStr_84)
             jmp .exit
-.end_153:
+.end_118:
 
 
         multipush rax, rcx, rdx, r8
@@ -3782,29 +2735,29 @@ _start:
         mov r8, r11
         call push_variable
         multipop rax, rcx, rdx, r8
-;.if_154:
+;.if_119:
     cmp r11, 1
-	jne .else_154
-;then_154:
+	jne .else_119
+;then_119:
 
-            sprintf(ptrBuffer256, roStr_122, ptrBuffer64, ptr2Buffer64)
-	jmp .end_154
-.else_154:
+            sprintf(ptrBuffer256, roStr_85, ptrBuffer64, ptr2Buffer64)
+	jmp .end_119
+.else_119:
 
-;.if_155:
+;.if_120:
     cmp r11, 8
-	jne .else_155
-;then_155:
+	jne .else_120
+;then_120:
 
-            sprintf(ptrBuffer256, roStr_123, ptrBuffer64, ptr2Buffer64)
-	jmp .end_155
-.else_155:
+            sprintf(ptrBuffer256, roStr_86, ptrBuffer64, ptr2Buffer64)
+	jmp .end_120
+.else_120:
 
-            printf(roStr_124)
+            printf(roStr_87)
             jmp .exit
-.end_155:
+.end_120:
 
-.end_154:
+.end_119:
 
 
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
@@ -3814,12 +2767,12 @@ _start:
         PopCallerSavedRegs()
         SkipTokens(7)
         NextToken()
-.end_148:
+.end_113:
 ; keyword 'proc'
-;.if_156:
+;.if_121:
     cmp currentToken.Type, defKeywordProc
-	jne .end_156
-;then_156:
+	jne .end_121
+;then_121:
 
         PushCallerSavedRegs()
 
@@ -3834,26 +2787,26 @@ _start:
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]
         mov qword [dqStatementOpCount], 1 
-;.if_157:
+;.if_122:
     cmp r12w, defKeywordForward
-	jne .end_157
-;then_157:
+	jne .end_122
+;then_122:
 
             ; skip 'forward'
             add rbx, Token.size
             inc qword [dqStatementOpCount]
-.end_157:
+.end_122:
 
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptrBuffer64, r13, r15) ; name of the procedure
-;.if_158:
+;.if_123:
     cmp r12w, defKeywordForward
-	jne .end_158
-;then_158:
+	jne .end_123
+;then_123:
 
             ; save current procedure and its symbol table
             multipush rax, rcx, rdx, r8, r9
@@ -3869,22 +2822,22 @@ _start:
             PopCallerSavedRegs()
             SkipTokens([dqStatementOpCount])
             NextToken()
-.end_158:
+.end_123:
 
-        sprintf(ptrBuffer256, roStr_125, ptrBuffer64, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_88, ptrBuffer64, ptrBuffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
         add rbx, Token.size
         mov r12w, word [rbx + Token.TokenType]
         inc qword [dqStatementOpCount]
-;.if_159:
+;.if_124:
     cmp r12w, defParenOpen
-	je .end_159
-;then_159:
+	je .end_124
+;then_124:
 
-            printf(roStr_126)
+            printf(roStr_89)
             jmp .exit
-.end_159:
+.end_124:
 
 
         ; move to first argument
@@ -3893,24 +2846,24 @@ _start:
         mov r12w, word [rbx + Token.TokenType]
         inc qword [dqStatementOpCount]
         mov qword [currentProcArgCount], 0
-.while_160:
+.while_125:
     cmp r12w, defParenClose
-	je .end_160
-;do_160:
+	je .end_125
+;do_125:
 
             inc qword [currentProcArgCount]
 
             add rbx, Token.size
             mov r12w, word [rbx + Token.TokenType]
             inc qword [dqStatementOpCount]
-    jmp .while_160
-    ; end while_160
-.end_160:
+    jmp .while_125
+    ; end while_125
+.end_125:
 
 
         pop rbx ; restore rbx
         mov r12w, word [rbx + Token.TokenType]
-        printf(roStr_127, ptrBuffer64, qword [currentProcArgCount])
+        printf(roStr_90, ptrBuffer64, qword [currentProcArgCount])
         
         ; allocate symbol table for the procedure
         mov rax, qword [currentProcArgCount] 
@@ -3938,19 +2891,19 @@ _start:
         ; this will be offset from rbp
         mov qword [currentProcArgCount], 16
         
-.while_161:
+.while_126:
     cmp r12w, defParenClose
-	je .end_161
-;do_161:
+	je .end_126
+;do_126:
 
             ; get argument name
-            mov r14w, word [rbx + Token.TokenStart]
-            mov r15w, word [rbx + Token.TokenLength]
+            mov r14, qword [rbx + Token.TokenStart]
+            mov r15, qword [rbx + Token.TokenLength]
             mov r13, szSourceCode
             add r13, r14
             strcpy(ptr2Buffer64, r13, r15) ; name of the argument
 
-            printf(roStr_128, ptr2Buffer64)
+            printf(roStr_91, ptr2Buffer64)
             
             ; push argument name to proc's symbol table
             multipush rax, rcx, rdx, r8, r9
@@ -3964,24 +2917,24 @@ _start:
 
             add rbx, Token.size
             mov r12w, word [rbx + Token.TokenType]
-    jmp .while_161
-    ; end while_161
-.end_161:
+    jmp .while_126
+    ; end while_126
+.end_126:
 
 
-        printf(roStr_129, ptrBuffer64)
+        printf(roStr_92, ptrBuffer64)
 
         multipop rax, rbx, rdx, r10, r11, r12, r13, r14, r15
 
         PopCallerSavedRegs()
         SkipTokens([dqStatementOpCount])
         NextToken()
-.end_156:
+.end_121:
 ; keyword 'endproc'
-;.if_162:
+;.if_127:
     cmp currentToken.Type, defKeywordEndProc
-	jne .end_162
-;then_162:
+	jne .end_127
+;then_127:
 
         PushCallerSavedRegs()
 
@@ -3995,13 +2948,13 @@ _start:
         ; look ahead for identifier
         add rbx, Token.size
 
-        mov r14w, word [rbx + Token.TokenStart]
-        mov r15w, word [rbx + Token.TokenLength]
+        mov r14, qword [rbx + Token.TokenStart]
+        mov r15, qword [rbx + Token.TokenLength]
         mov r13, szSourceCode
         add r13, r14
         strcpy(ptrBuffer64, r13, r15) ; literal name
 
-        sprintf(ptrBuffer256, roStr_130, ptrBuffer64)
+        sprintf(ptrBuffer256, roStr_93, ptrBuffer64)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
         ; it's now safe to pop the current procedure and its symbol table
@@ -4012,37 +2965,37 @@ _start:
         PopCallerSavedRegs()
         SkipTokens(1)
         NextToken()
-.end_162:
+.end_127:
 
-;.if_163:
+;.if_128:
     cmp currentToken.Type, defOperandStringLiteral
-	jne .end_163
-;then_163:
+	jne .end_128
+;then_128:
 
         ; todo - optimize strings by removing duplicate strings
         PushCallerSavedRegs()
 
         push rdx
-        sprintf(ptrBuffer64, roStr_131, [dwStringCount])
+        sprintf(ptrBuffer64, roStr_94, [dwStringCount])
         WriteFile([hndDestFile], ptrBuffer64, rax, dwBytesWritten)
         pop rdx
 
-        mov ecx, currentToken.Start
-        mov edx, currentToken.Length
+        mov rcx, currentToken.Start
+        mov rdx, currentToken.Length
         call push_string_literal
 
         PopCallerSavedRegs()
 
         NextToken()
-.end_163:
+.end_128:
 
 
     mov r10w, currentToken.Type
-    mov r11d, currentToken.Start
-    mov r12d, currentToken.Length
+    mov r11, currentToken.Start
+    mov r12, currentToken.Length
 
 %ifdef DEBUG
-    printf(roStr_132, r10, r11, r12)
+    printf(roStr_95, r10, r11, r12)
 %endif
 
     push rax
@@ -4050,7 +3003,7 @@ _start:
     add r11, rax
     strcpy(ptrBuffer64, r11, r12)
 
-    ; printf(roStr_133, ptrBuffer64)
+    ; printf(roStr_96, ptrBuffer64)
     ; jmp .exit
     pop rax
 
@@ -4068,7 +3021,7 @@ _start:
     mov rcx, [hndDestFile]
     call CloseHandle
 
-    printf(roStr_134, szSourceFile)
+    printf(roStr_97, szSourceFile)
 
     jmp .assemble_object_file
 
@@ -4076,8 +3029,8 @@ _start:
     ExitProcess(0)
     
 .assemble_object_file:
-    sprintf(ptrBuffer256, roStr_135, szFilenameWithoutExtension, szFilenameWithoutExtension)
-    printf(roStr_136, ptrBuffer256)
+    sprintf(ptrBuffer256, roStr_98, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    printf(roStr_99, ptrBuffer256)
 
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
@@ -4102,14 +3055,14 @@ _start:
     mov rcx, NULL
     call CreateProcessA
     add rsp, 0x20 + 7 * 0x8 
-;.if_164:
+;.if_129:
     cmp rax, 0
-	jne .end_164
-;then_164:
+	jne .end_129
+;then_129:
 
-        printf(roStr_137)
+        printf(roStr_100)
         ExitProcess(1)
-.end_164:
+.end_129:
 
 
     mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
@@ -4120,21 +3073,21 @@ _start:
     mov rdx , lpExitCode
     call GetExitCodeProcess 
     
-    ; printf(roStr_138, [lpExitCode])
+    ; printf(roStr_101, [lpExitCode])
     mov rax, [lpExitCode]
     
-;.if_165:
+;.if_130:
     cmp rax, 0
-	je .end_165
-;then_165:
+	je .end_130
+;then_130:
 
-        printf(roStr_139)
+        printf(roStr_102)
         ExitProcess(1)
-.end_165:
+.end_130:
 
 
-    sprintf(ptrBuffer256, roStr_140, szFilenameWithoutExtension, szFilenameWithoutExtension)
-    printf(roStr_141, ptrBuffer256)
+    sprintf(ptrBuffer256, roStr_103, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    printf(roStr_104, ptrBuffer256)
     
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
@@ -4159,14 +3112,14 @@ _start:
     mov rcx, NULL
     call CreateProcessA
     add rsp, 0x20 + 7 * 0x8
-;.if_166:
+;.if_131:
     cmp rax, 0
-	jne .end_166
-;then_166:
+	jne .end_131
+;then_131:
 
-        printf(roStr_142)
+        printf(roStr_105)
         ExitProcess(1)
-.end_166:
+.end_131:
 
 
     mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
@@ -4178,34 +3131,34 @@ _start:
     call GetExitCodeProcess 
     mov rax, [lpExitCode]
     
-;.if_167:
+;.if_132:
     cmp rax, 0
-	je .end_167
-;then_167:
+	je .end_132
+;then_132:
 
-        printf(roStr_143)
+        printf(roStr_106)
         ExitProcess(1)
-.end_167:
+.end_132:
 
 
     ; delete object file
 %ifdef DEBUG
-    printf(roStr_144)
+    printf(roStr_107)
 %endif
 
-    sprintf(ptrBuffer256, roStr_145, szFilenameWithoutExtension)
+    sprintf(ptrBuffer256, roStr_108, szFilenameWithoutExtension)
     mov rcx, ptrBuffer256
     call DeleteFileA
-;.if_168:
+;.if_133:
     cmp rax, 0
-	jne .end_168
-;then_168:
+	jne .end_133
+;then_133:
 
-        printf(roStr_146)
-.end_168:
+        printf(roStr_109)
+.end_133:
 
 
-    printf(roStr_147, szFilenameWithoutExtension, szFilenameWithoutExtension)
+    printf(roStr_110, szFilenameWithoutExtension, szFilenameWithoutExtension)
     jmp .exit
 
 get_data_type:
@@ -4216,40 +3169,40 @@ get_data_type:
     mov r14, [dqNameCount]
     mov r13, 0
     mov r10, [pCurrentSymbolTable]
-.while_169:
+.while_134:
     cmp r13, r14
-	jge .end_169
-;do_169:
+	jge .end_134
+;do_134:
 
         mov r12, [r10 + Name.Pointer]
         strcmp(r12, r15)
-;.if_170:
+;.if_135:
     cmp rax, 0
-	jne .end_170
-;then_170:
+	jne .end_135
+;then_135:
 
             mov r11, [r10 + Name.Type]
             mov rdx, [r10 + Name.DataSize]
             mov r8, [r10 + Name.Value]
-    jmp .end_169
+    jmp .end_134
 
-.end_170:
+.end_135:
 
         add r10, Name.size
         inc r13
-    jmp .while_169
-    ; end while_169
-.end_169:
+    jmp .while_134
+    ; end while_134
+.end_134:
 
-;.if_171:
+;.if_136:
     cmp r11, 0
-	jne .end_171
-;then_171:
+	jne .end_136
+;then_136:
 
         mov rcx, r15
         call get_global_data_type
         mov r11, rax
-.end_171:
+.end_136:
 
 
 .end:
@@ -4269,30 +3222,30 @@ get_global_data_type:
     mov r10, pNames
     mov r15, rcx ; r15 holds pointer to name
     
-.while_172:
+.while_137:
     cmp r13, r14
-	jge .end_172
-;do_172:
+	jge .end_137
+;do_137:
 
         mov r12, [r10 + Name.Pointer]
         strcmp(r12, r15)
-;.if_173:
+;.if_138:
     cmp rax, 0
-	jne .end_173
-;then_173:
+	jne .end_138
+;then_138:
 
             mov r11, [r10 + Name.Type]
             mov rdx, [r10 + Name.DataSize]
             mov r8, [r10 + Name.Value]
-    jmp .end_172
+    jmp .end_137
 
-.end_173:
+.end_138:
 
         add r10, Name.size
         inc r13
-    jmp .while_172
-    ; end while_172
-.end_172:
+    jmp .while_137
+    ; end while_137
+.end_137:
 
 
 .end:
@@ -4366,14 +3319,14 @@ push_string_literal:
 
     ; load next available string list pointer into rax
     mov rax, [dwStringCount]
-;.if_174:
+;.if_139:
     cmp rax, CONST_STRING_COUNT
-	jl .end_174
-;then_174:
+	jl .end_139
+;then_139:
 
-        printf(roStr_148, CONST_STRING_COUNT)
+        printf(roStr_111, CONST_STRING_COUNT)
         ExitProcess(1)
-.end_174:
+.end_139:
 
 
     mov rdx, qword 8 ; size of pointer
@@ -4425,7 +3378,7 @@ write_string_list:
 .do_not_less_than_0:   
     mov r14, [r15]
 
-    sprintf(ptrBuffer256, roStr_149, r13, r14)
+    sprintf(ptrBuffer256, roStr_112, r13, r14)
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
     dec r13
@@ -4459,7 +3412,7 @@ compile_condition_1:
     add r10, r11
     strcpy(ptrBuffer64, r10, r12)
 
-    sprintf(ptrBuffer256, roStr_150, ptrBuffer64)
+    sprintf(ptrBuffer256, roStr_113, ptrBuffer64)
 
     ; write comparison
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
@@ -4468,58 +3421,58 @@ compile_condition_1:
     mov r13d, dword [dwTokenCount]
     mov r14, [rbp] ; token index points to the first operand
     add r14, 1
-.while_175:
+.while_140:
     cmp r14, r13
-	jg .end_175
-;do_175:
+	jg .end_140
+;do_140:
 
         ; lacking an 'or', I have to do this for now
         mov r10w, word [rbx + Token.TokenType]
-;.if_176:
+;.if_141:
     cmp r10w, defKeywordElse
-	jne .end_176
-;then_176:
+	jne .end_141
+;then_141:
 
             jmp .found_matching_keyword
-.end_176:
+.end_141:
 
-;.if_177:
+;.if_142:
     cmp r10w, defKeywordEnd
-	jne .end_177
-;then_177:
+	jne .end_142
+;then_142:
 
             jmp .found_matching_keyword
-.end_177:
+.end_142:
 
         
         inc r14
         add rbx, Token.size
-    jmp .while_175
-    ; end while_175
-.end_175:
+    jmp .while_140
+    ; end while_140
+.end_140:
 
-    printf(roStr_151)
+    printf(roStr_114)
     ExitProcess(1)
 
 .found_matching_keyword:    
     mov r13, [rbp - 0x8] ; r13 stores scope id
-;.if_178:
+;.if_143:
     cmp r10w, defKeywordElse
-	jne .else_178
-;then_178:
+	jne .else_143
+;then_143:
 
-        sprintf(ptrBuffer64, roStr_152, r13)
-	jmp .end_178
-.else_178:
+        sprintf(ptrBuffer64, roStr_115, r13)
+	jmp .end_143
+.else_143:
     
-        sprintf(ptrBuffer64, roStr_153, r13)
-.end_178:
+        sprintf(ptrBuffer64, roStr_116, r13)
+.end_143:
 
 
     multipop r10, r13, r14
 
     mov r13, [rbp - 0x8] ; r13 stores scope id
-    sprintf(ptrBuffer256, roStr_154, ptrBuffer64)
+    sprintf(ptrBuffer256, roStr_117, ptrBuffer64)
 
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
 
@@ -4573,28 +3526,28 @@ compile_condition_3:
     mov r12, [rbx + Token.TokenLength]
     add r10, r11
     strcpy(ptr2Buffer64, r10, r12)
-;.if_179:
+;.if_144:
     cmp r15, TYPE_UINT8
-	jne .else_179
-;then_179:
+	jne .else_144
+;then_144:
 
-        sprintf(ptrBuffer256, roStr_155, ptrBuffer64, ptr2Buffer64)
-	jmp .end_179
-.else_179:
+        sprintf(ptrBuffer256, roStr_118, ptrBuffer64, ptr2Buffer64)
+	jmp .end_144
+.else_144:
 
-;.if_180:
+;.if_145:
     cmp r15, TYPE_UINT64
-	jne .else_180
-;then_180:
+	jne .else_145
+;then_145:
 
-        sprintf(ptrBuffer256, roStr_156, ptrBuffer64, ptr2Buffer64)
-	jmp .end_180
-.else_180:
+        sprintf(ptrBuffer256, roStr_119, ptrBuffer64, ptr2Buffer64)
+	jmp .end_145
+.else_145:
 
-        sprintf(ptrBuffer256, roStr_157, ptrBuffer64, ptr2Buffer64)
-.end_180:
+        sprintf(ptrBuffer256, roStr_120, ptrBuffer64, ptr2Buffer64)
+.end_145:
 
-.end_179:
+.end_144:
 
 
     ; write comparison
@@ -4610,159 +3563,159 @@ compile_condition_3:
     mov r14, [rbp] ; token index points to the first operand
     add r14, 2
     mov r15, 0 ; count of encountered if keywords
-.while_181:
+.while_146:
     cmp r14, r13
-	jg .end_181
-;do_181:
+	jg .end_146
+;do_146:
 
         ; lacking an 'or', I have to do this for now
         mov r10w, word [rbx + Token.TokenType]
-;.if_182:
+;.if_147:
     cmp r10w, defKeywordElse
-	jne .end_182
-;then_182:
+	jne .end_147
+;then_147:
 
-;.if_183:
+;.if_148:
     cmp r15, 0
-	jne .end_183
-;then_183:
+	jne .end_148
+;then_148:
 
                 jmp .found_matching_keyword
-.end_183:
+.end_148:
 
-.end_182:
+.end_147:
 
-;.if_184:
+;.if_149:
     cmp r10w, defKeywordEnd
-	jne .end_184
-;then_184:
+	jne .end_149
+;then_149:
 
-;.if_185:
+;.if_150:
     cmp r15, 0
-	je .end_185
-;then_185:
+	je .end_150
+;then_150:
 
                 inc r14
                 add rbx, Token.size
                 dec r15
-    jmp .while_181
+    jmp .while_146
 
-.end_185:
+.end_150:
 
             jmp .found_matching_keyword
-.end_184:
+.end_149:
 
-;.if_186:
+;.if_151:
     cmp r10w, defKeywordIf
-	jne .end_186
-;then_186:
+	jne .end_151
+;then_151:
 
             inc r15
-.end_186:
+.end_151:
 
-;.if_187:
+;.if_152:
     cmp r10w, defKeywordWhile
-	jne .end_187
-;then_187:
+	jne .end_152
+;then_152:
 
             inc r15
-.end_187:
+.end_152:
 
         
         inc r14
         add rbx, Token.size
-    jmp .while_181
-    ; end while_181
-.end_181:
+    jmp .while_146
+    ; end while_146
+.end_146:
 
-    printf(roStr_158)
+    printf(roStr_121)
     ExitProcess(1)
 
 .found_matching_keyword:    
 
     mov r13, [rbp - 0x8] ; r13 stores scope id
-;.if_188:
+;.if_153:
     cmp r10w, defKeywordElse
-	jne .else_188
-;then_188:
+	jne .else_153
+;then_153:
 
-        sprintf(ptrBuffer64, roStr_159, r13)
-	jmp .end_188
-.else_188:
+        sprintf(ptrBuffer64, roStr_122, r13)
+	jmp .end_153
+.else_153:
     
-        sprintf(ptrBuffer64, roStr_160, r13)
-.end_188:
+        sprintf(ptrBuffer64, roStr_123, r13)
+.end_153:
 
 
     multipop r10, r13, r14
     
-;.if_189:
+;.if_154:
     cmp r10, OperatorEquals
-	jne .else_189
-;then_189:
+	jne .else_154
+;then_154:
 
-        sprintf(ptrBuffer256, roStr_161, ptrBuffer64)
-	jmp .end_189
-.else_189:
+        sprintf(ptrBuffer256, roStr_124, ptrBuffer64)
+	jmp .end_154
+.else_154:
 
-;.if_190:
+;.if_155:
     cmp r10, OperatorNotEquals
-	jne .else_190
-;then_190:
+	jne .else_155
+;then_155:
 
-        sprintf(ptrBuffer256, roStr_162, ptrBuffer64)
-	jmp .end_190
-.else_190:
+        sprintf(ptrBuffer256, roStr_125, ptrBuffer64)
+	jmp .end_155
+.else_155:
 
-;.if_191:
+;.if_156:
     cmp r10, OperatorLess
-	jne .else_191
-;then_191:
+	jne .else_156
+;then_156:
 
-        sprintf(ptrBuffer256, roStr_163, ptrBuffer64)
-	jmp .end_191
-.else_191:
+        sprintf(ptrBuffer256, roStr_126, ptrBuffer64)
+	jmp .end_156
+.else_156:
 
-;.if_192:
+;.if_157:
     cmp r10, OperatorLessOrEqual
-	jne .else_192
-;then_192:
+	jne .else_157
+;then_157:
 
-        sprintf(ptrBuffer256, roStr_164, ptrBuffer64)
-	jmp .end_192
-.else_192:
+        sprintf(ptrBuffer256, roStr_127, ptrBuffer64)
+	jmp .end_157
+.else_157:
 
-;.if_193:
+;.if_158:
     cmp r10, OperatorGreater
-	jne .else_193
-;then_193:
+	jne .else_158
+;then_158:
 
-        sprintf(ptrBuffer256, roStr_165, ptrBuffer64)
-	jmp .end_193
-.else_193:
+        sprintf(ptrBuffer256, roStr_128, ptrBuffer64)
+	jmp .end_158
+.else_158:
 
-;.if_194:
+;.if_159:
     cmp r10, OperatorGreaterOrEqual
-	jne .else_194
-;then_194:
+	jne .else_159
+;then_159:
 
-        sprintf(ptrBuffer256, roStr_166, ptrBuffer64)
-	jmp .end_194
-.else_194:
+        sprintf(ptrBuffer256, roStr_129, ptrBuffer64)
+	jmp .end_159
+.else_159:
 
-        printf(roStr_167, r10)
+        printf(roStr_130, r10)
         ExitProcess(1)
-.end_194:
+.end_159:
 
-.end_193:
+.end_158:
 
-.end_192:
+.end_157:
 
-.end_191:
+.end_156:
 
-.end_190:
+.end_155:
 
-.end_189:
+.end_154:
 
 
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
@@ -4809,28 +3762,28 @@ compile_while_condition_3:
     mov r12, [rbx + Token.TokenLength]
     add r10, r11
     strcpy(ptr2Buffer64, r10, r12)
-;.if_195:
+;.if_160:
     cmp r15, TYPE_UINT8
-	jne .else_195
-;then_195:
+	jne .else_160
+;then_160:
 
-        sprintf(ptrBuffer256, roStr_168, ptrBuffer64, ptr2Buffer64)
-	jmp .end_195
-.else_195:
+        sprintf(ptrBuffer256, roStr_131, ptrBuffer64, ptr2Buffer64)
+	jmp .end_160
+.else_160:
 
-;.if_196:
+;.if_161:
     cmp r15, TYPE_UINT64
-	jne .else_196
-;then_196:
+	jne .else_161
+;then_161:
 
-        sprintf(ptrBuffer256, roStr_169, ptrBuffer64, ptr2Buffer64)
-	jmp .end_196
-.else_196:
+        sprintf(ptrBuffer256, roStr_132, ptrBuffer64, ptr2Buffer64)
+	jmp .end_161
+.else_161:
 
-        sprintf(ptrBuffer256, roStr_170, ptrBuffer64, ptr2Buffer64)
-.end_196:
+        sprintf(ptrBuffer256, roStr_133, ptrBuffer64, ptr2Buffer64)
+.end_161:
 
-.end_195:
+.end_160:
 
 
     ; write comparison
@@ -4846,139 +3799,139 @@ compile_while_condition_3:
     mov r14, [rbp] ; token index points to the first operand
     add r14, 2
     mov r15, 0 ; count of encountered if keywords
-.while_197:
+.while_162:
     cmp r14, r13
-	jg .end_197
-;do_197:
+	jg .end_162
+;do_162:
 
         ; lacking an 'or', I have to do this for now
         mov r10w, word [rbx + Token.TokenType]
-;.if_198:
+;.if_163:
     cmp r10w, defKeywordElse
-	jne .end_198
-;then_198:
+	jne .end_163
+;then_163:
 
-;.if_199:
+;.if_164:
     cmp r15, 0
-	jne .end_199
-;then_199:
+	jne .end_164
+;then_164:
 
                 jmp .found_matching_keyword
-.end_199:
+.end_164:
 
-.end_198:
+.end_163:
 
-;.if_200:
+;.if_165:
     cmp r10w, defKeywordEnd
-	jne .end_200
-;then_200:
+	jne .end_165
+;then_165:
 
-;.if_201:
+;.if_166:
     cmp r15, 0
-	je .end_201
-;then_201:
+	je .end_166
+;then_166:
 
                 inc r14
                 add rbx, Token.size
                 dec r15
-    jmp .while_197
+    jmp .while_162
 
-.end_201:
+.end_166:
 
             jmp .found_matching_keyword
-.end_200:
+.end_165:
 
-;.if_202:
+;.if_167:
     cmp r10w, defKeywordIf
-	jne .end_202
-;then_202:
+	jne .end_167
+;then_167:
 
             inc r15
-.end_202:
+.end_167:
 
         
         inc r14
         add rbx, Token.size
-    jmp .while_197
-    ; end while_197
-.end_197:
+    jmp .while_162
+    ; end while_162
+.end_162:
 
-    printf(roStr_171)
+    printf(roStr_134)
     ExitProcess(1)
 
 .found_matching_keyword:    
 
     mov r13, [rbp - 0x8] ; r13 stores scope id
-    sprintf(ptrBuffer64, roStr_172, r13)
+    sprintf(ptrBuffer64, roStr_135, r13)
     multipop r10, r13, r14
     
-;.if_203:
+;.if_168:
     cmp r10, OperatorEquals
-	jne .else_203
-;then_203:
+	jne .else_168
+;then_168:
 
-        sprintf(ptrBuffer256, roStr_173, ptrBuffer64)
-	jmp .end_203
-.else_203:
+        sprintf(ptrBuffer256, roStr_136, ptrBuffer64)
+	jmp .end_168
+.else_168:
 
-;.if_204:
+;.if_169:
     cmp r10, OperatorNotEquals
-	jne .else_204
-;then_204:
+	jne .else_169
+;then_169:
 
-        sprintf(ptrBuffer256, roStr_174, ptrBuffer64)
-	jmp .end_204
-.else_204:
+        sprintf(ptrBuffer256, roStr_137, ptrBuffer64)
+	jmp .end_169
+.else_169:
 
-;.if_205:
+;.if_170:
     cmp r10, OperatorLess
-	jne .else_205
-;then_205:
+	jne .else_170
+;then_170:
 
-        sprintf(ptrBuffer256, roStr_175, ptrBuffer64)
-	jmp .end_205
-.else_205:
+        sprintf(ptrBuffer256, roStr_138, ptrBuffer64)
+	jmp .end_170
+.else_170:
 
-;.if_206:
+;.if_171:
     cmp r10, OperatorLessOrEqual
-	jne .else_206
-;then_206:
+	jne .else_171
+;then_171:
 
-        sprintf(ptrBuffer256, roStr_176, ptrBuffer64)
-	jmp .end_206
-.else_206:
+        sprintf(ptrBuffer256, roStr_139, ptrBuffer64)
+	jmp .end_171
+.else_171:
 
-;.if_207:
+;.if_172:
     cmp r10, OperatorGreater
-	jne .else_207
-;then_207:
+	jne .else_172
+;then_172:
 
-        sprintf(ptrBuffer256, roStr_177, ptrBuffer64)
-	jmp .end_207
-.else_207:
+        sprintf(ptrBuffer256, roStr_140, ptrBuffer64)
+	jmp .end_172
+.else_172:
 
-;.if_208:
+;.if_173:
     cmp r10, OperatorGreaterOrEqual
-	jne .else_208
-;then_208:
+	jne .else_173
+;then_173:
 
-        sprintf(ptrBuffer256, roStr_178, ptrBuffer64)
-	jmp .end_208
-.else_208:
+        sprintf(ptrBuffer256, roStr_141, ptrBuffer64)
+	jmp .end_173
+.else_173:
 
-        printf(roStr_179, r10)
+        printf(roStr_142, r10)
         ExitProcess(1)
-.end_208:
+.end_173:
 
-.end_207:
+.end_172:
 
-.end_206:
+.end_171:
 
-.end_205:
+.end_170:
 
-.end_204:
+.end_169:
 
-.end_203:
+.end_168:
 
 
     WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
@@ -4998,34 +3951,34 @@ push_operator:
     mul rdx
     mov rdx, pOperatorStack
     add rax, rdx
-;.if_209:
+;.if_174:
     cmp qword[dqOperatorCount], 0
-	jne .end_209
-;then_209:
+	jne .end_174
+;then_174:
 
         mov [rax], rcx
         mov r15, [rax]
         inc qword [dqOperatorCount]
         PopCalleeSavedRegs()
         ret
-.end_209:
+.end_174:
 
     sub rax, 8
     mov r15, [rax]
     mov r15, rcx
-.while_210:
+.while_175:
     cmp [rax], rcx
-	jle .end_210
-;do_210:
+	jle .end_175
+;do_175:
 
-;.if_211:
+;.if_176:
     cmp qword[dqOperatorCount], 0
-	jg .end_211
-;then_211:
+	jg .end_176
+;then_176:
 
-    jmp .end_210
+    jmp .end_175
 
-.end_211:
+.end_176:
 
         PushCallerSavedRegs()
         call write_operator
@@ -5033,9 +3986,9 @@ push_operator:
         push rax
         pop rax
         sub rax, 8 
-    jmp .while_210
-    ; end while_210
-.end_210:
+    jmp .while_175
+    ; end while_175
+.end_175:
 
     add rax, 8
     mov [rax], r15
@@ -5055,60 +4008,60 @@ write_operator:
     mov rdx, pOperatorStack
     add rax, rdx
     mov r15, [rax]
-;.if_212:
+;.if_177:
     cmp r15w, defOperatorPlus
-	jne .end_212
-;then_212:
+	jne .end_177
+;then_177:
 
         push rax
-        sprintf(ptrBuffer256, roStr_180)
+        sprintf(ptrBuffer256, roStr_143)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
         pop rax
-.end_212:
+.end_177:
 
-;.if_213:
+;.if_178:
     cmp r15w, defOperatorMinus
-	jne .end_213
-;then_213:
+	jne .end_178
+;then_178:
 
         push rax
-        sprintf(ptrBuffer256, roStr_181)
+        sprintf(ptrBuffer256, roStr_144)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
         pop rax
-.end_213:
+.end_178:
 
-;.if_214:
+;.if_179:
     cmp r15w, defOperatorMultiply
-	jne .end_214
-;then_214:
+	jne .end_179
+;then_179:
 
         push rax
-        sprintf(ptrBuffer256, roStr_182)
+        sprintf(ptrBuffer256, roStr_145)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
         pop rax
-.end_214:
+.end_179:
 
-;.if_215:
+;.if_180:
     cmp r15w, defOperatorDivide
-	jne .end_215
-;then_215:
+	jne .end_180
+;then_180:
 
         push rax
-        sprintf(ptrBuffer256, roStr_183)
+        sprintf(ptrBuffer256, roStr_146)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
         pop rax
-.end_215:
+.end_180:
 
-;.if_216:
+;.if_181:
     cmp r15w, defOperatorModulo
-	jne .end_216
-;then_216:
+	jne .end_181
+;then_181:
 
         push rax
-        sprintf(ptrBuffer256, roStr_184)
+        sprintf(ptrBuffer256, roStr_147)
         WriteFile([hndDestFile], ptrBuffer256, rax, dwBytesWritten)
         pop rax
-.end_216:
+.end_181:
 
 
     dec qword [dqOperatorCount]
@@ -5196,188 +4149,151 @@ section .data
     szParenClose.length equ $ - szParenClose
 
 section .rodata
-    roStr_184 db "\tpop rcx\r\n\tpop rax\r\n\txor rdx, rdx\r\n\tdiv rcx\r\n\tpush rdx\r\n", 0
-    roStr_183 db "\tpop rcx\r\n\tpop rax\r\n\txor rdx, rdx\r\n\tdiv rcx\r\n\tpush rax\r\n", 0
-    roStr_182 db "\tpop rax\r\n\tpop rcx\r\n\txor rdx, rdx\r\n\tmul rcx\r\n\tpush rax\r\n", 0
-    roStr_181 db "\tpop rcx\r\n\tpop rax\r\n\tsub rax, rcx\r\n\tpush rax\r\n", 0
-    roStr_180 db "\tpop rax\r\n\tpop rcx\r\n\tadd rax, rcx\r\n\tpush rax\r\n", 0
-    roStr_179 db "[\#27[91mERROR\#27[0m] 7Unsupported operator %x\r\n", 0
-    roStr_178 db "\tjl %s\r\n", 0
-    roStr_177 db "\tjle %s\r\n", 0
-    roStr_176 db "\tjg %s\r\n", 0
-    roStr_175 db "\tjge %s\r\n", 0
-    roStr_174 db "\tje %s\r\n", 0
-    roStr_173 db "\tjne %s\r\n", 0
-    roStr_172 db ".end_%d", 0
-    roStr_171 db "[\#27[91mERROR\#27[0m] Expected 'then' or 'else' after if condition\r\n", 0
-    roStr_170 db "    cmp %s, %s\r\n", 0
-    roStr_169 db "\tmov r15, [%s]\r\n\tcmp r15, %s\r\n", 0
-    roStr_168 db "\tmovzx r15, byte [%s]\r\n\tcmp r15, %s\r\n", 0
-    roStr_167 db "[\#27[91mERROR\#27[0m] 7Unsupported operator %x\r\n", 0
-    roStr_166 db "\tjl %s\r\n", 0
-    roStr_165 db "\tjle %s\r\n", 0
-    roStr_164 db "\tjg %s\r\n", 0
-    roStr_163 db "\tjge %s\r\n", 0
-    roStr_162 db "\tje %s\r\n", 0
-    roStr_161 db "\tjne %s\r\n", 0
-    roStr_160 db ".end_%d", 0
-    roStr_159 db ".else_%d", 0
-    roStr_158 db "[\#27[91mERROR\#27[0m] Expected 'then' or 'else' after if condition\r\n", 0
-    roStr_157 db "    cmp %s, %s\r\n", 0
-    roStr_156 db "\tmov r15, [%s]\r\n\tcmp r15, %s\r\n", 0
-    roStr_155 db "\tmovzx r15, byte [%s]\r\n\tcmp r15, %s\r\n", 0
-    roStr_154 db "    jne %s\r\n", 0
-    roStr_153 db ".end_%d", 0
-    roStr_152 db ".else_%d", 0
-    roStr_151 db "[\#27[91mERROR\#27[0m] Expected 'then' or 'else' after if condition\r\n", 0
-    roStr_150 db "    %s\r\n", 0
-    roStr_149 db "    roStr_%d db %s, 0\r\n", 0
-    roStr_148 db "[\#27[91mERROR\#27[0m]: String list full. Max strings allowed: %d\r\n", 0
-    roStr_147 db "[\#27[92mINFO\#27[0m] Generated %s.exe\r\n", 0
-    roStr_146 db "[WARN] Deleting object file failed.\r\n", 0
-    roStr_145 db "%s.o", 0
-    roStr_144 db "[DEBUG] Deleting object file.\r\n", 0
-    roStr_143 db "[\#27[91mERROR\#27[0m] Linking failed.", 0
-    roStr_142 db "[\#27[91mERROR\#27[0m] Linking failed.", 0
-    roStr_141 db "[\#27[92mINFO\#27[0m] Linking using 'ld':\r\n\t%s\r\n", 0
-    roStr_140 db "ld -e _start %s.o -o %s.exe -lkernel32 -lWs2_32 -Llib", 0
-    roStr_139 db "[\#27[91mERROR\#27[0m] Assembling failed.", 0
-    roStr_138 db "[DEBUG] Exit code: %d.\r\n", 0
-    roStr_137 db "[\#27[91mERROR\#27[0m] Assembling failed.", 0
-    roStr_136 db "[\#27[92mINFO\#27[0m] Assembling using 'nasm':\r\n\t%s\r\n", 0
-    roStr_135 db "nasm.exe -f win64 -g %s.asm -o %s.o -w+all -w+error", 0
-    roStr_134 db "[\#27[92mINFO\#27[0m] Done compiling.\r\n", 0
-    roStr_133 db "[WARN] Unknown token '%s'\r\n", 0
-    roStr_132 db "[DEBUG] Token type %x; start: %d; length: %d\r\n", 0
-    roStr_131 db "roStr_%d", 0
-    roStr_130 db "\r\n\tmov rsp, rbp\r\n\tpop rbp\r\n\tret\r\n%s_end:\r\n", 0
-    roStr_129 db "[\#27[92mINFO\#27[0m] Procedure '%s' found\r\n", 0
-    roStr_128 db "[\#27[92mINFO\#27[0m] Argument '%s' found\r\n", 0
-    roStr_127 db "[\#27[92mINFO\#27[0m] Procedure '%s' has %d arguments\r\n", 0
-    roStr_126 db "[\#27[91mERROR\#27[0m] Expected '(' after 'proc'\r\n", 0
-    roStr_125 db "\r\n\tjmp %s_end\r\n%s:\r\n\tpush rbp\r\n\tmov rbp, rsp\r\n", 0
-    roStr_124 db "[\#27[91mERROR\#27[0m] Unsupported array type\r\n", 0
-    roStr_123 db "section .bss\r\n\t%s resq %s\r\nsection .text\r\n", 0
-    roStr_122 db "section .bss\r\n\t%s resb %s\r\nsection .text\r\n", 0
-    roStr_121 db "[\#27[91mERROR\#27[0m] Expected ';' after array definition\r\n", 0
-    roStr_120 db "[\#27[91mERROR\#27[0m] Expected array size after '['\r\n", 0
-    roStr_119 db "[\#27[91mERROR\#27[0m] Expected 'uint64' after 'array'\r\n", 0
-    roStr_118 db "[\#27[91mERROR\#27[0m] Expected assignment operator after 'array'\r\n", 0
-    roStr_117 db "\tpush qword [%s]\r\n", 0
-    roStr_116 db "\tpush %s\r\n", 0
-    roStr_115 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
-    roStr_114 db "[\#27[91mERROR\#27[0m] 5Unsupported operand %s with data type of size %d\r\n", 0
-    roStr_113 db "\tpop rax\r\n\tmov qword [%s], rax\r\n", 0
-    roStr_112 db "\tpop rax\r\n\tmov qword [rbp + %d], rax\r\n", 0
-    roStr_111 db "\tpop rax\r\n\tmov byte [%s], al\r\n", 0
-    roStr_110 db "[\#27[91mERROR\#27[0m] Unknown identifier '%s'\r\n", 0
-    roStr_109 db "\tpush qword [%s]\r\n", 0
-    roStr_108 db "\tpush qword [rbp + %d]\r\n", 0
-    roStr_107 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
-    roStr_106 db "[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n", 0
-    roStr_105 db "\tmov rax, [%s]\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n\tpush qword [rdx]\r\n", 0
-    roStr_104 db "\tmov rdx, %s\r\n\tadd rdx, [%s]\r\n\tmovzx rax, byte [rdx]\r\n\tpush qword rax\r\n", 0
-    roStr_103 db "\tpush %s\r\n", 0
-    roStr_102 db "\tadd rsp, %d\r\n", 0
-    roStr_101 db "\r\n\tcall %s\r\n\tmov [%s], rax\r\n", 0
-    roStr_100 db "\tpush qword [%s]\r\n", 0
-    roStr_99 db "\tpush qword [rbp + %d]\r\n", 0
-    roStr_98 db "\tpush qword %s\r\n", 0
-    roStr_97 db "Found proc call\r\n", 0
-    roStr_96 db "Found operand of type %d:  %s\r\n", 0
-    roStr_95 db "[\#27[91mERROR\#27[0m] Expected assignment operator after literal\r\n", 0
-    roStr_94 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
-    roStr_93 db "[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n", 0
-    roStr_92 db "\tmov rax, [%s]\r\n\tmov [rdx], rax\r\n", 0
-    roStr_91 db "\tmovzx rax, byte [%s]\r\n\tmov byte [rdx], al\r\n", 0
-    roStr_90 db "\tmov rax, qword [rbp + %d]\r\n\tmov byte [rdx], al\r\n", 0
-    roStr_89 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
-    roStr_88 db "[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n", 0
-    roStr_87 db "\tmov qword [rdx], %s\r\n", 0
-    roStr_86 db "\tmov byte [rdx], %s\r\n", 0
-    roStr_85 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
-    roStr_84 db "[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n", 0
-    roStr_83 db "\tmov rax, [%s]\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n", 0
-    roStr_82 db "\tmov rdx, %s\r\n\tadd rdx, [%s]\r\n", 0
-    roStr_81 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
-    roStr_80 db "[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n", 0
-    roStr_79 db "\tmov rax, %s\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n", 0
-    roStr_78 db "\tmov rdx, %s\r\n\tadd rdx, %s\r\n", 0
-    roStr_77 db "\r\n\tcall %s\r\n", 0
-    roStr_76 db "[\#27[92mINFO\#27[0m] Symbol '%s' has %d data type\r\n", 0
-    roStr_75 db "[\#27[92mINFO\#27[0m] Processing assignment to '%s'\r\n", 0
-    roStr_74 db "\r\nsection .data\r\n\t%s db %s\r\nsection .text\r\n", 0
-    roStr_73 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
-    roStr_72 db "[\#27[91mERROR\#27[0m] Expected assignment operator after 'uint8'\r\n", 0
-    roStr_71 db "[\#27[91mERROR\#27[0m] Expected identifier after 'uint8'\r\n", 0
-    roStr_70 db "\r\nsection .data\r\n\t%s dq %s\r\nsection .text\r\n", 0
-    roStr_69 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
-    roStr_68 db "[\#27[91mERROR\#27[0m] Expected assignment operator after 'uint64'\r\n", 0
-    roStr_67 db "[\#27[91mERROR\#27[0m] Expected identifier after 'uint64'\r\n", 0
-    roStr_66 db "\r\n    jmp .end_%d\r\n", 0
-    roStr_65 db "\r\n    jmp .while_%d\r\n", 0
-    roStr_64 db ";do_%d:\r\n", 0
-    roStr_63 db "[\#27[91mERROR\#27[0m] Unsupported 'while' condition. Found %d tokens\r\n", 0
-    roStr_62 db "[\#27[91mERROR\#27[0m] Keyword 'do' is not after 'while'\r\n", 0
-    roStr_61 db "[DEBUG] .if_token_is_then_0 - rbx %x\r\n", 0
-    roStr_60 db "\r\n.while_%d:\r\n", 0
-    roStr_59 db "\r\n.end_%d:\r\n", 0
-    roStr_58 db "\r\n    jmp .while_%d\r\n    ; end while_%d", 0
-    roStr_57 db "[\#27[91mERROR\#27[0m] Keyword 'end' is not after 'then', 'else' or 'do'\r\n", 0
-    roStr_56 db "\r\n\tjmp .end_%d\r\n.else_%d:\r\n", 0
-    roStr_55 db "[\#27[91mERROR\#27[0m] Keyword 'else' is not after 'then'\r\n", 0
-    roStr_54 db ";then_%d:\r\n", 0
-    roStr_53 db "[\#27[91mERROR\#27[0m] Unsupported 'if' condition. Found %d tokens\r\n", 0
-    roStr_52 db "[\#27[91mERROR\#27[0m] Keyword 'then' is not after 'if'\r\n", 0
-    roStr_51 db "[DEBUG] .if_token_is_then_0 - rbx %x\r\n", 0
-    roStr_50 db "\r\n;.if_%d:\r\n", 0
-    roStr_49 db "[DEBUG] Current token index: %d\r\n", 0
-    roStr_48 db "[DEBUG] Current token type: %x\r\n", 0
-    roStr_47 db "[DEBUG] Found %d tokens.\r\n", 0
-    roStr_46 db "[\#27[92mINFO\#27[0m] Found %d tokens.\r\n", 0
-    roStr_45 db "Newline %d\n", 0
-    roStr_44 db "[\#27[92mINFO\#27[0m] Compiling file '%s'...\r\n", 0
-    roStr_43 db "[\#27[91mERROR\#27[0m] Error opening file '%s'. Error code: %d\r\n", 0
-    roStr_42 db "[\#27[91mERROR\#27[0m] Error reading file '%s'. Error code: %d\r\n", 0
-    roStr_41 db "[\#27[91mERROR\#27[0m] Error opening file '%s'. Error code: %d\r\n", 0
-    roStr_40 db "[\#27[92mINFO\#27[0m] Output file '%s'\r\n", 0
-    roStr_39 db "[\#27[92mINFO\#27[0m] Input file '%s'\r\n", 0
-    roStr_38 db "[\#27[91mERROR\#27[0m] line %d - Unexpected token: ", 0
-    roStr_37 db "Unknown token type %x\n", 0
-    roStr_36 db "SQBRACKET_CLOSE\n", 0
-    roStr_35 db "SQBRACKET_OPEN\n", 0
-    roStr_34 db "SEMICOLON\n", 0
-    roStr_33 db "CONSTANT_INTEGER\n", 0
-    roStr_32 db "IDENTIFIER\n", 0
-    roStr_31 db "ASM_LITERAL\n", 0
-    roStr_30 db "CONSTANT_STRING\n", 0
-    roStr_29 db "KEYWORD_ENDPROC\n", 0
-    roStr_28 db "KEYWORD_PROC\n", 0
-    roStr_27 db "KEYWORD_ARRAY\n", 0
-    roStr_26 db "KEYWORD_EVAL--\n", 0
-    roStr_25 db "KEYWORD_STRING--\n", 0
-    roStr_24 db "KEYWORD_UINT64\n", 0
-    roStr_23 db "KEYWORD_UINT8\n", 0
-    roStr_22 db "KEYWORD_BREAK\n", 0
-    roStr_21 db "KEYWORD_CONTINUE\n", 0
-    roStr_20 db "KEYWORD_DO\n", 0
-    roStr_19 db "KEYWORD_WHILE\n", 0
-    roStr_18 db "KEYWORD_END\n", 0
-    roStr_17 db "KEYWORD_ELSE\n", 0
-    roStr_16 db "KEYWORD_THEN\n", 0
-    roStr_15 db "KEYWORD_IF\n", 0
-    roStr_14 db "OP_MOD\n", 0
-    roStr_13 db "OP_DIV\n", 0
-    roStr_12 db "OP_MUL\n", 0
-    roStr_11 db "OP_MINUS\n", 0
-    roStr_10 db "OP_PLUS\n", 0
-    roStr_9 db "OP_ASSIGNMENT\n", 0
-    roStr_8 db "OP_GREATER_OR_EQUAL\n", 0
-    roStr_7 db "OP_GREATER\n", 0
-    roStr_6 db "OP_LESS_OR_EQAL\n", 0
-    roStr_5 db "OP_LESS\n", 0
-    roStr_4 db "OP_NOT_EQUALS\n", 0
-    roStr_3 db "OP_EQUALS\n", 0
-    roStr_2 db "Offset for Value: %d\n", 0
-    roStr_1 db "Offset for Type: %d\n", 0
-    roStr_0 db "Pushing token to IR stack - t: %x; v: %d\n", 0
+    roStr_147 db "\tpop rcx\r\n\tpop rax\r\n\txor rdx, rdx\r\n\tdiv rcx\r\n\tpush rdx\r\n", 0
+    roStr_146 db "\tpop rcx\r\n\tpop rax\r\n\txor rdx, rdx\r\n\tdiv rcx\r\n\tpush rax\r\n", 0
+    roStr_145 db "\tpop rax\r\n\tpop rcx\r\n\txor rdx, rdx\r\n\tmul rcx\r\n\tpush rax\r\n", 0
+    roStr_144 db "\tpop rcx\r\n\tpop rax\r\n\tsub rax, rcx\r\n\tpush rax\r\n", 0
+    roStr_143 db "\tpop rax\r\n\tpop rcx\r\n\tadd rax, rcx\r\n\tpush rax\r\n", 0
+    roStr_142 db "[\#27[91mERROR\#27[0m] 7Unsupported operator %x\r\n", 0
+    roStr_141 db "\tjl %s\r\n", 0
+    roStr_140 db "\tjle %s\r\n", 0
+    roStr_139 db "\tjg %s\r\n", 0
+    roStr_138 db "\tjge %s\r\n", 0
+    roStr_137 db "\tje %s\r\n", 0
+    roStr_136 db "\tjne %s\r\n", 0
+    roStr_135 db ".end_%d", 0
+    roStr_134 db "[\#27[91mERROR\#27[0m] Expected 'then' or 'else' after if condition\r\n", 0
+    roStr_133 db "    cmp %s, %s\r\n", 0
+    roStr_132 db "\tmov r15, [%s]\r\n\tcmp r15, %s\r\n", 0
+    roStr_131 db "\tmovzx r15, byte [%s]\r\n\tcmp r15, %s\r\n", 0
+    roStr_130 db "[\#27[91mERROR\#27[0m] 7Unsupported operator %x\r\n", 0
+    roStr_129 db "\tjl %s\r\n", 0
+    roStr_128 db "\tjle %s\r\n", 0
+    roStr_127 db "\tjg %s\r\n", 0
+    roStr_126 db "\tjge %s\r\n", 0
+    roStr_125 db "\tje %s\r\n", 0
+    roStr_124 db "\tjne %s\r\n", 0
+    roStr_123 db ".end_%d", 0
+    roStr_122 db ".else_%d", 0
+    roStr_121 db "[\#27[91mERROR\#27[0m] Expected 'then' or 'else' after if condition\r\n", 0
+    roStr_120 db "    cmp %s, %s\r\n", 0
+    roStr_119 db "\tmov r15, [%s]\r\n\tcmp r15, %s\r\n", 0
+    roStr_118 db "\tmovzx r15, byte [%s]\r\n\tcmp r15, %s\r\n", 0
+    roStr_117 db "    jne %s\r\n", 0
+    roStr_116 db ".end_%d", 0
+    roStr_115 db ".else_%d", 0
+    roStr_114 db "[\#27[91mERROR\#27[0m] Expected 'then' or 'else' after if condition\r\n", 0
+    roStr_113 db "    %s\r\n", 0
+    roStr_112 db "    roStr_%d db %s, 0\r\n", 0
+    roStr_111 db "[\#27[91mERROR\#27[0m]: String list full. Max strings allowed: %d\r\n", 0
+    roStr_110 db "[\#27[92mINFO\#27[0m] Generated %s.exe\r\n", 0
+    roStr_109 db "[WARN] Deleting object file failed.\r\n", 0
+    roStr_108 db "%s.o", 0
+    roStr_107 db "[DEBUG] Deleting object file.\r\n", 0
+    roStr_106 db "[\#27[91mERROR\#27[0m] Linking failed.", 0
+    roStr_105 db "[\#27[91mERROR\#27[0m] Linking failed.", 0
+    roStr_104 db "[\#27[92mINFO\#27[0m] Linking using 'ld':\r\n\t%s\r\n", 0
+    roStr_103 db "ld -e _start %s.o -o %s.exe -lkernel32 -lWs2_32 -Llib", 0
+    roStr_102 db "[\#27[91mERROR\#27[0m] Assembling failed.", 0
+    roStr_101 db "[DEBUG] Exit code: %d.\r\n", 0
+    roStr_100 db "[\#27[91mERROR\#27[0m] Assembling failed.", 0
+    roStr_99 db "[\#27[92mINFO\#27[0m] Assembling using 'nasm':\r\n\t%s\r\n", 0
+    roStr_98 db "nasm.exe -f win64 -g %s.asm -o %s.o -w+all -w+error", 0
+    roStr_97 db "[\#27[92mINFO\#27[0m] Done compiling.\r\n", 0
+    roStr_96 db "[WARN] Unknown token '%s'\r\n", 0
+    roStr_95 db "[DEBUG] Token type %x; start: %d; length: %d\r\n", 0
+    roStr_94 db "roStr_%d", 0
+    roStr_93 db "\r\n\tmov rsp, rbp\r\n\tpop rbp\r\n\tret\r\n%s_end:\r\n", 0
+    roStr_92 db "[\#27[92mINFO\#27[0m] Procedure '%s' found\r\n", 0
+    roStr_91 db "[\#27[92mINFO\#27[0m] Argument '%s' found\r\n", 0
+    roStr_90 db "[\#27[92mINFO\#27[0m] Procedure '%s' has %d arguments\r\n", 0
+    roStr_89 db "[\#27[91mERROR\#27[0m] Expected '(' after 'proc'\r\n", 0
+    roStr_88 db "\r\n\tjmp %s_end\r\n%s:\r\n\tpush rbp\r\n\tmov rbp, rsp\r\n", 0
+    roStr_87 db "[\#27[91mERROR\#27[0m] Unsupported array type\r\n", 0
+    roStr_86 db "section .bss\r\n\t%s resq %s\r\nsection .text\r\n", 0
+    roStr_85 db "section .bss\r\n\t%s resb %s\r\nsection .text\r\n", 0
+    roStr_84 db "[\#27[91mERROR\#27[0m] Expected ';' after array definition\r\n", 0
+    roStr_83 db "[\#27[91mERROR\#27[0m] Expected array size after '['\r\n", 0
+    roStr_82 db "[\#27[91mERROR\#27[0m] Expected 'uint64' after 'array'\r\n", 0
+    roStr_81 db "[\#27[91mERROR\#27[0m] Expected assignment operator after 'array'\r\n", 0
+    roStr_80 db "\tpush qword [%s]\r\n", 0
+    roStr_79 db "\tpush %s\r\n", 0
+    roStr_78 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
+    roStr_77 db "[\#27[91mERROR\#27[0m] 5Unsupported operand %s with data type of size %d\r\n", 0
+    roStr_76 db "\tpop rax\r\n\tmov qword [%s], rax\r\n", 0
+    roStr_75 db "\tpop rax\r\n\tmov qword [rbp + %d], rax\r\n", 0
+    roStr_74 db "\tpop rax\r\n\tmov byte [%s], al\r\n", 0
+    roStr_73 db "[\#27[91mERROR\#27[0m] Unknown identifier '%s'\r\n", 0
+    roStr_72 db "\tpush qword [%s]\r\n", 0
+    roStr_71 db "\tpush qword [rbp + %d]\r\n", 0
+    roStr_70 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
+    roStr_69 db "[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n", 0
+    roStr_68 db "\tmov rax, [%s]\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n\tpush qword [rdx]\r\n", 0
+    roStr_67 db "\tmov rdx, %s\r\n\tadd rdx, [%s]\r\n\tmovzx rax, byte [rdx]\r\n\tpush qword rax\r\n", 0
+    roStr_66 db "\tpush %s\r\n", 0
+    roStr_65 db "\tadd rsp, %d\r\n", 0
+    roStr_64 db "\r\n\tcall %s\r\n\tmov [%s], rax\r\n", 0
+    roStr_63 db "\tpush qword [%s]\r\n", 0
+    roStr_62 db "\tpush qword [rbp + %d]\r\n", 0
+    roStr_61 db "\tpush qword %s\r\n", 0
+    roStr_60 db "Found proc call\r\n", 0
+    roStr_59 db "Found operand of type %d:  %s\r\n", 0
+    roStr_58 db "[\#27[91mERROR\#27[0m] Expected assignment operator after literal\r\n", 0
+    roStr_57 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
+    roStr_56 db "[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n", 0
+    roStr_55 db "\tmov rax, [%s]\r\n\tmov [rdx], rax\r\n", 0
+    roStr_54 db "\tmovzx rax, byte [%s]\r\n\tmov byte [rdx], al\r\n", 0
+    roStr_53 db "\tmov rax, qword [rbp + %d]\r\n\tmov byte [rdx], al\r\n", 0
+    roStr_52 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
+    roStr_51 db "[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n", 0
+    roStr_50 db "\tmov qword [rdx], %s\r\n", 0
+    roStr_49 db "\tmov byte [rdx], %s\r\n", 0
+    roStr_48 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
+    roStr_47 db "[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n", 0
+    roStr_46 db "\tmov rax, [%s]\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n", 0
+    roStr_45 db "\tmov rdx, %s\r\n\tadd rdx, [%s]\r\n", 0
+    roStr_44 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
+    roStr_43 db "[\#27[91mERROR\#27[0m] Unsupported data type of size %d\r\n", 0
+    roStr_42 db "\tmov rax, %s\r\n\tmov rdx, 8\r\n\tmul rdx\r\n\tmov rdx, %s\r\n\tadd rdx, rax\r\n", 0
+    roStr_41 db "\tmov rdx, %s\r\n\tadd rdx, %s\r\n", 0
+    roStr_40 db "\r\n\tcall %s\r\n", 0
+    roStr_39 db "[\#27[92mINFO\#27[0m] Symbol '%s' has %d data type\r\n", 0
+    roStr_38 db "[\#27[92mINFO\#27[0m] Processing assignment to '%s'\r\n", 0
+    roStr_37 db "\r\nsection .data\r\n\t%s db %s\r\nsection .text\r\n", 0
+    roStr_36 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
+    roStr_35 db "[\#27[91mERROR\#27[0m] Expected assignment operator after 'uint8'\r\n", 0
+    roStr_34 db "[\#27[91mERROR\#27[0m] Expected identifier after 'uint8'\r\n", 0
+    roStr_33 db "\r\nsection .data\r\n\t%s dq %s\r\nsection .text\r\n", 0
+    roStr_32 db "[\#27[91mERROR\#27[0m] Line %d, column %d\r\n", 0
+    roStr_31 db "[\#27[91mERROR\#27[0m] Expected assignment operator after 'uint64'\r\n", 0
+    roStr_30 db "[\#27[91mERROR\#27[0m] Expected identifier after 'uint64'\r\n", 0
+    roStr_29 db "\r\n    jmp .end_%d\r\n", 0
+    roStr_28 db "\r\n    jmp .while_%d\r\n", 0
+    roStr_27 db ";do_%d:\r\n", 0
+    roStr_26 db "[\#27[91mERROR\#27[0m] Unsupported 'while' condition. Found %d tokens\r\n", 0
+    roStr_25 db "[\#27[91mERROR\#27[0m] Keyword 'do' is not after 'while'\r\n", 0
+    roStr_24 db "[DEBUG] .if_token_is_then_0 - rbx %x\r\n", 0
+    roStr_23 db "\r\n.while_%d:\r\n", 0
+    roStr_22 db "\r\n.end_%d:\r\n", 0
+    roStr_21 db "\r\n    jmp .while_%d\r\n    ; end while_%d", 0
+    roStr_20 db "[\#27[91mERROR\#27[0m] Keyword 'end' is not after 'then', 'else' or 'do'\r\n", 0
+    roStr_19 db "\r\n\tjmp .end_%d\r\n.else_%d:\r\n", 0
+    roStr_18 db "[\#27[91mERROR\#27[0m] Keyword 'else' is not after 'then'\r\n", 0
+    roStr_17 db ";then_%d:\r\n", 0
+    roStr_16 db "[\#27[91mERROR\#27[0m] Unsupported 'if' condition. Found %d tokens\r\n", 0
+    roStr_15 db "[\#27[91mERROR\#27[0m] Keyword 'then' is not after 'if'\r\n", 0
+    roStr_14 db "[DEBUG] .if_token_is_then_0 - rbx %x\r\n", 0
+    roStr_13 db "\r\n;.if_%d:\r\n", 0
+    roStr_12 db "[DEBUG] Current token index: %d\r\n", 0
+    roStr_11 db "[DEBUG] Current token type: %x\r\n", 0
+    roStr_10 db "[DEBUG] Found %d tokens.\r\n", 0
+    roStr_9 db "[\#27[92mINFO\#27[0m] Found %d tokens.\r\n", 0
+    roStr_8 db "Token: %s\r\n", 0
+    roStr_7 db "Newline %d\n", 0
+    roStr_6 db "[\#27[92mINFO\#27[0m] Compiling file '%s'...\r\n", 0
+    roStr_5 db "[\#27[91mERROR\#27[0m] Error opening file '%s'. Error code: %d\r\n", 0
+    roStr_4 db "Read %d bytes from file '%s'.\r\n", 0
+    roStr_3 db "[\#27[91mERROR\#27[0m] Error reading file '%s'. Error code: %d\r\n", 0
+    roStr_2 db "[\#27[91mERROR\#27[0m] Error opening file '%s'. Error code: %d\r\n", 0
+    roStr_1 db "[\#27[92mINFO\#27[0m] Output file '%s'\r\n", 0
+    roStr_0 db "[\#27[92mINFO\#27[0m] Input file '%s'\r\n", 0

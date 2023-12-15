@@ -212,7 +212,7 @@ section .data
 	col dq 1
 section .text
 section .bss
-	tokens resq 10000
+	tokens resq 75000
 section .text
 
 section .data
@@ -612,6 +612,18 @@ section .data
 section .text
 
 section .data
+	TOKEN_INCREMENT dq 48
+section .text
+
+section .data
+	TOKEN_DECREMENT dq 49
+section .text
+
+section .data
+	TOKEN_ENUM dq 50
+section .text
+
+section .data
 	TYPE_UINT8 dq 1
 section .text
 
@@ -649,6 +661,10 @@ section .text
 
 section .data
 	TYPE_STRUCT_POINTER dq 10
+section .text
+
+section .data
+	TYPE_PROCEDURE_FWD dq 11
 section .text
 
 section .data
@@ -1102,19 +1118,14 @@ to_number:
 	mov qword [_], rax
 
 ;.if_8:
-	mov r15, [_]
-	cmp r15, 88
+	movzx r15, byte [tnChar]
+	cmp r15, 48
 	jne .end_8
 ;then_8:
-	push 1
-	pop rax
-	mov qword [tnIsHex], rax
-
-.end_8:
 
 ;.if_9:
 	mov r15, [_]
-	cmp r15, 120
+	cmp r15, 88
 	jne .end_9
 ;then_9:
 	push 1
@@ -1123,13 +1134,34 @@ to_number:
 
 .end_9:
 
-.end_7:
+.end_8:
 
 ;.if_10:
-	mov r15, [tnIsHex]
-	cmp r15, 1
+	movzx r15, byte [tnChar]
+	cmp r15, 48
 	jne .end_10
 ;then_10:
+
+;.if_11:
+	mov r15, [_]
+	cmp r15, 120
+	jne .end_11
+;then_11:
+	push 1
+	pop rax
+	mov qword [tnIsHex], rax
+
+.end_11:
+
+.end_10:
+
+.end_7:
+
+;.if_12:
+	mov r15, [tnIsHex]
+	cmp r15, 1
+	jne .end_12
+;then_12:
 	push 16
 	pop rax
 	mov qword [tnBase], rax
@@ -1143,13 +1175,13 @@ to_number:
 	pop rax
 	mov byte [tnChar], al
 
-.end_10:
+.end_12:
 
-.while_11:
+.while_13:
 	movzx r15, byte [tnChar]
 	cmp r15, 0
-	je .end_11
-;do_11:
+	je .end_13
+;do_13:
 	push qword [tnNumber]
 	push qword [tnBase]
 	pop rax
@@ -1166,83 +1198,23 @@ to_number:
 	pop rax
 	mov qword [tnDigit], rax
 
-;.if_12:
-	mov r15, [tnDigit]
-	cmp r15, 96
-	jle .else_12
-;then_12:
-
-;.if_13:
-	mov r15, [tnDigit]
-	cmp r15, 103
-	jge .else_13
-;then_13:
-	push qword [tnDigit]
-	push 87
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rax
-	mov qword [tnDigit], rax
-
-	jmp .end_13
-.else_13:
-	push 0
-	pop rax
-	mov qword [tnSuccess], rax
-
-    jmp .end_11
-
-.end_13:
-
-	jmp .end_12
-.else_12:
-
 ;.if_14:
-	mov r15, [tnDigit]
-	cmp r15, 64
-	jle .else_14
+	mov r15, [tnBase]
+	cmp r15, 10
+	jne .else_14
 ;then_14:
 
 ;.if_15:
 	mov r15, [tnDigit]
-	cmp r15, 71
-	jge .else_15
+	cmp r15, 47
+	jle .else_15
 ;then_15:
-	push qword [tnDigit]
-	push 55
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rax
-	mov qword [tnDigit], rax
-
-	jmp .end_15
-.else_15:
-	push 0
-	pop rax
-	mov qword [tnSuccess], rax
-
-    jmp .end_11
-
-.end_15:
-
-	jmp .end_14
-.else_14:
 
 ;.if_16:
 	mov r15, [tnDigit]
-	cmp r15, 47
-	jle .end_16
-;then_16:
-
-;.if_17:
-	mov r15, [tnDigit]
 	cmp r15, 58
-	jge .else_17
-;then_17:
+	jge .else_16
+;then_16:
 	push qword [tnDigit]
 	push 48
 	pop rcx
@@ -1252,21 +1224,148 @@ to_number:
 	pop rax
 	mov qword [tnDigit], rax
 
+	jmp .end_16
+.else_16:
+	push 0
+	pop rax
+	mov qword [tnSuccess], rax
+
+    jmp .end_13
+
+.end_16:
+
+	jmp .end_15
+.else_15:
+	push 0
+	pop rax
+	mov qword [tnSuccess], rax
+
+    jmp .end_13
+
+.end_15:
+
+	jmp .end_14
+.else_14:
+
+;.if_17:
+	mov r15, [tnBase]
+	cmp r15, 16
+	jne .else_17
+;then_17:
+
+;.if_18:
+	mov r15, [tnDigit]
+	cmp r15, 96
+	jle .else_18
+;then_18:
+
+;.if_19:
+	mov r15, [tnDigit]
+	cmp r15, 103
+	jge .else_19
+;then_19:
+	push qword [tnDigit]
+	push 87
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	mov qword [tnDigit], rax
+
+	jmp .end_19
+.else_19:
+	push 0
+	pop rax
+	mov qword [tnSuccess], rax
+
+    jmp .end_13
+
+.end_19:
+
+	jmp .end_18
+.else_18:
+
+;.if_20:
+	mov r15, [tnDigit]
+	cmp r15, 64
+	jle .else_20
+;then_20:
+
+;.if_21:
+	mov r15, [tnDigit]
+	cmp r15, 71
+	jge .else_21
+;then_21:
+	push qword [tnDigit]
+	push 55
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	mov qword [tnDigit], rax
+
+	jmp .end_21
+.else_21:
+	push 0
+	pop rax
+	mov qword [tnSuccess], rax
+
+    jmp .end_13
+
+.end_21:
+
+	jmp .end_20
+.else_20:
+
+;.if_22:
+	mov r15, [tnDigit]
+	cmp r15, 47
+	jle .end_22
+;then_22:
+
+;.if_23:
+	mov r15, [tnDigit]
+	cmp r15, 58
+	jge .else_23
+;then_23:
+	push qword [tnDigit]
+	push 48
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	mov qword [tnDigit], rax
+
+	jmp .end_23
+.else_23:
+	push 0
+	pop rax
+	mov qword [tnSuccess], rax
+
+    jmp .end_13
+
+.end_23:
+
+.end_22:
+
+.end_20:
+
+.end_18:
+
 	jmp .end_17
 .else_17:
 	push 0
 	pop rax
 	mov qword [tnSuccess], rax
 
-    jmp .end_11
+    jmp .end_13
 
 .end_17:
 
-.end_16:
-
 .end_14:
-
-.end_12:
 	push qword [tnNumber]
 	push qword [tnDigit]
 	pop rax
@@ -1290,9 +1389,9 @@ to_number:
 	pop rax
 	mov byte [tnChar], al
 
-    jmp .while_11
-    ; end while_11
-.end_11:
+    jmp .while_13
+    ; end while_13
+.end_13:
 
     mov rax, [tnSuccess]
 	mov rsp, rbp
@@ -1305,54 +1404,54 @@ isSpace:
 	push rbp
 	mov rbp, rsp
 
-;.if_18:
+;.if_24:
 	movzx r15, byte [c]
 	cmp r15, 32
-	jne .else_18
-;then_18:
+	jne .else_24
+;then_24:
 
         mov rax, 1
-	jmp .end_18
-.else_18:
+	jmp .end_24
+.else_24:
 
-;.if_19:
+;.if_25:
 	movzx r15, byte [c]
 	cmp r15, 10
-	jne .else_19
-;then_19:
+	jne .else_25
+;then_25:
 
         mov rax, 1
-	jmp .end_19
-.else_19:
+	jmp .end_25
+.else_25:
 
-;.if_20:
+;.if_26:
 	movzx r15, byte [c]
 	cmp r15, 13
-	jne .else_20
-;then_20:
+	jne .else_26
+;then_26:
 
         mov rax, 1
-	jmp .end_20
-.else_20:
+	jmp .end_26
+.else_26:
 
-;.if_21:
+;.if_27:
 	movzx r15, byte [c]
 	cmp r15, 9
-	jne .else_21
-;then_21:
+	jne .else_27
+;then_27:
 
         mov rax, 1
-	jmp .end_21
-.else_21:
+	jmp .end_27
+.else_27:
 
         mov rax, 0
-.end_21:
+.end_27:
 
-.end_20:
+.end_26:
 
-.end_19:
+.end_25:
 
-.end_18:
+.end_24:
 
 	mov rsp, rbp
 	pop rbp
@@ -1364,69 +1463,9 @@ isSeparator:
 	push rbp
 	mov rbp, rsp
 
-;.if_22:
-	movzx r15, byte [c]
-	cmp r15, 59
-	jne .else_22
-;then_22:
-
-        mov rax, 1
-	jmp .end_22
-.else_22:
-
-;.if_23:
-	movzx r15, byte [c]
-	cmp r15, 44
-	jne .else_23
-;then_23:
-
-        mov rax, 1
-	jmp .end_23
-.else_23:
-
-;.if_24:
-	movzx r15, byte [c]
-	cmp r15, 40
-	jne .else_24
-;then_24:
-
-        mov rax, 1
-	jmp .end_24
-.else_24:
-
-;.if_25:
-	movzx r15, byte [c]
-	cmp r15, 41
-	jne .else_25
-;then_25:
-
-        mov rax, 1
-	jmp .end_25
-.else_25:
-
-;.if_26:
-	movzx r15, byte [c]
-	cmp r15, 91
-	jne .else_26
-;then_26:
-
-        mov rax, 1
-	jmp .end_26
-.else_26:
-
-;.if_27:
-	movzx r15, byte [c]
-	cmp r15, 93
-	jne .else_27
-;then_27:
-
-        mov rax, 1
-	jmp .end_27
-.else_27:
-
 ;.if_28:
 	movzx r15, byte [c]
-	cmp r15, 46
+	cmp r15, 59
 	jne .else_28
 ;then_28:
 
@@ -1436,7 +1475,7 @@ isSeparator:
 
 ;.if_29:
 	movzx r15, byte [c]
-	cmp r15, 64
+	cmp r15, 44
 	jne .else_29
 ;then_29:
 
@@ -1446,7 +1485,7 @@ isSeparator:
 
 ;.if_30:
 	movzx r15, byte [c]
-	cmp r15, 38
+	cmp r15, 40
 	jne .else_30
 ;then_30:
 
@@ -1454,24 +1493,84 @@ isSeparator:
 	jmp .end_30
 .else_30:
 
+;.if_31:
+	movzx r15, byte [c]
+	cmp r15, 41
+	jne .else_31
+;then_31:
+
+        mov rax, 1
+	jmp .end_31
+.else_31:
+
+;.if_32:
+	movzx r15, byte [c]
+	cmp r15, 91
+	jne .else_32
+;then_32:
+
+        mov rax, 1
+	jmp .end_32
+.else_32:
+
+;.if_33:
+	movzx r15, byte [c]
+	cmp r15, 93
+	jne .else_33
+;then_33:
+
+        mov rax, 1
+	jmp .end_33
+.else_33:
+
+;.if_34:
+	movzx r15, byte [c]
+	cmp r15, 46
+	jne .else_34
+;then_34:
+
+        mov rax, 1
+	jmp .end_34
+.else_34:
+
+;.if_35:
+	movzx r15, byte [c]
+	cmp r15, 64
+	jne .else_35
+;then_35:
+
+        mov rax, 1
+	jmp .end_35
+.else_35:
+
+;.if_36:
+	movzx r15, byte [c]
+	cmp r15, 38
+	jne .else_36
+;then_36:
+
+        mov rax, 1
+	jmp .end_36
+.else_36:
+
         mov rax, 0
+.end_36:
+
+.end_35:
+
+.end_34:
+
+.end_33:
+
+.end_32:
+
+.end_31:
+
 .end_30:
 
 .end_29:
 
 .end_28:
-
-.end_27:
-
-.end_26:
-
-.end_25:
-
-.end_24:
-
-.end_23:
-
-.end_22:
 
 	mov rsp, rbp
 	pop rbp
@@ -1959,6 +2058,26 @@ isSeparator_end:
 	call register_token_type
 	mov [_], rax
 	add rsp, 8
+	mov rdx, stringToPush
+	add rdx, 0
+	mov byte [rdx], 101
+	mov rdx, stringToPush
+	add rdx, 1
+	mov byte [rdx], 110
+	mov rdx, stringToPush
+	add rdx, 2
+	mov byte [rdx], 117
+	mov rdx, stringToPush
+	add rdx, 3
+	mov byte [rdx], 109
+	mov rdx, stringToPush
+	add rdx, 4
+	mov byte [rdx], 0
+	push qword [TOKEN_ENUM]
+
+	call register_token_type
+	mov [_], rax
+	add rsp, 8
 
 ;printf(roStr_20, [token_dictionary_pointers_top])
 
@@ -1977,11 +2096,11 @@ push_and_print_token:
 	mov [_], rax
 	add rsp, 0
 
-;.if_31:
+;.if_37:
 	mov r15, [_]
 	cmp r15, 1
-	jne .else_31
-;then_31:
+	jne .else_37
+;then_37:
 	push qword [col]
 	push qword [line]
 	push qword [tnNumber]
@@ -1991,18 +2110,18 @@ push_and_print_token:
 	mov [_], rax
 	add rsp, 32
 
-	jmp .end_31
-.else_31:
+	jmp .end_37
+.else_37:
 
 	call get_token_type
 	mov [token_type], rax
 	add rsp, 0
 
-;.if_32:
+;.if_38:
 	mov r15, [token_type]
 	cmp r15, 0
-	jne .else_32
-;then_32:
+	jne .else_38
+;then_38:
 	push qword [col]
 	push qword [line]
 	push qword [stringPointersTop]
@@ -2014,8 +2133,8 @@ push_and_print_token:
 
 	call push_identifier
 
-	jmp .end_32
-.else_32:
+	jmp .end_38
+.else_38:
 	push qword [col]
 	push qword [line]
 	push qword 0
@@ -2025,20 +2144,20 @@ push_and_print_token:
 	mov [_], rax
 	add rsp, 32
 
-.end_32:
+.end_38:
 
-.end_31:
+.end_37:
 
 	mov rsp, rbp
 	pop rbp
 	ret
 push_and_print_token_end:
 
-.while_33:
+.while_39:
 	mov r15, [scIndex]
 	cmp r15, [bytesRead]
-	jge .end_33
-;do_33:
+	jge .end_39
+;do_39:
 	mov rdx, sourceCode
 	add rdx, [scIndex]
 	movzx rax, byte [rdx]
@@ -2054,30 +2173,30 @@ push_and_print_token_end:
 	mov [isSep], rax
 	add rsp, 0
 
-;.if_34:
+;.if_40:
 	mov r15, [_]
 	cmp r15, 1
-	jne .else_34
-;then_34:
+	jne .else_40
+;then_40:
 
-;.if_35:
+;.if_41:
 	mov r15, [tokenIndex]
 	cmp r15, 0
-	jle .end_35
-;then_35:
+	jle .end_41
+;then_41:
 	mov rdx, token
 	add rdx, [tokenIndex]
 	mov byte [rdx], 0
 
 	call push_and_print_token
 
-.end_35:
+.end_41:
 
-;.if_36:
+;.if_42:
 	movzx r15, byte [c]
 	cmp r15, 10
-	jne .end_36
-;then_36:
+	jne .end_42
+;then_42:
 	push qword [line]
 	push 1
 	pop rax
@@ -2095,7 +2214,7 @@ push_and_print_token_end:
 	pop rax
 	mov qword [line_start], rax
 
-.end_36:
+.end_42:
 	push 0
 	pop rax
 	mov qword [tokenIndex], rax
@@ -2106,28 +2225,28 @@ push_and_print_token_end:
 	pop rax
 	mov byte [c], al
 
-.while_37:
+.while_43:
 	mov r15, [true]
 	cmp r15, 1
-	jne .end_37
-;do_37:
+	jne .end_43
+;do_43:
 	push qword [c]
 
 	call isSpace
 	mov [_], rax
 	add rsp, 8
 
-;.if_38:
+;.if_44:
 	mov r15, [_]
 	cmp r15, 1
-	jne .else_38
-;then_38:
+	jne .else_44
+;then_44:
 
-;.if_39:
+;.if_45:
 	movzx r15, byte [c]
 	cmp r15, 10
-	jne .end_39
-;then_39:
+	jne .end_45
+;then_45:
 	push qword [line]
 	push 1
 	pop rax
@@ -2145,7 +2264,7 @@ push_and_print_token_end:
 	pop rax
 	mov qword [line_start], rax
 
-.end_39:
+.end_45:
 	push qword [scIndex]
 	push 1
 	pop rax
@@ -2161,8 +2280,8 @@ push_and_print_token_end:
 	pop rax
 	mov byte [c], al
 
-	jmp .end_38
-.else_38:
+	jmp .end_44
+.else_44:
 	push qword [scIndex]
 	push 1
 	pop rcx
@@ -2178,15 +2297,15 @@ push_and_print_token_end:
 	pop rax
 	mov byte [c], al
 
-    jmp .end_37
+    jmp .end_43
 
-    jmp .end_33
+    jmp .end_39
 
-.end_38:
+.end_44:
 
-    jmp .while_37
-    ; end while_37
-.end_37:
+    jmp .while_43
+    ; end while_43
+.end_43:
 	push 1
 	push qword [scIndex]
 	push qword [line_start]
@@ -2208,27 +2327,27 @@ push_and_print_token_end:
 
         ;printf(roStr_22, [scIndex], [col])
         
-	jmp .end_34
-.else_34:
+	jmp .end_40
+.else_40:
 
-;.if_40:
+;.if_46:
 	movzx r15, byte [c]
 	cmp r15, 34
-	jne .else_40
-;then_40:
+	jne .else_46
+;then_46:
 
-;.if_41:
+;.if_47:
 	mov r15, [tokenIndex]
 	cmp r15, 0
-	jle .end_41
-;then_41:
+	jle .end_47
+;then_47:
 	mov rdx, token
 	add rdx, [tokenIndex]
 	mov byte [rdx], 0
 
 	call push_and_print_token
 
-.end_41:
+.end_47:
 	push 0
 	pop rax
 	mov qword [tokenIndex], rax
@@ -2250,220 +2369,17 @@ push_and_print_token_end:
 	pop rax
 	mov byte [c], al
 
-.while_42:
+.while_48:
 	mov r15, [scIndex]
 	cmp r15, [bytesRead]
-	jge .end_42
-;do_42:
-
-;.if_43:
-	movzx r15, byte [c]
-	cmp r15, 92
-	jne .else_43
-;then_43:
-	push qword [scIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-	mov rdx, sourceCode
-	add rdx, [scIndex]
-	movzx rax, byte [rdx]
-	push qword rax
-	pop rax
-	mov byte [c], al
-
-;.if_44:
-	movzx r15, byte [c]
-	cmp r15, 34
-	jne .else_44
-;then_44:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	movzx rax, byte [c]
-	mov byte [rdx], al
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-	mov rdx, sourceCode
-	add rdx, [scIndex]
-	movzx rax, byte [rdx]
-	push qword rax
-	pop rax
-	mov byte [c], al
-
-	jmp .end_44
-.else_44:
-
-;.if_45:
-	movzx r15, byte [c]
-	cmp r15, 92
-	jne .else_45
-;then_45:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	movzx rax, byte [c]
-	mov byte [rdx], al
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-	mov rdx, sourceCode
-	add rdx, [scIndex]
-	movzx rax, byte [rdx]
-	push qword rax
-	pop rax
-	mov byte [c], al
-
-	jmp .end_45
-.else_45:
-
-;.if_46:
-	movzx r15, byte [c]
-	cmp r15, 110
-	jne .else_46
-;then_46:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 10
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-	mov rdx, sourceCode
-	add rdx, [scIndex]
-	movzx rax, byte [rdx]
-	push qword rax
-	pop rax
-	mov byte [c], al
-
-	jmp .end_46
-.else_46:
-
-;.if_47:
-	movzx r15, byte [c]
-	cmp r15, 114
-	jne .else_47
-;then_47:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 13
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-	mov rdx, sourceCode
-	add rdx, [scIndex]
-	movzx rax, byte [rdx]
-	push qword rax
-	pop rax
-	mov byte [c], al
-
-	jmp .end_47
-.else_47:
-
-;.if_48:
-	movzx r15, byte [c]
-	cmp r15, 116
-	jne .else_48
-;then_48:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 9
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-	mov rdx, sourceCode
-	add rdx, [scIndex]
-	movzx rax, byte [rdx]
-	push qword rax
-	pop rax
-	mov byte [c], al
-
-	jmp .end_48
-.else_48:
+	jge .end_48
+;do_48:
 
 ;.if_49:
 	movzx r15, byte [c]
-	cmp r15, 48
+	cmp r15, 92
 	jne .else_49
 ;then_49:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
 	push qword [scIndex]
 	push 1
 	pop rax
@@ -2479,17 +2395,15 @@ push_and_print_token_end:
 	pop rax
 	mov byte [c], al
 
-	jmp .end_49
-.else_49:
-
 ;.if_50:
 	movzx r15, byte [c]
-	cmp r15, 39
+	cmp r15, 34
 	jne .else_50
 ;then_50:
 	mov rdx, token
 	add rdx, [tokenIndex]
-	mov byte [rdx], 39
+	movzx rax, byte [c]
+	mov byte [rdx], al
 	push qword [tokenIndex]
 	push 1
 	pop rax
@@ -2523,7 +2437,8 @@ push_and_print_token_end:
 ;then_51:
 	mov rdx, token
 	add rdx, [tokenIndex]
-	mov byte [rdx], 92
+	movzx rax, byte [c]
+	mov byte [rdx], al
 	push qword [tokenIndex]
 	push 1
 	pop rax
@@ -2550,39 +2465,243 @@ push_and_print_token_end:
 	jmp .end_51
 .else_51:
 
+;.if_52:
+	movzx r15, byte [c]
+	cmp r15, 110
+	jne .else_52
+;then_52:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 10
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+	jmp .end_52
+.else_52:
+
+;.if_53:
+	movzx r15, byte [c]
+	cmp r15, 114
+	jne .else_53
+;then_53:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 13
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+	jmp .end_53
+.else_53:
+
+;.if_54:
+	movzx r15, byte [c]
+	cmp r15, 116
+	jne .else_54
+;then_54:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 9
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+	jmp .end_54
+.else_54:
+
+;.if_55:
+	movzx r15, byte [c]
+	cmp r15, 48
+	jne .else_55
+;then_55:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+	jmp .end_55
+.else_55:
+
+;.if_56:
+	movzx r15, byte [c]
+	cmp r15, 39
+	jne .else_56
+;then_56:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 39
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+	jmp .end_56
+.else_56:
+
+;.if_57:
+	movzx r15, byte [c]
+	cmp r15, 92
+	jne .else_57
+;then_57:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 92
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+	jmp .end_57
+.else_57:
+
                     printf(roStr_23)
                     ExitProcess(1)
+.end_57:
+
+.end_56:
+
+.end_55:
+
+.end_54:
+
+.end_53:
+
+.end_52:
+
 .end_51:
 
 .end_50:
 
-.end_49:
+	jmp .end_49
+.else_49:
 
-.end_48:
-
-.end_47:
-
-.end_46:
-
-.end_45:
-
-.end_44:
-
-	jmp .end_43
-.else_43:
-
-;.if_52:
+;.if_58:
 	movzx r15, byte [c]
 	cmp r15, 34
-	jne .else_52
-;then_52:
+	jne .else_58
+;then_58:
 
-    jmp .end_42
+    jmp .end_48
 
-    jmp .end_33
+    jmp .end_39
 
-	jmp .end_52
-.else_52:
+	jmp .end_58
+.else_58:
 	mov rdx, token
 	add rdx, [tokenIndex]
 	movzx rax, byte [c]
@@ -2610,13 +2729,13 @@ push_and_print_token_end:
 	pop rax
 	mov byte [c], al
 
-.end_52:
+.end_58:
 
-.end_43:
+.end_49:
 
-    jmp .while_42
-    ; end while_42
-.end_42:
+    jmp .while_48
+    ; end while_48
+.end_48:
 
         ;token [ tokenIndex ] = c ; 
         ;tokenIndex = tokenIndex + 1 ;
@@ -2657,287 +2776,79 @@ push_and_print_token_end:
 	pop rax
 	mov qword [tokenIndex], rax
 
-	jmp .end_40
-.else_40:
-
-;.if_53:
-	mov r15, [isSep]
-	cmp r15, 1
-	jne .else_53
-;then_53:
-
-;.if_54:
-	mov r15, [tokenIndex]
-	cmp r15, 0
-	jle .end_54
-;then_54:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-	call push_and_print_token
-
-.end_54:
-	push qword [scIndex]
-	push qword [line_start]
-	push 1
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rax
-	mov qword [col], rax
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-	mov rdx, token
-	add rdx, [tokenIndex]
-	movzx rax, byte [c]
-	mov byte [rdx], al
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-        ;printf(roStr_25, token)
-        
-;.if_55:
-	movzx r15, byte [c]
-	cmp r15, 59
-	jne .else_55
-;then_55:
-	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_SEMICOLON]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-
-	jmp .end_55
-.else_55:
-
-;.if_56:
-	movzx r15, byte [c]
-	cmp r15, 44
-	jne .else_56
-;then_56:
-	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_COMMA]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-
-	jmp .end_56
-.else_56:
-
-;.if_57:
-	movzx r15, byte [c]
-	cmp r15, 40
-	jne .else_57
-;then_57:
-	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_LEFT_PARENTHESIS]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-
-	jmp .end_57
-.else_57:
-
-;.if_58:
-	movzx r15, byte [c]
-	cmp r15, 41
-	jne .else_58
-;then_58:
-	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_RIGHT_PARENTHESIS]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-
-	jmp .end_58
-.else_58:
+	jmp .end_46
+.else_46:
 
 ;.if_59:
 	movzx r15, byte [c]
-	cmp r15, 91
+	cmp r15, 39
 	jne .else_59
 ;then_59:
-	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_LEFT_BRACKET]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-
-	jmp .end_59
-.else_59:
 
 ;.if_60:
-	movzx r15, byte [c]
-	cmp r15, 93
-	jne .else_60
-;then_60:
-	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_RIGHT_BRACKET]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-
-	jmp .end_60
-.else_60:
-
-;.if_61:
-	movzx r15, byte [c]
-	cmp r15, 46
-	jne .else_61
-;then_61:
-	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_DOT]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-
-	jmp .end_61
-.else_61:
-
-;.if_62:
-	movzx r15, byte [c]
-	cmp r15, 64
-	jne .else_62
-;then_62:
-	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_AT_SIGN]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-
-	jmp .end_62
-.else_62:
-
-;.if_63:
-	movzx r15, byte [c]
-	cmp r15, 38
-	jne .end_63
-;then_63:
-	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_AMPERSAND]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-
-.end_63:
-
-.end_62:
-
-.end_61:
-
-.end_60:
-
-.end_59:
-
-.end_58:
-
-.end_57:
-
-.end_56:
-
-.end_55:
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-	push 1
-	push qword [scIndex]
-	push qword [line_start]
-	push 1
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [col], rax
-
-	jmp .end_53
-.else_53:
-
-;.if_64:
-	movzx r15, byte [c]
-	cmp r15, 61
-	jne .else_64
-;then_64:
-
-;.if_65:
 	mov r15, [tokenIndex]
 	cmp r15, 0
-	jle .end_65
-;then_65:
+	jle .end_60
+;then_60:
 	mov rdx, token
 	add rdx, [tokenIndex]
 	mov byte [rdx], 0
 
 	call push_and_print_token
-	push qword [scIndex]
-	push qword [line_start]
-	push 1
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rax
-	mov qword [col], rax
 
-.end_65:
+.end_60:
 	push 0
 	pop rax
 	mov qword [tokenIndex], rax
+
+        ;token [ tokenIndex ] = c ;
+        ;tokenIndex = tokenIndex + 1 ;
+        	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+.while_61:
+	mov r15, [scIndex]
+	cmp r15, [bytesRead]
+	jge .end_61
+;do_61:
+
+;.if_62:
+	movzx r15, byte [c]
+	cmp r15, 92
+	jne .else_62
+;then_62:
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+;.if_63:
+	movzx r15, byte [c]
+	cmp r15, 34
+	jne .else_63
+;then_63:
 	mov rdx, token
 	add rdx, [tokenIndex]
 	movzx rax, byte [c]
@@ -2965,11 +2876,14 @@ push_and_print_token_end:
 	pop rax
 	mov byte [c], al
 
-;.if_66:
+	jmp .end_63
+.else_63:
+
+;.if_64:
 	movzx r15, byte [c]
-	cmp r15, 61
-	jne .else_66
-;then_66:
+	cmp r15, 92
+	jne .else_64
+;then_64:
 	mov rdx, token
 	add rdx, [tokenIndex]
 	movzx rax, byte [c]
@@ -2982,80 +2896,32 @@ push_and_print_token_end:
 	push rax
 	pop rax
 	mov qword [tokenIndex], rax
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-            ;printf(roStr_26, token)
-            	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_EQUALS]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-
-	jmp .end_66
-.else_66:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-            ;printf(roStr_27, token)
-            	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_ASSIGNMENT]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
 	push qword [scIndex]
 	push 1
-	pop rcx
 	pop rax
-	sub rax, rcx
+	pop rcx
+	add rax, rcx
 	push rax
 	pop rax
 	mov qword [scIndex], rax
-
-.end_66:
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
 
 	jmp .end_64
 .else_64:
 
-;.if_67:
+;.if_65:
 	movzx r15, byte [c]
-	cmp r15, 33
-	jne .else_67
-;then_67:
-
-;.if_68:
-	mov r15, [tokenIndex]
-	cmp r15, 0
-	jle .end_68
-;then_68:
+	cmp r15, 110
+	jne .else_65
+;then_65:
 	mov rdx, token
 	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-	call push_and_print_token
-
-.end_68:
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-	mov rdx, token
-	add rdx, [tokenIndex]
-	movzx rax, byte [c]
-	mov byte [rdx], al
+	mov byte [rdx], 10
 	push qword [tokenIndex]
 	push 1
 	pop rax
@@ -3079,9 +2945,114 @@ push_and_print_token_end:
 	pop rax
 	mov byte [c], al
 
+	jmp .end_65
+.else_65:
+
+;.if_66:
+	movzx r15, byte [c]
+	cmp r15, 114
+	jne .else_66
+;then_66:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 13
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+	jmp .end_66
+.else_66:
+
+;.if_67:
+	movzx r15, byte [c]
+	cmp r15, 116
+	jne .else_67
+;then_67:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 9
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+	jmp .end_67
+.else_67:
+
+;.if_68:
+	movzx r15, byte [c]
+	cmp r15, 48
+	jne .else_68
+;then_68:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+	jmp .end_68
+.else_68:
+
 ;.if_69:
 	movzx r15, byte [c]
-	cmp r15, 61
+	cmp r15, 39
 	jne .else_69
 ;then_69:
 	mov rdx, token
@@ -3096,182 +3067,55 @@ push_and_print_token_end:
 	push rax
 	pop rax
 	mov qword [tokenIndex], rax
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-            ;printf(roStr_28, token)
-            	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_NOT_EQUALS]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-	push 0
+	push qword [scIndex]
+	push 1
 	pop rax
-	mov qword [tokenIndex], rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
 
 	jmp .end_69
 .else_69:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
 
-            ;printf(roStr_29, token)
-            	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-
+                    printf(roStr_25)
+                    ExitProcess(1)
 .end_69:
 
-	jmp .end_67
-.else_67:
+.end_68:
+
+.end_67:
+
+.end_66:
+
+.end_65:
+
+.end_64:
+
+.end_63:
+
+	jmp .end_62
+.else_62:
 
 ;.if_70:
 	movzx r15, byte [c]
-	cmp r15, 60
+	cmp r15, 39
 	jne .else_70
 ;then_70:
 
-;.if_71:
-	mov r15, [tokenIndex]
-	cmp r15, 0
-	jle .end_71
-;then_71:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
+    jmp .end_61
 
-	call push_and_print_token
-
-.end_71:
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-	mov rdx, token
-	add rdx, [tokenIndex]
-	movzx rax, byte [c]
-	mov byte [rdx], al
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-	mov rdx, sourceCode
-	add rdx, [scIndex]
-	movzx rax, byte [rdx]
-	push qword rax
-	pop rax
-	mov byte [c], al
-
-;.if_72:
-	movzx r15, byte [c]
-	cmp r15, 61
-	jne .else_72
-;then_72:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	movzx rax, byte [c]
-	mov byte [rdx], al
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-            ;printf(roStr_30, token)
-            	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_LESS_THAN_OR_EQUAL_TO]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-
-	jmp .end_72
-.else_72:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-            ;printf(roStr_31, token)
-            	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_LESS_THAN]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-
-.end_72:
+    jmp .end_39
 
 	jmp .end_70
 .else_70:
-
-;.if_73:
-	movzx r15, byte [c]
-	cmp r15, 62
-	jne .else_73
-;then_73:
-
-;.if_74:
-	mov r15, [tokenIndex]
-	cmp r15, 0
-	jle .end_74
-;then_74:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-	call push_and_print_token
-
-.end_74:
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
 	mov rdx, token
 	add rdx, [tokenIndex]
 	movzx rax, byte [c]
@@ -3299,11 +3143,99 @@ push_and_print_token_end:
 	pop rax
 	mov byte [c], al
 
-;.if_75:
-	movzx r15, byte [c]
-	cmp r15, 61
-	jne .else_75
-;then_75:
+.end_70:
+
+.end_62:
+
+    jmp .while_61
+    ; end while_61
+.end_61:
+
+        ;token [ tokenIndex ] = c ; 
+        ;tokenIndex = tokenIndex + 1 ;
+        	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+        ;printf(roStr_26, token)
+        	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov qword [_], rax
+	push qword [col]
+	push qword [line]
+	push qword [_]
+	push qword [TOKEN_CONSTANT_INTEGER]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+
+	call push_identifier
+	push 2
+	push qword [scIndex]
+	push qword [line_start]
+	push 1
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [col], rax
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+
+	jmp .end_59
+.else_59:
+
+;.if_71:
+	mov r15, [isSep]
+	cmp r15, 1
+	jne .else_71
+;then_71:
+
+;.if_72:
+	mov r15, [tokenIndex]
+	cmp r15, 0
+	jle .end_72
+;then_72:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+	call push_and_print_token
+
+.end_72:
+	push qword [scIndex]
+	push qword [line_start]
+	push 1
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	mov qword [col], rax
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
 	mov rdx, token
 	add rdx, [tokenIndex]
 	movzx rax, byte [c]
@@ -3320,266 +3252,203 @@ push_and_print_token_end:
 	add rdx, [tokenIndex]
 	mov byte [rdx], 0
 
-            ;printf(roStr_32, token)
-            	push qword [col]
+        ;printf(roStr_27, token)
+        
+;.if_73:
+	movzx r15, byte [c]
+	cmp r15, 59
+	jne .else_73
+;then_73:
+	push qword [col]
 	push qword [line]
 	push qword 0
-	push qword [TOKEN_GREATER_THAN_OR_EQUAL_TO]
+	push qword [TOKEN_SEMICOLON]
 
 	call push_token
 	mov [_], rax
 	add rsp, 32
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-
-	jmp .end_75
-.else_75:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-            ;printf(roStr_33, token)
-            	push qword [col]
-	push qword [line]
-	push qword 0
-	push qword [TOKEN_GREATER_THAN]
-
-	call push_token
-	mov [_], rax
-	add rsp, 32
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-
-.end_75:
 
 	jmp .end_73
 .else_73:
 
-;.if_76:
+;.if_74:
 	movzx r15, byte [c]
-	cmp r15, 43
-	jne .else_76
-;then_76:
-
-;.if_77:
-	mov r15, [tokenIndex]
-	cmp r15, 0
-	jle .end_77
-;then_77:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-	call push_and_print_token
-
-.end_77:
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-	mov rdx, token
-	add rdx, [tokenIndex]
-	movzx rax, byte [c]
-	mov byte [rdx], al
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-	mov rdx, sourceCode
-	add rdx, [scIndex]
-	movzx rax, byte [rdx]
-	push qword rax
-	pop rax
-	mov byte [c], al
-
-;.if_78:
-	movzx r15, byte [c]
-	cmp r15, 61
-	jne .else_78
-;then_78:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	movzx rax, byte [c]
-	mov byte [rdx], al
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-            ;printf(roStr_34, token)
-            	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-
-	jmp .end_78
-.else_78:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-            ;printf(roStr_35, token)
-            	push qword [col]
+	cmp r15, 44
+	jne .else_74
+;then_74:
+	push qword [col]
 	push qword [line]
 	push qword 0
-	push qword [TOKEN_PLUS]
+	push qword [TOKEN_COMMA]
 
 	call push_token
 	mov [_], rax
 	add rsp, 32
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
 
-.end_78:
+	jmp .end_74
+.else_74:
+
+;.if_75:
+	movzx r15, byte [c]
+	cmp r15, 40
+	jne .else_75
+;then_75:
+	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_LEFT_PARENTHESIS]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+
+	jmp .end_75
+.else_75:
+
+;.if_76:
+	movzx r15, byte [c]
+	cmp r15, 41
+	jne .else_76
+;then_76:
+	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_RIGHT_PARENTHESIS]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
 
 	jmp .end_76
 .else_76:
 
-;.if_79:
+;.if_77:
 	movzx r15, byte [c]
-	cmp r15, 42
-	jne .else_79
-;then_79:
-
-;.if_80:
-	mov r15, [tokenIndex]
-	cmp r15, 0
-	jle .end_80
-;then_80:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-	call push_and_print_token
-
-.end_80:
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-	mov rdx, token
-	add rdx, [tokenIndex]
-	movzx rax, byte [c]
-	mov byte [rdx], al
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-	mov rdx, sourceCode
-	add rdx, [scIndex]
-	movzx rax, byte [rdx]
-	push qword rax
-	pop rax
-	mov byte [c], al
-
-;.if_81:
-	movzx r15, byte [c]
-	cmp r15, 61
-	jne .else_81
-;then_81:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	movzx rax, byte [c]
-	mov byte [rdx], al
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-            ;printf(roStr_36, token)
-            	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-
-	jmp .end_81
-.else_81:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-            ;printf(roStr_37, token)
-            	push qword [col]
+	cmp r15, 91
+	jne .else_77
+;then_77:
+	push qword [col]
 	push qword [line]
 	push qword 0
-	push qword [TOKEN_MULTIPLY]
+	push qword [TOKEN_LEFT_BRACKET]
 
 	call push_token
 	mov [_], rax
 	add rsp, 32
+
+	jmp .end_77
+.else_77:
+
+;.if_78:
+	movzx r15, byte [c]
+	cmp r15, 93
+	jne .else_78
+;then_78:
+	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_RIGHT_BRACKET]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+
+	jmp .end_78
+.else_78:
+
+;.if_79:
+	movzx r15, byte [c]
+	cmp r15, 46
+	jne .else_79
+;then_79:
+	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_DOT]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+
+	jmp .end_79
+.else_79:
+
+;.if_80:
+	movzx r15, byte [c]
+	cmp r15, 64
+	jne .else_80
+;then_80:
+	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_AT_SIGN]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+
+	jmp .end_80
+.else_80:
+
+;.if_81:
+	movzx r15, byte [c]
+	cmp r15, 38
+	jne .end_81
+;then_81:
+	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_AMPERSAND]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+
+.end_81:
+
+.end_80:
+
+.end_79:
+
+.end_78:
+
+.end_77:
+
+.end_76:
+
+.end_75:
+
+.end_74:
+
+.end_73:
 	push 0
 	pop rax
 	mov qword [tokenIndex], rax
+	push 1
 	push qword [scIndex]
+	push qword [line_start]
 	push 1
 	pop rcx
 	pop rax
 	sub rax, rcx
 	push rax
+	pop rcx
 	pop rax
-	mov qword [scIndex], rax
+	sub rax, rcx
+	push rax
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [col], rax
 
-.end_81:
-
-	jmp .end_79
-.else_79:
+	jmp .end_71
+.else_71:
 
 ;.if_82:
 	movzx r15, byte [c]
-	cmp r15, 45
+	cmp r15, 61
 	jne .else_82
 ;then_82:
 
@@ -3593,6 +3462,19 @@ push_and_print_token_end:
 	mov byte [rdx], 0
 
 	call push_and_print_token
+	push qword [scIndex]
+	push qword [line_start]
+	push 1
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	mov qword [col], rax
 
 .end_83:
 	push 0
@@ -3646,40 +3528,11 @@ push_and_print_token_end:
 	add rdx, [tokenIndex]
 	mov byte [rdx], 0
 
-            ;printf(roStr_38, token)
-            	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-
-	jmp .end_84
-.else_84:
-
-;.if_85:
-	movzx r15, byte [c]
-	cmp r15, 62
-	jne .else_85
-;then_85:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	movzx rax, byte [c]
-	mov byte [rdx], al
-	push qword [tokenIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [tokenIndex], rax
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-            ;printf(roStr_39, token)
+            ;printf(roStr_28, token)
             	push qword [col]
 	push qword [line]
 	push qword 0
-	push qword [TOKEN_ARROW_RIGHT]
+	push qword [TOKEN_EQUALS]
 
 	call push_token
 	mov [_], rax
@@ -3688,17 +3541,17 @@ push_and_print_token_end:
 	pop rax
 	mov qword [tokenIndex], rax
 
-	jmp .end_85
-.else_85:
+	jmp .end_84
+.else_84:
 	mov rdx, token
 	add rdx, [tokenIndex]
 	mov byte [rdx], 0
 
-            ;printf(roStr_40, token)
+            ;printf(roStr_29, token)
             	push qword [col]
 	push qword [line]
 	push qword 0
-	push qword [TOKEN_MINUS]
+	push qword [TOKEN_ASSIGNMENT]
 
 	call push_token
 	mov [_], rax
@@ -3714,32 +3567,30 @@ push_and_print_token_end:
 	push rax
 	pop rax
 	mov qword [scIndex], rax
-
-.end_85:
 
 .end_84:
 
 	jmp .end_82
 .else_82:
 
-;.if_86:
+;.if_85:
 	movzx r15, byte [c]
-	cmp r15, 47
-	jne .else_86
-;then_86:
+	cmp r15, 33
+	jne .else_85
+;then_85:
 
-;.if_87:
+;.if_86:
 	mov r15, [tokenIndex]
 	cmp r15, 0
-	jle .end_87
-;then_87:
+	jle .end_86
+;then_86:
 	mov rdx, token
 	add rdx, [tokenIndex]
 	mov byte [rdx], 0
 
 	call push_and_print_token
 
-.end_87:
+.end_86:
 	push 0
 	pop rax
 	mov qword [tokenIndex], rax
@@ -3770,11 +3621,11 @@ push_and_print_token_end:
 	pop rax
 	mov byte [c], al
 
-;.if_88:
+;.if_87:
 	movzx r15, byte [c]
 	cmp r15, 61
-	jne .else_88
-;then_88:
+	jne .else_87
+;then_87:
 	mov rdx, token
 	add rdx, [tokenIndex]
 	movzx rax, byte [c]
@@ -3791,100 +3642,136 @@ push_and_print_token_end:
 	add rdx, [tokenIndex]
 	mov byte [rdx], 0
 
-            ;printf(roStr_41, token)
-            	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-
-	jmp .end_88
-.else_88:
-
-;.if_89:
-	movzx r15, byte [c]
-	cmp r15, 47
-	jne .else_89
-;then_89:
-	push 0
-	pop rax
-	mov qword [tokenIndex], rax
-	push qword [scIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-
-.while_90:
-	movzx r15, byte [c]
-	cmp r15, 10
-	je .end_90
-;do_90:
-	push qword [scIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [scIndex], rax
-	mov rdx, sourceCode
-	add rdx, [scIndex]
-	movzx rax, byte [rdx]
-	push qword rax
-	pop rax
-	mov byte [c], al
-
-    jmp .while_90
-    ; end while_90
-.end_90:
-	push qword [line]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [line], rax
-	push qword [scIndex]
-	push 1
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [line_start], rax
-	push 1
-	push qword [scIndex]
-	push qword [line_start]
-	push 1
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rcx
-	pop rax
-	sub rax, rcx
-	push rax
-	pop rax
-	pop rcx
-	add rax, rcx
-	push rax
-	pop rax
-	mov qword [col], rax
-
-	jmp .end_89
-.else_89:
-	mov rdx, token
-	add rdx, [tokenIndex]
-	mov byte [rdx], 0
-
-            ;printf(roStr_42, token)
+            ;printf(roStr_30, token)
             	push qword [col]
 	push qword [line]
 	push qword 0
-	push qword [TOKEN_DIVIDE]
+	push qword [TOKEN_NOT_EQUALS]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+
+	jmp .end_87
+.else_87:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_31, token)
+            	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+
+.end_87:
+
+	jmp .end_85
+.else_85:
+
+;.if_88:
+	movzx r15, byte [c]
+	cmp r15, 60
+	jne .else_88
+;then_88:
+
+;.if_89:
+	mov r15, [tokenIndex]
+	cmp r15, 0
+	jle .end_89
+;then_89:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+	call push_and_print_token
+
+.end_89:
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+;.if_90:
+	movzx r15, byte [c]
+	cmp r15, 61
+	jne .else_90
+;then_90:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_32, token)
+            	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_LESS_THAN_OR_EQUAL_TO]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+
+	jmp .end_90
+.else_90:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_33, token)
+            	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_LESS_THAN]
 
 	call push_token
 	mov [_], rax
@@ -3901,16 +3788,14 @@ push_and_print_token_end:
 	pop rax
 	mov qword [scIndex], rax
 
-.end_89:
+.end_90:
 
-.end_88:
-
-	jmp .end_86
-.else_86:
+	jmp .end_88
+.else_88:
 
 ;.if_91:
 	movzx r15, byte [c]
-	cmp r15, 37
+	cmp r15, 62
 	jne .else_91
 ;then_91:
 
@@ -3977,8 +3862,16 @@ push_and_print_token_end:
 	add rdx, [tokenIndex]
 	mov byte [rdx], 0
 
-            ;printf(roStr_43, token)
-            	push 0
+            ;printf(roStr_34, token)
+            	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_GREATER_THAN_OR_EQUAL_TO]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+	push 0
 	pop rax
 	mov qword [tokenIndex], rax
 
@@ -3988,11 +3881,11 @@ push_and_print_token_end:
 	add rdx, [tokenIndex]
 	mov byte [rdx], 0
 
-            ;printf(roStr_44, token)
+            ;printf(roStr_35, token)
             	push qword [col]
 	push qword [line]
 	push qword 0
-	push qword [TOKEN_MODULO]
+	push qword [TOKEN_GREATER_THAN]
 
 	call push_token
 	mov [_], rax
@@ -4013,6 +3906,723 @@ push_and_print_token_end:
 
 	jmp .end_91
 .else_91:
+
+;.if_94:
+	movzx r15, byte [c]
+	cmp r15, 43
+	jne .else_94
+;then_94:
+
+;.if_95:
+	mov r15, [tokenIndex]
+	cmp r15, 0
+	jle .end_95
+;then_95:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+	call push_and_print_token
+
+.end_95:
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+;.if_96:
+	movzx r15, byte [c]
+	cmp r15, 61
+	jne .else_96
+;then_96:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_36, token)
+            	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+
+	jmp .end_96
+.else_96:
+
+;.if_97:
+	movzx r15, byte [c]
+	cmp r15, 43
+	jne .else_97
+;then_97:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_INCREMENT]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+
+	jmp .end_97
+.else_97:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_37, token)
+            	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_PLUS]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+
+.end_97:
+
+.end_96:
+
+	jmp .end_94
+.else_94:
+
+;.if_98:
+	movzx r15, byte [c]
+	cmp r15, 42
+	jne .else_98
+;then_98:
+
+;.if_99:
+	mov r15, [tokenIndex]
+	cmp r15, 0
+	jle .end_99
+;then_99:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+	call push_and_print_token
+
+.end_99:
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+;.if_100:
+	movzx r15, byte [c]
+	cmp r15, 61
+	jne .else_100
+;then_100:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_38, token)
+            	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+
+	jmp .end_100
+.else_100:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_39, token)
+            	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_MULTIPLY]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+
+.end_100:
+
+	jmp .end_98
+.else_98:
+
+;.if_101:
+	movzx r15, byte [c]
+	cmp r15, 45
+	jne .else_101
+;then_101:
+
+;.if_102:
+	mov r15, [tokenIndex]
+	cmp r15, 0
+	jle .end_102
+;then_102:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+	call push_and_print_token
+
+.end_102:
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+;.if_103:
+	movzx r15, byte [c]
+	cmp r15, 61
+	jne .else_103
+;then_103:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_40, token)
+            	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+
+	jmp .end_103
+.else_103:
+
+;.if_104:
+	movzx r15, byte [c]
+	cmp r15, 62
+	jne .else_104
+;then_104:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_41, token)
+            	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_ARROW_RIGHT]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+
+	jmp .end_104
+.else_104:
+
+;.if_105:
+	movzx r15, byte [c]
+	cmp r15, 45
+	jne .else_105
+;then_105:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_DECREMENT]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+
+	jmp .end_105
+.else_105:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_42, token)
+            	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_MINUS]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+
+.end_105:
+
+.end_104:
+
+.end_103:
+
+	jmp .end_101
+.else_101:
+
+;.if_106:
+	movzx r15, byte [c]
+	cmp r15, 47
+	jne .else_106
+;then_106:
+
+;.if_107:
+	mov r15, [tokenIndex]
+	cmp r15, 0
+	jle .end_107
+;then_107:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+	call push_and_print_token
+
+.end_107:
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+;.if_108:
+	movzx r15, byte [c]
+	cmp r15, 61
+	jne .else_108
+;then_108:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_43, token)
+            	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+
+	jmp .end_108
+.else_108:
+
+;.if_109:
+	movzx r15, byte [c]
+	cmp r15, 47
+	jne .else_109
+;then_109:
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+
+.while_110:
+	movzx r15, byte [c]
+	cmp r15, 10
+	je .end_110
+;do_110:
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+    jmp .while_110
+    ; end while_110
+.end_110:
+	push qword [line]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [line], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [line_start], rax
+	push 1
+	push qword [scIndex]
+	push qword [line_start]
+	push 1
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [col], rax
+
+	jmp .end_109
+.else_109:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_44, token)
+            	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_DIVIDE]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+
+.end_109:
+
+.end_108:
+
+	jmp .end_106
+.else_106:
+
+;.if_111:
+	movzx r15, byte [c]
+	cmp r15, 37
+	jne .else_111
+;then_111:
+
+;.if_112:
+	mov r15, [tokenIndex]
+	cmp r15, 0
+	jle .end_112
+;then_112:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+	call push_and_print_token
+
+.end_112:
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+	mov rdx, sourceCode
+	add rdx, [scIndex]
+	movzx rax, byte [rdx]
+	push qword rax
+	pop rax
+	mov byte [c], al
+
+;.if_113:
+	movzx r15, byte [c]
+	cmp r15, 61
+	jne .else_113
+;then_113:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	movzx rax, byte [c]
+	mov byte [rdx], al
+	push qword [tokenIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [tokenIndex], rax
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_45, token)
+            	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+
+	jmp .end_113
+.else_113:
+	mov rdx, token
+	add rdx, [tokenIndex]
+	mov byte [rdx], 0
+
+            ;printf(roStr_46, token)
+            	push qword [col]
+	push qword [line]
+	push qword 0
+	push qword [TOKEN_MODULO]
+
+	call push_token
+	mov [_], rax
+	add rsp, 32
+	push 0
+	pop rax
+	mov qword [tokenIndex], rax
+	push qword [scIndex]
+	push 1
+	pop rcx
+	pop rax
+	sub rax, rcx
+	push rax
+	pop rax
+	mov qword [scIndex], rax
+
+.end_113:
+
+	jmp .end_111
+.else_111:
 	mov rdx, token
 	add rdx, [tokenIndex]
 	movzx rax, byte [c]
@@ -4026,29 +4636,31 @@ push_and_print_token_end:
 	pop rax
 	mov qword [tokenIndex], rax
 
+.end_111:
+
+.end_106:
+
+.end_101:
+
+.end_98:
+
+.end_94:
+
 .end_91:
 
-.end_86:
+.end_88:
+
+.end_85:
 
 .end_82:
 
-.end_79:
+.end_71:
 
-.end_76:
+.end_59:
 
-.end_73:
-
-.end_70:
-
-.end_67:
-
-.end_64:
-
-.end_53:
+.end_46:
 
 .end_40:
-
-.end_34:
 	push qword [scIndex]
 	push 1
 	pop rax
@@ -4058,11 +4670,11 @@ push_and_print_token_end:
 	pop rax
 	mov qword [scIndex], rax
 
-    jmp .while_33
-    ; end while_33
-.end_33:
+    jmp .while_39
+    ; end while_39
+.end_39:
 
-printf(roStr_45, [tokenCount])
+printf(roStr_47, [tokenCount])
 
 section .data
 	globalBlockId dq 0
@@ -4565,7 +5177,7 @@ stringsEqual:
     mov rax, stringBuffer
     add rdi, rax
 .t:
-    ;printf(roStr_46, rsi, rdi)
+    ;printf(roStr_48, rsi, rdi)
 .loop:
     mov al, byte [rdi]
     mov bl, byte [rsi]
@@ -4630,11 +5242,11 @@ findSymbol:
 	pop rax
 	mov qword [fgsIndex], rax
 
-.while_94:
+.while_114:
 	mov r15, [fgsIndex]
 	cmp r15, 0
-	jl .end_94
-;do_94:
+	jl .end_114
+;do_114:
 	push qword [gvNameOffset]
 	push qword [fgsIndex]
 	push qword [globalSymbolSize]
@@ -4680,23 +5292,23 @@ findSymbol:
 	pop rax
 	mov qword [fgsScope], rax
 
-;.if_95:
+;.if_115:
 	mov r15, [globalBoolParsingProcedure]
 	cmp r15, 1
-	jne .else_95
-;then_95:
+	jne .else_115
+;then_115:
 
-;.if_96:
+;.if_116:
 	mov r15, [fgsScope]
 	cmp r15, [globalProcedureId]
-	je .end_96
-;then_96:
+	je .end_116
+;then_116:
 
-;.if_97:
+;.if_117:
 	mov r15, [fgsScope]
 	cmp r15, [VARIABLE_SCOPE_GLOBAL]
-	je .end_97
-;then_97:
+	je .end_117
+;then_117:
 	push qword [fgsIndex]
 	push 1
 	pop rcx
@@ -4706,20 +5318,20 @@ findSymbol:
 	pop rax
 	mov qword [fgsIndex], rax
 
-    jmp .while_94
+    jmp .while_114
 
-.end_97:
+.end_117:
 
-.end_96:
+.end_116:
 
-	jmp .end_95
-.else_95:
+	jmp .end_115
+.else_115:
 
-;.if_98:
+;.if_118:
 	mov r15, [fgsScope]
 	cmp r15, [VARIABLE_SCOPE_GLOBAL]
-	je .end_98
-;then_98:
+	je .end_118
+;then_118:
 	push qword [fgsIndex]
 	push 1
 	pop rcx
@@ -4729,11 +5341,11 @@ findSymbol:
 	pop rax
 	mov qword [fgsIndex], rax
 
-    jmp .while_94
+    jmp .while_114
 
-.end_98:
+.end_118:
 
-.end_95:
+.end_115:
 	push qword [fgsNamePointer]
 	push qword [rbp + 16]
 
@@ -4741,15 +5353,15 @@ findSymbol:
 	mov [fgsEqual], rax
 	add rsp, 16
 
-;.if_99:
+;.if_119:
 	mov r15, [fgsEqual]
 	cmp r15, 0
-	je .end_99
-;then_99:
+	je .end_119
+;then_119:
 
-    jmp .end_94
+    jmp .end_114
 
-.end_99:
+.end_119:
 	push qword [fgsIndex]
 	push 1
 	pop rcx
@@ -4759,15 +5371,15 @@ findSymbol:
 	pop rax
 	mov qword [fgsIndex], rax
 
-    jmp .while_94
-    ; end while_94
-.end_94:
+    jmp .while_114
+    ; end while_114
+.end_114:
 
-;.if_100:
+;.if_120:
 	mov r15, [fgsEqual]
 	cmp r15, [true]
-	jne .else_100
-;then_100:
+	jne .else_120
+;then_120:
 	push qword [gsTypeOffset]
 	push qword [fgsIndex]
 	push qword [globalSymbolSize]
@@ -4915,10 +5527,10 @@ findSymbol:
 	pop rax
 	mov qword [_], rax
 
-        ;printf(roStr_47, [fgsIndex], [_])
+        ;printf(roStr_49, [fgsIndex], [_])
         mov rax, [_] 
-	jmp .end_100
-.else_100:
+	jmp .end_120
+.else_120:
 	push 0
 	pop rax
 	mov qword [gsType], rax
@@ -4935,9 +5547,9 @@ findSymbol:
 	pop rax
 	mov qword [gsScope], rax
 
-        ;printf(roStr_48)
+        ;printf(roStr_50)
         mov rax, -1 
-.end_100:
+.end_120:
 
 	mov rsp, rbp
 	pop rbp
@@ -4959,11 +5571,11 @@ findUserType:
 	pop rax
 	mov qword [fgsEqual], rax
 
-.while_101:
+.while_121:
 	mov r15, [fgsIndex]
 	cmp r15, [globalSymbolsCount]
-	jge .end_101
-;do_101:
+	jge .end_121
+;do_121:
 	push qword [gsTypeOffset]
 	push qword [fgsIndex]
 	push qword [globalSymbolSize]
@@ -4987,11 +5599,11 @@ findUserType:
 	pop rax
 	mov qword [_], rax
 
-;.if_102:
+;.if_122:
 	mov r15, [_]
 	cmp r15, [TYPE_USER_DEFINED]
-	je .end_102
-;then_102:
+	je .end_122
+;then_122:
 	push qword [fgsIndex]
 	push 1
 	pop rax
@@ -5001,9 +5613,9 @@ findUserType:
 	pop rax
 	mov qword [fgsIndex], rax
 
-    jmp .while_101
+    jmp .while_121
 
-.end_102:
+.end_122:
 	push qword [gsSubTypeOffset]
 	push qword [fgsIndex]
 	push qword [globalSymbolSize]
@@ -5030,18 +5642,18 @@ findUserType:
 	pop rax
 	mov qword [futUserType], rax
 
-;.if_103:
+;.if_123:
 	mov r15, [_]
 	cmp r15, [futUserType]
-	jne .end_103
-;then_103:
+	jne .end_123
+;then_123:
 	push 1
 	pop rax
 	mov qword [fgsEqual], rax
 
-    jmp .end_101
+    jmp .end_121
 
-.end_103:
+.end_123:
 	push qword [fgsIndex]
 	push 1
 	pop rax
@@ -5051,15 +5663,15 @@ findUserType:
 	pop rax
 	mov qword [fgsIndex], rax
 
-    jmp .while_101
-    ; end while_101
-.end_101:
+    jmp .while_121
+    ; end while_121
+.end_121:
 
-;.if_104:
+;.if_124:
 	mov r15, [fgsEqual]
 	cmp r15, [true]
-	jne .else_104
-;then_104:
+	jne .else_124
+;then_124:
 	push qword [gsTypeOffset]
 	push qword [fgsIndex]
 	push qword [globalSymbolSize]
@@ -5215,10 +5827,10 @@ findUserType:
 	pop rax
 	mov qword [_], rax
 
-        ;printf(roStr_49, [fgsIndex], [_])
+        ;printf(roStr_51, [fgsIndex], [_])
         mov rax, [_] 
-	jmp .end_104
-.else_104:
+	jmp .end_124
+.else_124:
 	push 0
 	pop rax
 	mov qword [gsType], rax
@@ -5235,9 +5847,9 @@ findUserType:
 	pop rax
 	mov qword [gsScope], rax
 
-        ;printf(roStr_50)
+        ;printf(roStr_52)
         mov rax, -1 
-.end_104:
+.end_124:
 
 	mov rsp, rbp
 	pop rbp
@@ -5426,11 +6038,11 @@ findUserTypeField:
 	pop rax
 	mov qword [fgsIndex], rax
 
-.while_105:
+.while_125:
 	mov r15, [userTypeCount]
 	cmp r15, 0
-	jl .end_105
-;do_105:
+	jl .end_125
+;do_125:
 	push qword [utParentOffset]
 	push qword [fgsIndex]
 	push qword [userTypeSize]
@@ -5457,11 +6069,11 @@ findUserTypeField:
 	pop rax
 	mov qword [_], rax
 
-;.if_106:
+;.if_126:
 	mov r15, [utParent]
 	cmp r15, [_]
-	je .end_106
-;then_106:
+	je .end_126
+;then_126:
 	push qword [fgsIndex]
 	push 1
 	pop rcx
@@ -5471,9 +6083,9 @@ findUserTypeField:
 	pop rax
 	mov qword [fgsIndex], rax
 
-    jmp .while_105
+    jmp .while_125
 
-.end_106:
+.end_126:
 	push qword [utNameOffset]
 	push qword [fgsIndex]
 	push qword [userTypeSize]
@@ -5503,15 +6115,15 @@ findUserTypeField:
 	mov [fgsEqual], rax
 	add rsp, 16
 
-;.if_107:
+;.if_127:
 	mov r15, [fgsEqual]
 	cmp r15, 0
-	je .end_107
-;then_107:
+	je .end_127
+;then_127:
 
-    jmp .end_105
+    jmp .end_125
 
-.end_107:
+.end_127:
 	push qword [fgsIndex]
 	push 1
 	pop rcx
@@ -5521,15 +6133,15 @@ findUserTypeField:
 	pop rax
 	mov qword [fgsIndex], rax
 
-    jmp .while_105
-    ; end while_105
-.end_105:
+    jmp .while_125
+    ; end while_125
+.end_125:
 
-;.if_108:
+;.if_128:
 	mov r15, [fgsEqual]
 	cmp r15, [true]
-	jne .else_108
-;then_108:
+	jne .else_128
+;then_128:
 	push qword [utParentOffset]
 	push qword [fgsIndex]
 	push qword [userTypeSize]
@@ -5641,10 +6253,10 @@ findUserTypeField:
 	pop rax
 	mov qword [_], rax
 
-        ;printf(roStr_51, [fgsIndex], [_])
+        ;printf(roStr_53, [fgsIndex], [_])
         mov rax, [_] 
-	jmp .end_108
-.else_108:
+	jmp .end_128
+.else_128:
 	push 0
 	pop rax
 	mov qword [utParent], rax
@@ -5658,9 +6270,9 @@ findUserTypeField:
 	pop rax
 	mov qword [utOffset], rax
 
-        ;printf(roStr_52)
+        ;printf(roStr_54)
         mov rax, -1 
-.end_108:
+.end_128:
 
 	mov rsp, rbp
 	pop rbp
@@ -5688,11 +6300,11 @@ pushString:
 	mov rax, [stringBufferTop]
 	mov [rdx], rax
 
-.while_109:
+.while_129:
 	movzx r15, byte [freeChar]
 	cmp r15, 0
-	je .end_109
-;do_109:
+	je .end_129
+;do_129:
 	mov rdx, stringBuffer
 	add rdx, [stringBufferTop]
 	movzx rax, byte [freeChar]
@@ -5720,9 +6332,9 @@ pushString:
 	pop rax
 	mov byte [freeChar], al
 
-    jmp .while_109
-    ; end while_109
-.end_109:
+    jmp .while_129
+    ; end while_129
+.end_129:
 	mov rdx, stringBuffer
 	add rdx, [stringBufferTop]
 	mov byte [rdx], 0
@@ -5735,7 +6347,7 @@ pushString:
 	pop rax
 	mov qword [stringBufferTop], rax
 
-    ;printf(roStr_53, [stringPointersTop], [freeStringIndex])
+    ;printf(roStr_55, [stringPointersTop], [freeStringIndex])
     	push qword [stringPointersTop]
 	push 1
 	pop rax
@@ -5781,11 +6393,11 @@ readString:
 	pop rax
 	mov byte [freeChar], al
 
-.while_110:
+.while_130:
 	movzx r15, byte [freeChar]
 	cmp r15, 0
-	je .end_110
-;do_110:
+	je .end_130
+;do_130:
 	mov rdx, stringAtPointer
 	add rdx, [freeStringIndex]
 	movzx rax, byte [freeChar]
@@ -5813,14 +6425,14 @@ readString:
 	pop rax
 	mov byte [freeChar], al
 
-    jmp .while_110
-    ; end while_110
-.end_110:
+    jmp .while_130
+    ; end while_130
+.end_130:
 	mov rdx, stringAtPointer
 	add rdx, [freeStringIndex]
 	mov byte [rdx], 0
 
-    ;printf(roStr_54, [rbp + 16], [freeStringIndex])
+    ;printf(roStr_56, [rbp + 16], [freeStringIndex])
     mov rax, [_]
 	mov rsp, rbp
 	pop rbp
@@ -5840,11 +6452,11 @@ consumeToken:
 	push rbp
 	mov rbp, rsp
 
-;.if_111:
+;.if_131:
 	mov r15, [currentToken]
 	cmp r15, [expectedToken]
-	jne .else_111
-;then_111:
+	jne .else_131
+;then_131:
 	push qword [i]
 	push qword [tokenSize]
 	pop rax
@@ -5886,8 +6498,8 @@ consumeToken:
 	pop rax
 	mov qword [i], rax
 
-	jmp .end_111
-.else_111:
+	jmp .end_131
+.else_131:
 	push qword [i]
 	push 2
 	pop rax
@@ -5921,10 +6533,10 @@ consumeToken:
 	pop rax
 	mov qword [errorAtColumn], rax
 
-        printf(roStr_55, [errorAtLine], [errorAtColumn])
-        printf(roStr_56, [expectedToken], [currentToken])
+        printf(roStr_57, [errorAtLine], [errorAtColumn])
+        printf(roStr_58, [expectedToken], [currentToken])
         ExitProcess(1) 
-.end_111:
+.end_131:
 
 	mov rsp, rbp
 	pop rbp
@@ -5989,8 +6601,8 @@ indentifierRedeclared:
 	mov [_], rax
 	add rsp, 8
  
-    printf(roStr_57, [errorAtLine], [errorAtColumn])
-    printf(roStr_58, stringAtPointer) ;
+    printf(roStr_59, [errorAtLine], [errorAtColumn])
+    printf(roStr_60, stringAtPointer) ;
     ExitProcess(1)
 	mov rsp, rbp
 	pop rbp
@@ -6055,8 +6667,8 @@ identifierUnknown:
 	mov [_], rax
 	add rsp, 8
  
-    printf(roStr_59, [errorAtLine], [errorAtColumn])
-    printf(roStr_60, stringAtPointer) ;
+    printf(roStr_61, [errorAtLine], [errorAtColumn])
+    printf(roStr_62, stringAtPointer) ;
     ExitProcess(1)
 	mov rsp, rbp
 	pop rbp
@@ -6100,8 +6712,8 @@ unexpectedToken:
 	pop rax
 	mov qword [errorAtColumn], rax
 
-    printf(roStr_61, [errorAtLine], [errorAtColumn])
-    printf(roStr_62, [currentToken])
+    printf(roStr_63, [errorAtLine], [errorAtColumn])
+    printf(roStr_64, [currentToken])
     ExitProcess(1)
 	mov rsp, rbp
 	pop rbp
@@ -6134,7 +6746,7 @@ parseNumber:
 
 	call consumeToken
 
-    ;printf(roStr_63, [_])
+    ;printf(roStr_65, [_])
     ; set result
     mov rax, [_]
 	mov rsp, rbp
@@ -6168,7 +6780,7 @@ parseIdentifier:
 
 	call consumeToken
 
-    ;printf(roStr_64, [_])
+    ;printf(roStr_66, [_])
     ; set result
     mov rax, [_]
 	mov rsp, rbp
@@ -6181,11 +6793,11 @@ parseType:
 	push rbp
 	mov rbp, rsp
 
-;.if_112:
+;.if_132:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_UINT8]
-	jne .else_112
-;then_112:
+	jne .else_132
+;then_132:
 	push qword [TYPE_UINT8]
 	pop rax
 	mov qword [_], rax
@@ -6206,14 +6818,14 @@ parseType:
 	pop rax
 	mov qword [currentToken], rax
 
-	jmp .end_112
-.else_112:
+	jmp .end_132
+.else_132:
 
-;.if_113:
+;.if_133:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_UINT64]
-	jne .else_113
-;then_113:
+	jne .else_133
+;then_133:
 	push qword [TYPE_UINT64]
 	pop rax
 	mov qword [_], rax
@@ -6234,14 +6846,14 @@ parseType:
 	pop rax
 	mov qword [currentToken], rax
 
-	jmp .end_113
-.else_113:
+	jmp .end_133
+.else_133:
 
-;.if_114:
+;.if_134:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_POINTER]
-	jne .else_114
-;then_114:
+	jne .else_134
+;then_134:
 	push qword [TYPE_POINTER]
 	pop rax
 	mov qword [_], rax
@@ -6262,16 +6874,16 @@ parseType:
 	pop rax
 	mov qword [currentToken], rax
 
-	jmp .end_114
-.else_114:
+	jmp .end_134
+.else_134:
 
 	call unexpectedToken
 
-.end_114:
+.end_134:
 
-.end_113:
+.end_133:
 
-.end_112:
+.end_132:
 
     ; set result
     mov rax, [_]
@@ -6306,7 +6918,7 @@ parseString:
 
 	call consumeToken
 
-    ;printf(roStr_65, [_])
+    ;printf(roStr_67, [_])
     ; set result
     mov rax, [_]
 	mov rsp, rbp
@@ -6323,11 +6935,11 @@ parseArrayDeclaration:
 	push rbp
 	mov rbp, rsp
 
-;.if_115:
+;.if_135:
 	mov r15, [globalBoolParsingProcedure]
 	cmp r15, 0
-	je .end_115
-;then_115:
+	je .end_135
+;then_135:
 	push qword [i]
 	push 2
 	pop rax
@@ -6361,26 +6973,26 @@ parseArrayDeclaration:
 	pop rax
 	mov qword [errorAtColumn], rax
 
-        printf(roStr_66, [errorAtLine], [errorAtColumn])
-        printf(roStr_67)
-.end_115:
+        printf(roStr_68, [errorAtLine], [errorAtColumn])
+        printf(roStr_69)
+.end_135:
 	push qword [TOKEN_LEFT_BRACKET]
 	pop rax
 	mov qword [expectedToken], rax
 
 	call consumeToken
 
-;.if_116:
+;.if_136:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_CONSTANT_INTEGER]
-	jne .else_116
-;then_116:
+	jne .else_136
+;then_136:
 
 	call parseNumber
 	mov [gvValue], rax
 	add rsp, 0
 
-        ;printf(roStr_68, [gvValue])
+        ;printf(roStr_70, [gvValue])
         	push qword [TOKEN_RIGHT_BRACKET]
 	pop rax
 	mov qword [expectedToken], rax
@@ -6397,7 +7009,7 @@ parseArrayDeclaration:
 	pop rax
 	mov qword [gvType], rax
 
-        ;printf(roStr_69, [gvType], [gvSubType])
+        ;printf(roStr_71, [gvType], [gvSubType])
         	push qword [VARIABLE_SCOPE_GLOBAL]
 	push qword [gvValue]
 	push qword [gvNamePointer]
@@ -6419,15 +7031,15 @@ parseArrayDeclaration:
 	mov [_], rax
 	add rsp, 48
 
-        ;printf(roStr_70, [gvType], [gvValue])
-	jmp .end_116
-.else_116:
+        ;printf(roStr_72, [gvType], [gvValue])
+	jmp .end_136
+.else_136:
 
-;.if_117:
+;.if_137:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_IDENTIFIER]
-	jne .else_117
-;then_117:
+	jne .else_137
+;then_137:
 
 	call parseIdentifier
 	mov [padIdentifier], rax
@@ -6438,24 +7050,24 @@ parseArrayDeclaration:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_118:
+;.if_138:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_118
-;then_118:
+	jne .end_138
+;then_138:
 	push qword [padIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_118:
+.end_138:
 
-;.if_119:
+;.if_139:
 	mov r15, [gsType]
 	cmp r15, [TYPE_DEFINE]
-	je .end_119
-;then_119:
+	je .end_139
+;then_139:
 	push qword [i]
 	push 2
 	pop rax
@@ -6489,10 +7101,10 @@ parseArrayDeclaration:
 	pop rax
 	mov qword [errorAtColumn], rax
 
-            printf(roStr_71, [errorAtLine], [errorAtColumn])
-            printf(roStr_72)
+            printf(roStr_73, [errorAtLine], [errorAtColumn])
+            printf(roStr_74)
             ExitProcess(1)
-.end_119:
+.end_139:
 	push qword [gsValue]
 	pop rax
 	mov qword [gvValue], rax
@@ -6512,7 +7124,7 @@ parseArrayDeclaration:
 	pop rax
 	mov qword [gvType], rax
 
-        ;printf(roStr_73, [gvType], [gvSubType])
+        ;printf(roStr_75, [gvType], [gvSubType])
         	push qword [VARIABLE_SCOPE_GLOBAL]
 	push qword [gvValue]
 	push qword [gvNamePointer]
@@ -6534,9 +7146,9 @@ parseArrayDeclaration:
 	mov [_], rax
 	add rsp, 48
 
-        ;printf(roStr_74, [gvType], [gvValue])
-	jmp .end_117
-.else_117:
+        ;printf(roStr_76, [gvType], [gvValue])
+	jmp .end_137
+.else_137:
 	push qword [TOKEN_RIGHT_BRACKET]
 	pop rax
 	mov qword [expectedToken], rax
@@ -6562,7 +7174,7 @@ parseArrayDeclaration:
 	mov [gvValue], rax
 	add rsp, 0
 
-        ;printf(roStr_75, [gvType], [gvSubType])
+        ;printf(roStr_77, [gvType], [gvSubType])
         	push qword [VARIABLE_SCOPE_GLOBAL]
 	push qword [gvValue]
 	push qword [gvNamePointer]
@@ -6584,10 +7196,10 @@ parseArrayDeclaration:
 	mov [_], rax
 	add rsp, 48
 
-        ;printf(roStr_76, [gvType], [gvValue])
-.end_117:
+        ;printf(roStr_78, [gvType], [gvValue])
+.end_137:
 
-.end_116:
+.end_136:
 
 	mov rsp, rbp
 	pop rbp
@@ -6612,49 +7224,50 @@ parseIntegerDeclaration:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_120:
+;.if_140:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	je .end_120
-;then_120:
+	je .end_140
+;then_140:
 	push qword [pidIndentifier]
 
 	call indentifierRedeclared
 	mov [_], rax
 	add rsp, 8
 
-.end_120:
+.end_140:
 	push qword [TOKEN_ASSIGNMENT]
 	pop rax
 	mov qword [expectedToken], rax
 
 	call consumeToken
 
-;.if_121:
+;.if_141:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_CONSTANT_INTEGER]
-	jne .else_121
-;then_121:
+	jne .else_141
+;then_141:
 
 	call parseNumber
 	mov [gvValue], rax
 	add rsp, 0
 
-	jmp .end_121
-.else_121:
+        WriteToFile(roStr_79, [gvValue])
+	jmp .end_141
+.else_141:
 	push 0
 	pop rax
 	mov qword [gvValue], rax
 
 	call parseLogicalOrExpression
 
-.end_121:
+.end_141:
 
-;.if_122:
+;.if_142:
 	mov r15, [globalBoolParsingProcedure]
 	cmp r15, 0
-	jne .else_122
-;then_122:
+	jne .else_142
+;then_142:
 	push qword [VARIABLE_SCOPE_GLOBAL]
 	push qword [gvValue]
 	push qword [pidIndentifier]
@@ -6681,9 +7294,9 @@ parseIntegerDeclaration:
 	mov [_], rax
 	add rsp, 8
 
-        WriteToFile(roStr_77, stringAtPointer)
-	jmp .end_122
-.else_122:
+        WriteToFile(roStr_80, stringAtPointer)
+	jmp .end_142
+.else_142:
 	push qword [globalProcedureId]
 	push qword [gvValue]
 	push qword [pidIndentifier]
@@ -6713,12 +7326,16 @@ parseIntegerDeclaration:
 	pop rax
 	mov qword [ppdRbpOffset], rax
 
-.end_122:
+.end_142:
 
 	mov rsp, rbp
 	pop rbp
 	ret
 parseIntegerDeclaration_end:
+
+section .data
+	ptrIdentifier dq 0
+section .text
 
 	jmp parsePointerDeclaration_end
 parsePointerDeclaration:
@@ -6731,44 +7348,61 @@ parsePointerDeclaration:
 	call consumeToken
 
 	call parseIdentifier
-	mov [gvNamePointer], rax
+	mov [ptrIdentifier], rax
 	add rsp, 0
-	push qword [gvNamePointer]
+	push qword [ptrIdentifier]
 
 	call findSymbol
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_123:
+;.if_143:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	je .end_123
-;then_123:
-	push qword [gvNamePointer]
+	je .end_143
+;then_143:
+	push qword [ptrIdentifier]
 
 	call indentifierRedeclared
 	mov [_], rax
 	add rsp, 8
 
-.end_123:
+.end_143:
 	push qword [TOKEN_ASSIGNMENT]
 	pop rax
 	mov qword [expectedToken], rax
 
 	call consumeToken
 
+;.if_144:
+	mov r15, [currentToken]
+	cmp r15, [TOKEN_CONSTANT_INTEGER]
+	jne .else_144
+;then_144:
+
 	call parseNumber
 	mov [gvValue], rax
 	add rsp, 0
 
-;.if_124:
+        WriteToFile(roStr_81, [gvValue])
+	jmp .end_144
+.else_144:
+	push 0
+	pop rax
+	mov qword [gvValue], rax
+
+	call parseLogicalOrExpression
+
+.end_144:
+
+;.if_145:
 	mov r15, [globalBoolParsingProcedure]
 	cmp r15, 0
-	jne .else_124
-;then_124:
+	jne .else_145
+;then_145:
 	push qword [VARIABLE_SCOPE_GLOBAL]
 	push qword [gvValue]
-	push qword [gvNamePointer]
+	push qword [ptrIdentifier]
 	push qword [VAR_KIND_PRIMITIVE]
 	push qword [gvType]
 	push qword [TYPE_POINTER]
@@ -6778,7 +7412,7 @@ parsePointerDeclaration:
 	add rsp, 48
 	push qword [VARIABLE_SCOPE_GLOBAL]
 	push qword 0
-	push qword [gvNamePointer]
+	push qword [ptrIdentifier]
 	push qword [VAR_KIND_PRIMITIVE]
 	push qword [gvType]
 	push qword [TYPE_POINTER]
@@ -6786,15 +7420,21 @@ parsePointerDeclaration:
 	call addSymbol
 	mov [_], rax
 	add rsp, 48
+	push qword [ptrIdentifier]
 
-	jmp .end_124
-.else_124:
+	call readString
+	mov [_], rax
+	add rsp, 8
 
-        printf(roStr_78)
+        WriteToFile(roStr_82, stringAtPointer)
+	jmp .end_145
+.else_145:
+
+        printf(roStr_83)
         ExitProcess(1)
-.end_124:
+.end_145:
 
-    ;printf(roStr_79, [gvType], [gvValue])
+    ;printf(roStr_84, [gvType], [gvValue])
 	mov rsp, rbp
 	pop rbp
 	ret
@@ -6805,11 +7445,11 @@ parseVariableDeclaration:
 	push rbp
 	mov rbp, rsp
 
-;.if_125:
+;.if_146:
 	mov r15, [globalAllowVariableDeclaration]
 	cmp r15, 0
-	jne .end_125
-;then_125:
+	jne .end_146
+;then_146:
 	push qword [i]
 	push 2
 	pop rax
@@ -6843,9 +7483,9 @@ parseVariableDeclaration:
 	pop rax
 	mov qword [errorAtColumn], rax
 
-        printf(roStr_80, [errorAtLine], [errorAtColumn])
-        printf(roStr_81)
-.end_125:
+        printf(roStr_85, [errorAtLine], [errorAtColumn])
+        printf(roStr_86)
+.end_146:
 	push qword [ppdLocalVariableCount]
 	push 1
 	pop rax
@@ -6859,46 +7499,46 @@ parseVariableDeclaration:
 	mov [gvType], rax
 	add rsp, 0
 
-;.if_126:
+;.if_147:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_LEFT_BRACKET]
-	jne .else_126
-;then_126:
+	jne .else_147
+;then_147:
 
 	call parseArrayDeclaration
 
-	jmp .end_126
-.else_126:
+	jmp .end_147
+.else_147:
 
-;.if_127:
+;.if_148:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_IDENTIFIER]
-	jne .else_127
-;then_127:
+	jne .else_148
+;then_148:
 
 	call parseIntegerDeclaration
 
-	jmp .end_127
-.else_127:
+	jmp .end_148
+.else_148:
 
-;.if_128:
+;.if_149:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_MULTIPLY]
-	jne .else_128
-;then_128:
+	jne .else_149
+;then_149:
 
 	call parsePointerDeclaration
 
-	jmp .end_128
-.else_128:
+	jmp .end_149
+.else_149:
 
 	call unexpectedToken
 
-.end_128:
+.end_149:
 
-.end_127:
+.end_148:
 
-.end_126:
+.end_147:
 	push qword [TOKEN_SEMICOLON]
 	pop rax
 	mov qword [expectedToken], rax
@@ -6938,18 +7578,18 @@ parseSizeOfStatement:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_129:
+;.if_150:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_129
-;then_129:
+	jne .end_150
+;then_150:
 	push qword [psosIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_129:
+.end_150:
 	push qword [TOKEN_RIGHT_PARENTHESIS]
 	pop rax
 	mov qword [expectedToken], rax
@@ -6961,7 +7601,7 @@ parseSizeOfStatement:
 	mov [_], rax
 	add rsp, 8
 
-    WriteToFile(roStr_82, [gsValue], stringAtPointer)
+    WriteToFile(roStr_87, [gsValue], stringAtPointer)
 	mov rsp, rbp
 	pop rbp
 	ret
@@ -6984,37 +7624,37 @@ parseFactor:
 	push rbp
 	mov rbp, rsp
 
-;.if_130:
+;.if_151:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_CONSTANT_INTEGER]
-	jne .else_130
-;then_130:
+	jne .else_151
+;then_151:
 
 	call parseNumber
 	mov [_], rax
 	add rsp, 0
 
-;.if_131:
+;.if_152:
 	mov r15, [_]
 	cmp r15, 2147483647
-	jle .else_131
-;then_131:
+	jle .else_152
+;then_152:
 
-            WriteToFile(roStr_83, [_])
-	jmp .end_131
-.else_131:
+            WriteToFile(roStr_88, [_])
+	jmp .end_152
+.else_152:
 
-            WriteToFile(roStr_84, [_])
-.end_131:
+            WriteToFile(roStr_89, [_])
+.end_152:
 
-	jmp .end_130
-.else_130:
+	jmp .end_151
+.else_151:
 
-;.if_132:
+;.if_153:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_LEFT_PARENTHESIS]
-	jne .else_132
-;then_132:
+	jne .else_153
+;then_153:
 	push qword [TOKEN_LEFT_PARENTHESIS]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7028,20 +7668,20 @@ parseFactor:
 
 	call consumeToken
 
-	jmp .end_132
-.else_132:
+	jmp .end_153
+.else_153:
 
-;.if_133:
+;.if_154:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_IDENTIFIER]
-	jne .else_133
-;then_133:
+	jne .else_154
+;then_154:
 
-;.if_134:
+;.if_155:
 	mov r15, [nextToken]
 	cmp r15, [TOKEN_LEFT_BRACKET]
-	jne .else_134
-;then_134:
+	jne .else_155
+;then_155:
 
 	call parseArrayAccess
 	mov [fpIdentifier], rax
@@ -7052,86 +7692,86 @@ parseFactor:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_135:
+;.if_156:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_135
-;then_135:
+	jne .end_156
+;then_156:
 	push qword [fpIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_135:
+.end_156:
 
-;.if_136:
+;.if_157:
 	mov r15, [gsKind]
 	cmp r15, [VAR_KIND_PRIMITIVE]
-	jne .else_136
-;then_136:
+	jne .else_157
+;then_157:
 	push qword [fpIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-;.if_137:
+;.if_158:
 	mov r15, [gsSubType]
 	cmp r15, [TYPE_UINT8]
-	jne .else_137
-;then_137:
+	jne .else_158
+;then_158:
 
-                    WriteToFile(roStr_85)
-                    WriteToFile(roStr_86, stringAtPointer)
-	jmp .end_137
-.else_137:
+                    WriteToFile(roStr_90)
+                    WriteToFile(roStr_91, stringAtPointer)
+	jmp .end_158
+.else_158:
 
-;.if_138:
+;.if_159:
 	mov r15, [gsSubType]
 	cmp r15, [TYPE_UINT64]
-	jne .else_138
-;then_138:
+	jne .else_159
+;then_159:
 
-                    WriteToFile(roStr_87)
-                    WriteToFile(roStr_88, stringAtPointer)
-	jmp .end_138
-.else_138:
+                    WriteToFile(roStr_92)
+                    WriteToFile(roStr_93, stringAtPointer)
+	jmp .end_159
+.else_159:
 
-;.if_139:
+;.if_160:
 	mov r15, [gsSubType]
 	cmp r15, [TYPE_POINTER]
-	jne .else_139
-;then_139:
+	jne .else_160
+;then_160:
 
-                    WriteToFile(roStr_89)
-                    WriteToFile(roStr_90, stringAtPointer)
-	jmp .end_139
-.else_139:
+                    WriteToFile(roStr_94)
+                    WriteToFile(roStr_95, stringAtPointer)
+	jmp .end_160
+.else_160:
 
-;.if_140:
+;.if_161:
 	mov r15, [gsSubType]
 	cmp r15, [TYPE_STRING]
-	jne .else_140
-;then_140:
+	jne .else_161
+;then_161:
 
-                    WriteToFile(roStr_91)
-                    WriteToFile(roStr_92, stringAtPointer)
-	jmp .end_140
-.else_140:
+                    WriteToFile(roStr_96)
+                    WriteToFile(roStr_97, stringAtPointer)
+	jmp .end_161
+.else_161:
  
-                    printf(roStr_93, [gsSubType])
+                    printf(roStr_98, [gsSubType])
                     ExitProcess(1)
-.end_140:
+.end_161:
 
-.end_139:
+.end_160:
 
-.end_138:
+.end_159:
 
-.end_137:
+.end_158:
 
-	jmp .end_136
-.else_136:
+	jmp .end_157
+.else_157:
 	push qword [gsSubType]
 	pop rax
 	mov qword [pfType], rax
@@ -7141,29 +7781,29 @@ parseFactor:
 	mov [_], rax
 	add rsp, 8
 
-;.if_141:
+;.if_162:
 	mov r15, [_]
 	cmp r15, -1
-	jne .end_141
-;then_141:
+	jne .end_162
+;then_162:
 
-                    printf(roStr_94, [gsSubType])
+                    printf(roStr_99, [gsSubType])
                     ExitProcess(1)
-.end_141:
+.end_162:
 	push qword [fpIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-                WriteToFile(roStr_95)
-                WriteToFile(roStr_96, [gsValue], stringAtPointer)
+                WriteToFile(roStr_100)
+                WriteToFile(roStr_101, [gsValue], stringAtPointer)
                 
-;.if_142:
+;.if_163:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_DOT]
-	jne .else_142
-;then_142:
+	jne .else_163
+;then_163:
 	push qword [TOKEN_DOT]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7180,38 +7820,50 @@ parseFactor:
 	mov [fgsIndex], rax
 	add rsp, 16
 
-                    WriteToFile(roStr_97)
-                    WriteToFile(roStr_98, [utOffset])
-	jmp .end_142
-.else_142:
+;.if_164:
+	mov r15, [utOffset]
+	cmp r15, 0
+	je .else_164
+;then_164:
 
-                    printf(roStr_99)
-.end_142:
+                        WriteToFile(roStr_102)
+                        WriteToFile(roStr_103, [utOffset])
+	jmp .end_164
+.else_164:
 
-.end_136:
+                        WriteToFile(roStr_104, [utOffset])
+.end_164:
 
-            ;printf(roStr_100)
-	jmp .end_134
-.else_134:
+	jmp .end_163
+.else_163:
 
-;.if_143:
+                    WriteToFile(roStr_105)
+.end_163:
+
+.end_157:
+
+            ;printf(roStr_106)
+	jmp .end_155
+.else_155:
+
+;.if_165:
 	mov r15, [nextToken]
 	cmp r15, [TOKEN_LEFT_PARENTHESIS]
-	jne .else_143
-;then_143:
+	jne .else_165
+;then_165:
 
 	call parseProcedureCall
 
-            ;printf(roStr_101)
-            WriteToFile(roStr_102)
-	jmp .end_143
-.else_143:
+            ;printf(roStr_107)
+            WriteToFile(roStr_108)
+	jmp .end_165
+.else_165:
 
-;.if_144:
+;.if_166:
 	mov r15, [nextToken]
 	cmp r15, [TOKEN_DOT]
-	jne .else_144
-;then_144:
+	jne .else_166
+;then_166:
 
 	call parseIdentifier
 	mov [fpIdentifier], rax
@@ -7222,18 +7874,18 @@ parseFactor:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_145:
+;.if_167:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_145
-;then_145:
+	jne .end_167
+;then_167:
 	push qword [fpIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_145:
+.end_167:
 	push qword [gsSubType]
 	pop rax
 	mov qword [pfType], rax
@@ -7243,8 +7895,8 @@ parseFactor:
 	mov [_], rax
 	add rsp, 8
 
-            WriteToFile(roStr_103)
-            WriteToFile(roStr_104, stringAtPointer)
+            WriteToFile(roStr_109)
+            WriteToFile(roStr_110, stringAtPointer)
             	push qword [TOKEN_DOT]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7261,9 +7913,9 @@ parseFactor:
 	mov [fgsIndex], rax
 	add rsp, 16
 
-            WriteToFile(roStr_105, [utOffset])
-	jmp .end_144
-.else_144:
+            WriteToFile(roStr_111, [utOffset])
+	jmp .end_166
+.else_166:
 
             ; procedure stuff
             	push qword [i]
@@ -7283,7 +7935,7 @@ parseFactor:
 	pop rax
 	mov qword [_], rax
 
-            ;printf(roStr_106, [_])
+            ;printf(roStr_112, [_])
             
 	call parseIdentifier
 	mov [fpIdentifier], rax
@@ -7294,149 +7946,149 @@ parseFactor:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_146:
+;.if_168:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_146
-;then_146:
+	jne .end_168
+;then_168:
 	push qword [fpIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_146:
+.end_168:
 	push qword [fpIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-;.if_147:
+;.if_169:
 	mov r15, [gsScope]
 	cmp r15, [VARIABLE_SCOPE_GLOBAL]
-	jne .else_147
-;then_147:
+	jne .else_169
+;then_169:
 
-;.if_148:
+;.if_170:
 	mov r15, [gsType]
 	cmp r15, [TYPE_UINT8]
-	jne .else_148
-;then_148:
+	jne .else_170
+;then_170:
  
-                    WriteToFile(roStr_107, stringAtPointer)
-	jmp .end_148
-.else_148:
+                    WriteToFile(roStr_113, stringAtPointer)
+	jmp .end_170
+.else_170:
 
-;.if_149:
+;.if_171:
 	mov r15, [gsType]
 	cmp r15, [TYPE_UINT64]
-	jne .else_149
-;then_149:
+	jne .else_171
+;then_171:
  
-                    WriteToFile(roStr_108, stringAtPointer)
-	jmp .end_149
-.else_149:
+                    WriteToFile(roStr_114, stringAtPointer)
+	jmp .end_171
+.else_171:
 
-;.if_150:
+;.if_172:
 	mov r15, [gsType]
 	cmp r15, [TYPE_POINTER]
-	jne .else_150
-;then_150:
+	jne .else_172
+;then_172:
 
-                    WriteToFile(roStr_109, stringAtPointer)
-	jmp .end_150
-.else_150:
+                    WriteToFile(roStr_115, stringAtPointer)
+	jmp .end_172
+.else_172:
 
-;.if_151:
+;.if_173:
 	mov r15, [gsType]
 	cmp r15, [TYPE_STRUCT_POINTER]
-	jne .else_151
-;then_151:
+	jne .else_173
+;then_173:
 
-                    WriteToFile(roStr_110, stringAtPointer)
-	jmp .end_151
-.else_151:
+                    WriteToFile(roStr_116, stringAtPointer)
+	jmp .end_173
+.else_173:
 
-;.if_152:
+;.if_174:
 	mov r15, [gsType]
 	cmp r15, [TYPE_ARRAY]
-	jne .else_152
-;then_152:
+	jne .else_174
+;then_174:
  
-                    WriteToFile(roStr_111, stringAtPointer)
-	jmp .end_152
-.else_152:
+                    WriteToFile(roStr_117, stringAtPointer)
+	jmp .end_174
+.else_174:
 
-;.if_153:
+;.if_175:
 	mov r15, [gsType]
 	cmp r15, [TYPE_DEFINE]
-	jne .else_153
-;then_153:
+	jne .else_175
+;then_175:
 
-                    WriteToFile(roStr_112, [gsValue], stringAtPointer)
-	jmp .end_153
-.else_153:
+                    WriteToFile(roStr_118, [gsValue], stringAtPointer)
+	jmp .end_175
+.else_175:
  
-                    printf(roStr_113, [gsType])
+                    printf(roStr_119, [gsType])
                     ExitProcess(1)
-.end_153:
+.end_175:
 
-.end_152:
+.end_174:
 
-.end_151:
+.end_173:
 
-.end_150:
+.end_172:
 
-.end_149:
+.end_171:
 
-.end_148:
+.end_170:
 
-	jmp .end_147
-.else_147:
+	jmp .end_169
+.else_169:
 
-;.if_154:
+;.if_176:
 	mov r15, [gsSubType]
 	cmp r15, [VARTYPE_PARAMETER]
-	jne .else_154
-;then_154:
+	jne .else_176
+;then_176:
  
-                    WriteToFile(roStr_114, [gsValue])
+                    WriteToFile(roStr_120, [gsValue])
+	jmp .end_176
+.else_176:
+
+;.if_177:
+	mov r15, [gsSubType]
+	cmp r15, [VARTYPE_LOCAL]
+	jne .else_177
+;then_177:
+ 
+                    WriteToFile(roStr_121, [gsValue])
+	jmp .end_177
+.else_177:
+ 
+                    printf(roStr_122, [gsType])
+                    ExitProcess(1)
+.end_177:
+
+.end_176:
+
+.end_169:
+
+.end_166:
+
+.end_165:
+
+.end_155:
+
 	jmp .end_154
 .else_154:
 
-;.if_155:
-	mov r15, [gsSubType]
-	cmp r15, [VARTYPE_LOCAL]
-	jne .else_155
-;then_155:
- 
-                    WriteToFile(roStr_115, [gsValue])
-	jmp .end_155
-.else_155:
- 
-                    printf(roStr_116, [gsType])
-                    ExitProcess(1)
-.end_155:
-
-.end_154:
-
-.end_147:
-
-.end_144:
-
-.end_143:
-
-.end_134:
-
-	jmp .end_133
-.else_133:
-
-;.if_156:
+;.if_178:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_AMPERSAND]
-	jne .else_156
-;then_156:
+	jne .else_178
+;then_178:
 	push qword [TOKEN_AMPERSAND]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7452,33 +8104,33 @@ parseFactor:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_157:
+;.if_179:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_157
-;then_157:
+	jne .end_179
+;then_179:
 	push qword [fpIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_157:
+.end_179:
 	push qword [fpIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-        WriteToFile(roStr_117, stringAtPointer)
-	jmp .end_156
-.else_156:
+        WriteToFile(roStr_123, stringAtPointer)
+	jmp .end_178
+.else_178:
 
-;.if_158:
+;.if_180:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_MULTIPLY]
-	jne .else_158
-;then_158:
+	jne .else_180
+;then_180:
 	push qword [TOKEN_MULTIPLY]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7494,33 +8146,33 @@ parseFactor:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_159:
+;.if_181:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_159
-;then_159:
+	jne .end_181
+;then_181:
 	push qword [fpIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_159:
+.end_181:
 
-        printf(roStr_118, [gsType])
+        ;printf(roStr_124, [gsType])
         	push qword [fpIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-;.if_160:
+;.if_182:
 	mov r15, [gsType]
 	cmp r15, [TYPE_STRUCT_POINTER]
-	jne .else_160
-;then_160:
+	jne .else_182
+;then_182:
 
-        printf(roStr_119)
+        ;printf(roStr_125)
         	push qword [gsSubType]
 	pop rax
 	mov qword [pfType], rax
@@ -7530,8 +8182,8 @@ parseFactor:
 	mov [_], rax
 	add rsp, 8
 
-            WriteToFile(roStr_120)
-            WriteToFile(roStr_121, stringAtPointer)
+            WriteToFile(roStr_126)
+            WriteToFile(roStr_127, stringAtPointer)
             	push qword [TOKEN_DOT]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7548,65 +8200,77 @@ parseFactor:
 	mov [fgsIndex], rax
 	add rsp, 16
 
-            WriteToFile(roStr_122, [utOffset])
-	jmp .end_160
-.else_160:
+;.if_183:
+	mov r15, [utType]
+	cmp r15, [TYPE_UINT64]
+	jne .else_183
+;then_183:
 
-;.if_161:
+                WriteToFile(roStr_128, [utOffset])
+	jmp .end_183
+.else_183:
+
+                WriteToFile(roStr_129, [utOffset])
+.end_183:
+
+	jmp .end_182
+.else_182:
+
+;.if_184:
 	mov r15, [gsSubType]
 	cmp r15, [TYPE_UINT8]
-	jne .else_161
-;then_161:
+	jne .else_184
+;then_184:
 
-                WriteToFile(roStr_123, stringAtPointer)
-	jmp .end_161
-.else_161:
+                WriteToFile(roStr_130, stringAtPointer)
+	jmp .end_184
+.else_184:
 
-;.if_162:
+;.if_185:
 	mov r15, [gsSubType]
 	cmp r15, [TYPE_UINT64]
-	jne .else_162
-;then_162:
+	jne .else_185
+;then_185:
 
-                WriteToFile(roStr_124, stringAtPointer)
-	jmp .end_162
-.else_162:
+                WriteToFile(roStr_131, stringAtPointer)
+	jmp .end_185
+.else_185:
 
-                printf(roStr_125, [gsType])
+                printf(roStr_132, [gsType])
                 ExitProcess(1)
-.end_162:
+.end_185:
 
-.end_161:
+.end_184:
 
-.end_160:
+.end_182:
 
-	jmp .end_158
-.else_158:
+	jmp .end_180
+.else_180:
 
-;.if_163:
+;.if_186:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_SIZEOF]
-	jne .else_163
-;then_163:
+	jne .else_186
+;then_186:
 
 	call parseSizeOfStatement
 
-	jmp .end_163
-.else_163:
+	jmp .end_186
+.else_186:
 
 	call unexpectedToken
 
-.end_163:
+.end_186:
 
-.end_158:
+.end_180:
 
-.end_156:
+.end_178:
 
-.end_133:
+.end_154:
 
-.end_132:
+.end_153:
 
-.end_130:
+.end_151:
 
 	mov rsp, rbp
 	pop rbp
@@ -7620,17 +8284,17 @@ parseMultiplicativeExpression:
 
 	call parseFactor
 
-.while_164:
+.while_187:
 	mov r15, [true]
 	cmp r15, 1
-	jne .end_164
-;do_164:
+	jne .end_187
+;do_187:
 
-;.if_165:
+;.if_188:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_MULTIPLY]
-	jne .else_165
-;then_165:
+	jne .else_188
+;then_188:
 	push qword [TOKEN_MULTIPLY]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7639,16 +8303,16 @@ parseMultiplicativeExpression:
 
 	call parseFactor
 
-            WriteToFile(roStr_126)
-            WriteToFile(roStr_127)
-	jmp .end_165
-.else_165:
+            WriteToFile(roStr_133)
+            WriteToFile(roStr_134)
+	jmp .end_188
+.else_188:
 
-;.if_166:
+;.if_189:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_DIVIDE]
-	jne .else_166
-;then_166:
+	jne .else_189
+;then_189:
 	push qword [TOKEN_DIVIDE]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7657,16 +8321,16 @@ parseMultiplicativeExpression:
 
 	call parseFactor
 
-            WriteToFile(roStr_128)
-            WriteToFile(roStr_129)
-	jmp .end_166
-.else_166:
+            WriteToFile(roStr_135)
+            WriteToFile(roStr_136)
+	jmp .end_189
+.else_189:
 
-;.if_167:
+;.if_190:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_MODULO]
-	jne .else_167
-;then_167:
+	jne .else_190
+;then_190:
 	push qword [TOKEN_MODULO]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7675,22 +8339,22 @@ parseMultiplicativeExpression:
 
 	call parseFactor
 
-            WriteToFile(roStr_130)
-            WriteToFile(roStr_131)
-	jmp .end_167
-.else_167:
+            WriteToFile(roStr_137)
+            WriteToFile(roStr_138)
+	jmp .end_190
+.else_190:
 
-    jmp .end_164
+    jmp .end_187
 
-.end_167:
+.end_190:
 
-.end_166:
+.end_189:
 
-.end_165:
+.end_188:
 
-    jmp .while_164
-    ; end while_164
-.end_164:
+    jmp .while_187
+    ; end while_187
+.end_187:
 
 	mov rsp, rbp
 	pop rbp
@@ -7704,17 +8368,17 @@ parseAdditiveExpression:
 
 	call parseMultiplicativeExpression
 
-.while_168:
+.while_191:
 	mov r15, [true]
 	cmp r15, 1
-	jne .end_168
-;do_168:
+	jne .end_191
+;do_191:
 
-;.if_169:
+;.if_192:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_PLUS]
-	jne .else_169
-;then_169:
+	jne .else_192
+;then_192:
 	push qword [TOKEN_PLUS]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7723,16 +8387,16 @@ parseAdditiveExpression:
 
 	call parseMultiplicativeExpression
 
-            WriteToFile(roStr_132)
-            WriteToFile(roStr_133)
-	jmp .end_169
-.else_169:
+            WriteToFile(roStr_139)
+            WriteToFile(roStr_140)
+	jmp .end_192
+.else_192:
 
-;.if_170:
+;.if_193:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_MINUS]
-	jne .else_170
-;then_170:
+	jne .else_193
+;then_193:
 	push qword [TOKEN_MINUS]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7741,20 +8405,20 @@ parseAdditiveExpression:
 
 	call parseMultiplicativeExpression
 
-            WriteToFile(roStr_134)
-            WriteToFile(roStr_135)
-	jmp .end_170
-.else_170:
+            WriteToFile(roStr_141)
+            WriteToFile(roStr_142)
+	jmp .end_193
+.else_193:
 
-    jmp .end_168
+    jmp .end_191
 
-.end_170:
+.end_193:
 
-.end_169:
+.end_192:
 
-    jmp .while_168
-    ; end while_168
-.end_168:
+    jmp .while_191
+    ; end while_191
+.end_191:
 
 	mov rsp, rbp
 	pop rbp
@@ -7772,11 +8436,11 @@ parseRelationalExpression:
 
 	call parseAdditiveExpression
 
-;.if_171:
+;.if_194:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_LESS_THAN]
-	jne .else_171
-;then_171:
+	jne .else_194
+;then_194:
 	push qword [TOKEN_LESS_THAN]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7785,9 +8449,9 @@ parseRelationalExpression:
 
 	call parseAdditiveExpression
 
-        WriteToFile(roStr_136)
-        WriteToFile(roStr_137, [preIndex], [preIndex])
-        WriteToFile(roStr_138, [preIndex], [preIndex])
+        WriteToFile(roStr_143)
+        WriteToFile(roStr_144, [preIndex], [preIndex])
+        WriteToFile(roStr_145, [preIndex], [preIndex])
         	push qword [preIndex]
 	push 1
 	pop rax
@@ -7797,14 +8461,14 @@ parseRelationalExpression:
 	pop rax
 	mov qword [preIndex], rax
 
-	jmp .end_171
-.else_171:
+	jmp .end_194
+.else_194:
 
-;.if_172:
+;.if_195:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_LESS_THAN_OR_EQUAL_TO]
-	jne .else_172
-;then_172:
+	jne .else_195
+;then_195:
 	push qword [TOKEN_LESS_THAN_OR_EQUAL_TO]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7813,9 +8477,9 @@ parseRelationalExpression:
 
 	call parseAdditiveExpression
 
-        WriteToFile(roStr_139)
-        WriteToFile(roStr_140, [preIndex], [preIndex])
-        WriteToFile(roStr_141, [preIndex], [preIndex])
+        WriteToFile(roStr_146)
+        WriteToFile(roStr_147, [preIndex], [preIndex])
+        WriteToFile(roStr_148, [preIndex], [preIndex])
         	push qword [preIndex]
 	push 1
 	pop rax
@@ -7825,14 +8489,14 @@ parseRelationalExpression:
 	pop rax
 	mov qword [preIndex], rax
 
-	jmp .end_172
-.else_172:
+	jmp .end_195
+.else_195:
 
-;.if_173:
+;.if_196:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_GREATER_THAN]
-	jne .else_173
-;then_173:
+	jne .else_196
+;then_196:
 	push qword [TOKEN_GREATER_THAN]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7841,9 +8505,9 @@ parseRelationalExpression:
 
 	call parseAdditiveExpression
 
-        WriteToFile(roStr_142)
-        WriteToFile(roStr_143, [preIndex], [preIndex])
-        WriteToFile(roStr_144, [preIndex], [preIndex])
+        WriteToFile(roStr_149)
+        WriteToFile(roStr_150, [preIndex], [preIndex])
+        WriteToFile(roStr_151, [preIndex], [preIndex])
         	push qword [preIndex]
 	push 1
 	pop rax
@@ -7853,14 +8517,14 @@ parseRelationalExpression:
 	pop rax
 	mov qword [preIndex], rax
 
-	jmp .end_173
-.else_173:
+	jmp .end_196
+.else_196:
 
-;.if_174:
+;.if_197:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_GREATER_THAN_OR_EQUAL_TO]
-	jne .else_174
-;then_174:
+	jne .else_197
+;then_197:
 	push qword [TOKEN_GREATER_THAN_OR_EQUAL_TO]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7869,9 +8533,9 @@ parseRelationalExpression:
 
 	call parseAdditiveExpression
 
-        WriteToFile(roStr_145)
-        WriteToFile(roStr_146, [preIndex], [preIndex])
-        WriteToFile(roStr_147, [preIndex], [preIndex])
+        WriteToFile(roStr_152)
+        WriteToFile(roStr_153, [preIndex], [preIndex])
+        WriteToFile(roStr_154, [preIndex], [preIndex])
         	push qword [preIndex]
 	push 1
 	pop rax
@@ -7881,14 +8545,14 @@ parseRelationalExpression:
 	pop rax
 	mov qword [preIndex], rax
 
-	jmp .end_174
-.else_174:
+	jmp .end_197
+.else_197:
 
-;.if_175:
+;.if_198:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_EQUALS]
-	jne .else_175
-;then_175:
+	jne .else_198
+;then_198:
 	push qword [TOKEN_EQUALS]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7897,9 +8561,9 @@ parseRelationalExpression:
 
 	call parseAdditiveExpression
 
-        WriteToFile(roStr_148)
-        WriteToFile(roStr_149, [preIndex], [preIndex])
-        WriteToFile(roStr_150, [preIndex], [preIndex])
+        WriteToFile(roStr_155)
+        WriteToFile(roStr_156, [preIndex], [preIndex])
+        WriteToFile(roStr_157, [preIndex], [preIndex])
         	push qword [preIndex]
 	push 1
 	pop rax
@@ -7909,14 +8573,14 @@ parseRelationalExpression:
 	pop rax
 	mov qword [preIndex], rax
 
-	jmp .end_175
-.else_175:
+	jmp .end_198
+.else_198:
 
-;.if_176:
+;.if_199:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_NOT_EQUALS]
-	jne .end_176
-;then_176:
+	jne .end_199
+;then_199:
 	push qword [TOKEN_NOT_EQUALS]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7925,9 +8589,9 @@ parseRelationalExpression:
 
 	call parseAdditiveExpression
 
-        WriteToFile(roStr_151)
-        WriteToFile(roStr_152, [preIndex], [preIndex])
-        WriteToFile(roStr_153, [preIndex], [preIndex])
+        WriteToFile(roStr_158)
+        WriteToFile(roStr_159, [preIndex], [preIndex])
+        WriteToFile(roStr_160, [preIndex], [preIndex])
         	push qword [preIndex]
 	push 1
 	pop rax
@@ -7937,17 +8601,17 @@ parseRelationalExpression:
 	pop rax
 	mov qword [preIndex], rax
 
-.end_176:
+.end_199:
 
-.end_175:
+.end_198:
 
-.end_174:
+.end_197:
 
-.end_173:
+.end_196:
 
-.end_172:
+.end_195:
 
-.end_171:
+.end_194:
 
 	mov rsp, rbp
 	pop rbp
@@ -7961,17 +8625,17 @@ parseLogicalAndExpression:
 
 	call parseRelationalExpression
 
-.while_177:
+.while_200:
 	mov r15, [true]
 	cmp r15, 1
-	jne .end_177
-;do_177:
+	jne .end_200
+;do_200:
 
-;.if_178:
+;.if_201:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_LOGICAL_AND]
-	jne .else_178
-;then_178:
+	jne .else_201
+;then_201:
 	push qword [TOKEN_LOGICAL_AND]
 	pop rax
 	mov qword [expectedToken], rax
@@ -7980,18 +8644,18 @@ parseLogicalAndExpression:
 
 	call parseRelationalExpression
 
-            WriteToFile(roStr_154)
-            WriteToFile(roStr_155)
-	jmp .end_178
-.else_178:
+            WriteToFile(roStr_161)
+            WriteToFile(roStr_162)
+	jmp .end_201
+.else_201:
 
-    jmp .end_177
+    jmp .end_200
 
-.end_178:
+.end_201:
 
-    jmp .while_177
-    ; end while_177
-.end_177:
+    jmp .while_200
+    ; end while_200
+.end_200:
 
 	mov rsp, rbp
 	pop rbp
@@ -8003,21 +8667,21 @@ parseLogicalOrExpression:
 	push rbp
 	mov rbp, rsp
 
-    WriteToFile(roStr_156)
+    WriteToFile(roStr_163)
     
 	call parseLogicalAndExpression
 
-.while_179:
+.while_202:
 	mov r15, [true]
 	cmp r15, 1
-	jne .end_179
-;do_179:
+	jne .end_202
+;do_202:
 
-;.if_180:
+;.if_203:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_LOGICAL_OR]
-	jne .else_180
-;then_180:
+	jne .else_203
+;then_203:
 	push qword [TOKEN_LOGICAL_OR]
 	pop rax
 	mov qword [expectedToken], rax
@@ -8026,18 +8690,18 @@ parseLogicalOrExpression:
 
 	call parseLogicalAndExpression
 
-            WriteToFile(roStr_157)
-            WriteToFile(roStr_158)
-	jmp .end_180
-.else_180:
+            WriteToFile(roStr_164)
+            WriteToFile(roStr_165)
+	jmp .end_203
+.else_203:
 
-    jmp .end_179
+    jmp .end_202
 
-.end_180:
+.end_203:
 
-    jmp .while_179
-    ; end while_179
-.end_179:
+    jmp .while_202
+    ; end while_202
+.end_202:
 
 	mov rsp, rbp
 	pop rbp
@@ -8101,18 +8765,18 @@ parseStructAccess:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_181:
+;.if_204:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_181
-;then_181:
+	jne .end_204
+;then_204:
 	push qword [psaIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_181:
+.end_204:
 	push qword [gsSubType]
 	pop rax
 	mov qword [psaType], rax
@@ -8122,20 +8786,20 @@ parseStructAccess:
 	mov [_], rax
 	add rsp, 8
 
-;.if_182:
+;.if_205:
 	mov r15, [gsType]
 	cmp r15, [TYPE_STRUCT_POINTER]
-	jne .else_182
-;then_182:
+	jne .else_205
+;then_205:
 
-        WriteToFile(roStr_159)
-        WriteToFile(roStr_160, stringAtPointer)
-	jmp .end_182
-.else_182:
+        WriteToFile(roStr_166)
+        WriteToFile(roStr_167, stringAtPointer)
+	jmp .end_205
+.else_205:
 
-        WriteToFile(roStr_161)
-        WriteToFile(roStr_162, stringAtPointer)
-.end_182:
+        WriteToFile(roStr_168)
+        WriteToFile(roStr_169, stringAtPointer)
+.end_205:
 	push qword [TOKEN_DOT]
 	pop rax
 	mov qword [expectedToken], rax
@@ -8152,7 +8816,7 @@ parseStructAccess:
 	mov [fgsIndex], rax
 	add rsp, 16
 
-    WriteToFile(roStr_163, [utOffset])
+    WriteToFile(roStr_170, [utOffset])
     mov rax, [psaIdentifier]
 	mov rsp, rbp
 	pop rbp
@@ -8180,11 +8844,11 @@ parseAssignable:
 	push rbp
 	mov rbp, rsp
 
-;.if_183:
+;.if_206:
 	mov r15, [nextToken]
 	cmp r15, [TOKEN_LEFT_BRACKET]
-	jne .else_183
-;then_183:
+	jne .else_206
+;then_206:
 
 	call parseArrayAccess
 	mov [paIdentifier], rax
@@ -8195,87 +8859,87 @@ parseAssignable:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_184:
+;.if_207:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_184
-;then_184:
+	jne .end_207
+;then_207:
 	push qword [paIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_184:
+.end_207:
 
-;.if_185:
+;.if_208:
 	mov r15, [gsKind]
 	cmp r15, [VAR_KIND_PRIMITIVE]
-	jne .else_185
-;then_185:
+	jne .else_208
+;then_208:
 	push qword [paIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-;.if_186:
+;.if_209:
 	mov r15, [gsSubType]
 	cmp r15, [TYPE_UINT8]
-	jne .else_186
-;then_186:
+	jne .else_209
+;then_209:
 
-                WriteToFile(roStr_164)
-                WriteToFile(roStr_165, stringAtPointer)
-	jmp .end_186
-.else_186:
+                WriteToFile(roStr_171)
+                WriteToFile(roStr_172, stringAtPointer)
+	jmp .end_209
+.else_209:
 
-;.if_187:
+;.if_210:
 	mov r15, [gsSubType]
 	cmp r15, [TYPE_UINT64]
-	jne .else_187
-;then_187:
+	jne .else_210
+;then_210:
 
-                WriteToFile(roStr_166)
-                WriteToFile(roStr_167, stringAtPointer)
-	jmp .end_187
-.else_187:
+                WriteToFile(roStr_173)
+                WriteToFile(roStr_174, stringAtPointer)
+	jmp .end_210
+.else_210:
 
-;.if_188:
+;.if_211:
 	mov r15, [gsSubType]
 	cmp r15, [TYPE_POINTER]
-	jne .else_188
-;then_188:
+	jne .else_211
+;then_211:
 
-                WriteToFile(roStr_168)
-                WriteToFile(roStr_169, stringAtPointer)
-	jmp .end_188
-.else_188:
+                WriteToFile(roStr_175)
+                WriteToFile(roStr_176, stringAtPointer)
+	jmp .end_211
+.else_211:
 
-;.if_189:
+;.if_212:
 	mov r15, [gsSubType]
 	cmp r15, [TYPE_STRING]
-	jne .else_189
-;then_189:
+	jne .else_212
+;then_212:
 
-                WriteToFile(roStr_170)
-                WriteToFile(roStr_171, stringAtPointer)
-	jmp .end_189
-.else_189:
+                WriteToFile(roStr_177)
+                WriteToFile(roStr_178, stringAtPointer)
+	jmp .end_212
+.else_212:
  
-                printf(roStr_172, [gsSubType])
+                printf(roStr_179, [gsSubType])
                 ExitProcess(1)
-.end_189:
+.end_212:
 
-.end_188:
+.end_211:
 
-.end_187:
+.end_210:
 
-.end_186:
+.end_209:
 
-            ;printf(roStr_173, [currentToken])
-	jmp .end_185
-.else_185:
+            ;printf(roStr_180, [currentToken])
+	jmp .end_208
+.else_208:
 	push qword [gsSubType]
 	pop rax
 	mov qword [paType], rax
@@ -8285,29 +8949,29 @@ parseAssignable:
 	mov [_], rax
 	add rsp, 8
 
-;.if_190:
+;.if_213:
 	mov r15, [_]
 	cmp r15, -1
-	jne .end_190
-;then_190:
+	jne .end_213
+;then_213:
 
-                printf(roStr_174, [gsSubType])
+                printf(roStr_181, [gsSubType])
                 ExitProcess(1)
-.end_190:
+.end_213:
 	push qword [paIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-            WriteToFile(roStr_175)
-            WriteToFile(roStr_176, [gsValue], stringAtPointer)
+            WriteToFile(roStr_182)
+            WriteToFile(roStr_183, [gsValue], stringAtPointer)
             
-;.if_191:
+;.if_214:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_DOT]
-	jne .else_191
-;then_191:
+	jne .else_214
+;then_214:
 	push qword [TOKEN_DOT]
 	pop rax
 	mov qword [expectedToken], rax
@@ -8324,31 +8988,31 @@ parseAssignable:
 	mov [fgsIndex], rax
 	add rsp, 16
 
-                WriteToFile(roStr_177)
-                WriteToFile(roStr_178, [utOffset])
-	jmp .end_191
-.else_191:
+                WriteToFile(roStr_184)
+                WriteToFile(roStr_185, [utOffset])
+	jmp .end_214
+.else_214:
 
-                printf(roStr_179)
-.end_191:
+                printf(roStr_186)
+.end_214:
 
-.end_185:
+.end_208:
 
-	jmp .end_183
-.else_183:
+	jmp .end_206
+.else_206:
 
-;.if_192:
+;.if_215:
 	mov r15, [nextToken]
 	cmp r15, [TOKEN_DOT]
-	jne .else_192
-;then_192:
+	jne .else_215
+;then_215:
 
 	call parseStructAccess
 	mov [paIdentifier], rax
 	add rsp, 0
 
-	jmp .end_192
-.else_192:
+	jmp .end_215
+.else_215:
 
 	call parseIdentifier
 	mov [paIdentifier], rax
@@ -8359,23 +9023,23 @@ parseAssignable:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_193:
+;.if_216:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_193
-;then_193:
+	jne .end_216
+;then_216:
 	push qword [paIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_193:
+.end_216:
 
-        ;printf(roStr_180)
-.end_192:
+        ;printf(roStr_187)
+.end_215:
 
-.end_183:
+.end_206:
 
     mov rax, [paIdentifier]
 	mov rsp, rbp
@@ -8399,12 +9063,12 @@ parseAssignmentStatement:
 	pop rax
 	mov qword [pasIsDereference], rax
 
-    WriteToFile(roStr_181)
-;.if_194:
+    WriteToFile(roStr_188)
+;.if_217:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_MULTIPLY]
-	jne .end_194
-;then_194:
+	jne .end_217
+;then_217:
 	push qword [TOKEN_MULTIPLY]
 	pop rax
 	mov qword [expectedToken], rax
@@ -8414,7 +9078,7 @@ parseAssignmentStatement:
 	pop rax
 	mov qword [pasIsDereference], rax
 
-.end_194:
+.end_217:
 
 	call parseAssignable
 	mov [pasIdentifier], rax
@@ -8437,333 +9101,333 @@ parseAssignmentStatement:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_195:
+;.if_218:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_195
-;then_195:
+	jne .end_218
+;then_218:
 	push qword [pasIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_195:
+.end_218:
 	push qword [pasIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-;.if_196:
-	mov r15, [gsType]
-	cmp r15, [TYPE_UINT8]
-	jne .else_196
-;then_196:
-
-;.if_197:
-	mov r15, [gsScope]
-	cmp r15, [VARIABLE_SCOPE_GLOBAL]
-	jne .else_197
-;then_197:
-
-            WriteToFile(roStr_182, stringAtPointer)
-            WriteToFile(roStr_183, stringAtPointer)
-	jmp .end_197
-.else_197:
-
-;.if_198:
-	mov r15, [gsSubType]
-	cmp r15, [VARTYPE_LOCAL]
-	jne .else_198
-;then_198:
-
-            WriteToFile(roStr_184)
-            WriteToFile(roStr_185, [gsValue])
-	jmp .end_198
-.else_198:
-
-;.if_199:
-	mov r15, [gsSubType]
-	cmp r15, [VARTYPE_PARAMETER]
-	jne .end_199
-;then_199:
-
-            printf(roStr_186)
-.end_199:
-
-.end_198:
-
-.end_197:
-
-	jmp .end_196
-.else_196:
-
-;.if_200:
-	mov r15, [gsType]
-	cmp r15, [TYPE_UINT64]
-	jne .else_200
-;then_200:
-
-;.if_201:
-	mov r15, [gsScope]
-	cmp r15, [VARIABLE_SCOPE_GLOBAL]
-	jne .else_201
-;then_201:
-
-            WriteToFile(roStr_187, stringAtPointer)
-            WriteToFile(roStr_188, stringAtPointer)
-	jmp .end_201
-.else_201:
-
-;.if_202:
-	mov r15, [gsSubType]
-	cmp r15, [VARTYPE_LOCAL]
-	jne .else_202
-;then_202:
-
-            WriteToFile(roStr_189)
-            WriteToFile(roStr_190, [gsValue])
-	jmp .end_202
-.else_202:
-
-;.if_203:
-	mov r15, [gsSubType]
-	cmp r15, [VARTYPE_PARAMETER]
-	jne .end_203
-;then_203:
-
-            printf(roStr_191)
-.end_203:
-
-.end_202:
-
-.end_201:
-
-	jmp .end_200
-.else_200:
-
-;.if_204:
-	mov r15, [gsType]
-	cmp r15, [TYPE_POINTER]
-	jne .else_204
-;then_204:
-
-;.if_205:
-	mov r15, [gsScope]
-	cmp r15, [VARIABLE_SCOPE_GLOBAL]
-	jne .else_205
-;then_205:
-
-;.if_206:
-	mov r15, [pasIsDereference]
-	cmp r15, 1
-	jne .else_206
-;then_206:
-
-                WriteToFile(roStr_192, stringAtPointer, [gsSubType])
-;.if_207:
-	mov r15, [gsSubType]
-	cmp r15, [TYPE_UINT8]
-	jne .else_207
-;then_207:
-
-                    WriteToFile(roStr_193, stringAtPointer)
-	jmp .end_207
-.else_207:
-
-;.if_208:
-	mov r15, [gsSubType]
-	cmp r15, [TYPE_UINT64]
-	jne .else_208
-;then_208:
-
-                    WriteToFile(roStr_194, stringAtPointer)
-	jmp .end_208
-.else_208:
-
-                    printf(roStr_195, [gsSubType])
-                    ExitProcess(1)
-.end_208:
-
-.end_207:
-
-	jmp .end_206
-.else_206:
-
-                WriteToFile(roStr_196, stringAtPointer)
-                WriteToFile(roStr_197, stringAtPointer)
-.end_206:
-
-	jmp .end_205
-.else_205:
-
-;.if_209:
-	mov r15, [gsSubType]
-	cmp r15, [VARTYPE_LOCAL]
-	jne .else_209
-;then_209:
-
-            WriteToFile(roStr_198)
-            WriteToFile(roStr_199, [gsValue])
-	jmp .end_209
-.else_209:
-
-;.if_210:
-	mov r15, [gsSubType]
-	cmp r15, [VARTYPE_PARAMETER]
-	jne .end_210
-;then_210:
-
-            printf(roStr_200)
-.end_210:
-
-.end_209:
-
-.end_205:
-
-	jmp .end_204
-.else_204:
-
-;.if_211:
-	mov r15, [gsType]
-	cmp r15, [TYPE_STRUCT_POINTER]
-	jne .else_211
-;then_211:
-
-;.if_212:
-	mov r15, [pasIsDereference]
-	cmp r15, 1
-	jne .else_212
-;then_212:
-
-            WriteToFile(roStr_201, stringAtPointer)
-            WriteToFile(roStr_202, stringAtPointer)
-	jmp .end_212
-.else_212:
-
-            WriteToFile(roStr_203, stringAtPointer)
-            WriteToFile(roStr_204, stringAtPointer)
-.end_212:
-
-	jmp .end_211
-.else_211:
-
-;.if_213:
-	mov r15, [gsType]
-	cmp r15, [TYPE_ARRAY]
-	jne .else_213
-;then_213:
-
-;.if_214:
-	mov r15, [gsKind]
-	cmp r15, [VAR_KIND_PRIMITIVE]
-	jne .else_214
-;then_214:
-
-;.if_215:
-	mov r15, [gsSubType]
-	cmp r15, [TYPE_UINT8]
-	jne .else_215
-;then_215:
-
-                WriteToFile(roStr_205)
-                WriteToFile(roStr_206)
-	jmp .end_215
-.else_215:
-
-;.if_216:
-	mov r15, [gsSubType]
-	cmp r15, [TYPE_UINT64]
-	jne .else_216
-;then_216:
-
-                WriteToFile(roStr_207)
-                WriteToFile(roStr_208)
-	jmp .end_216
-.else_216:
-
-;.if_217:
-	mov r15, [gsSubType]
-	cmp r15, [TYPE_POINTER]
-	jne .else_217
-;then_217:
-
-                WriteToFile(roStr_209)
-                WriteToFile(roStr_210)
-	jmp .end_217
-.else_217:
-
-;.if_218:
-	mov r15, [gsSubType]
-	cmp r15, [TYPE_STRING]
-	jne .else_218
-;then_218:
-
-                WriteToFile(roStr_211)
-                WriteToFile(roStr_212)
-	jmp .end_218
-.else_218:
- 
-                printf(roStr_213, [gsType])
-                ExitProcess(1)
-.end_218:
-
-.end_217:
-
-.end_216:
-
-.end_215:
-
-	jmp .end_214
-.else_214:
-
 ;.if_219:
-	mov r15, [gsKind]
-	cmp r15, [VAR_KIND_USER_DEFINED]
+	mov r15, [gsType]
+	cmp r15, [TYPE_UINT8]
 	jne .else_219
 ;then_219:
 
-            WriteToFile(roStr_214)
-            WriteToFile(roStr_215)
-	jmp .end_219
-.else_219:
- 
-            printf(roStr_216, [gsKind])
-            ExitProcess(1)
-.end_219:
-
-.end_214:
-
-	jmp .end_213
-.else_213:
-
 ;.if_220:
-	mov r15, [gsType]
-	cmp r15, [TYPE_USER_DEFINED]
+	mov r15, [gsScope]
+	cmp r15, [VARIABLE_SCOPE_GLOBAL]
 	jne .else_220
 ;then_220:
 
-        WriteToFile(roStr_217)
-        WriteToFile(roStr_218)
+            WriteToFile(roStr_189, stringAtPointer)
+            WriteToFile(roStr_190, stringAtPointer)
 	jmp .end_220
 .else_220:
 
-        printf(roStr_219, [gsType])
-        ExitProcess(1)
+;.if_221:
+	mov r15, [gsSubType]
+	cmp r15, [VARTYPE_LOCAL]
+	jne .else_221
+;then_221:
+
+            WriteToFile(roStr_191)
+            WriteToFile(roStr_192, [gsValue])
+	jmp .end_221
+.else_221:
+
+;.if_222:
+	mov r15, [gsSubType]
+	cmp r15, [VARTYPE_PARAMETER]
+	jne .end_222
+;then_222:
+
+            printf(roStr_193)
+.end_222:
+
+.end_221:
+
 .end_220:
 
-.end_213:
+	jmp .end_219
+.else_219:
 
-.end_211:
+;.if_223:
+	mov r15, [gsType]
+	cmp r15, [TYPE_UINT64]
+	jne .else_223
+;then_223:
 
-.end_204:
+;.if_224:
+	mov r15, [gsScope]
+	cmp r15, [VARIABLE_SCOPE_GLOBAL]
+	jne .else_224
+;then_224:
 
-.end_200:
+            WriteToFile(roStr_194, stringAtPointer)
+            WriteToFile(roStr_195, stringAtPointer)
+	jmp .end_224
+.else_224:
 
-.end_196:
+;.if_225:
+	mov r15, [gsSubType]
+	cmp r15, [VARTYPE_LOCAL]
+	jne .else_225
+;then_225:
 
-    ;printf(roStr_220, stringAtPointer)
+            WriteToFile(roStr_196)
+            WriteToFile(roStr_197, [gsValue])
+	jmp .end_225
+.else_225:
+
+;.if_226:
+	mov r15, [gsSubType]
+	cmp r15, [VARTYPE_PARAMETER]
+	jne .end_226
+;then_226:
+
+            printf(roStr_198)
+.end_226:
+
+.end_225:
+
+.end_224:
+
+	jmp .end_223
+.else_223:
+
+;.if_227:
+	mov r15, [gsType]
+	cmp r15, [TYPE_POINTER]
+	jne .else_227
+;then_227:
+
+;.if_228:
+	mov r15, [gsScope]
+	cmp r15, [VARIABLE_SCOPE_GLOBAL]
+	jne .else_228
+;then_228:
+
+;.if_229:
+	mov r15, [pasIsDereference]
+	cmp r15, 1
+	jne .else_229
+;then_229:
+
+                WriteToFile(roStr_199, stringAtPointer, [gsSubType])
+;.if_230:
+	mov r15, [gsSubType]
+	cmp r15, [TYPE_UINT8]
+	jne .else_230
+;then_230:
+
+                    WriteToFile(roStr_200, stringAtPointer)
+	jmp .end_230
+.else_230:
+
+;.if_231:
+	mov r15, [gsSubType]
+	cmp r15, [TYPE_UINT64]
+	jne .else_231
+;then_231:
+
+                    WriteToFile(roStr_201, stringAtPointer)
+	jmp .end_231
+.else_231:
+
+                    printf(roStr_202, [gsSubType])
+                    ExitProcess(1)
+.end_231:
+
+.end_230:
+
+	jmp .end_229
+.else_229:
+
+                WriteToFile(roStr_203, stringAtPointer)
+                WriteToFile(roStr_204, stringAtPointer)
+.end_229:
+
+	jmp .end_228
+.else_228:
+
+;.if_232:
+	mov r15, [gsSubType]
+	cmp r15, [VARTYPE_LOCAL]
+	jne .else_232
+;then_232:
+
+            WriteToFile(roStr_205)
+            WriteToFile(roStr_206, [gsValue])
+	jmp .end_232
+.else_232:
+
+;.if_233:
+	mov r15, [gsSubType]
+	cmp r15, [VARTYPE_PARAMETER]
+	jne .end_233
+;then_233:
+
+            printf(roStr_207)
+.end_233:
+
+.end_232:
+
+.end_228:
+
+	jmp .end_227
+.else_227:
+
+;.if_234:
+	mov r15, [gsType]
+	cmp r15, [TYPE_STRUCT_POINTER]
+	jne .else_234
+;then_234:
+
+;.if_235:
+	mov r15, [pasIsDereference]
+	cmp r15, 1
+	jne .else_235
+;then_235:
+
+            WriteToFile(roStr_208, stringAtPointer)
+            WriteToFile(roStr_209, stringAtPointer)
+	jmp .end_235
+.else_235:
+
+            WriteToFile(roStr_210, stringAtPointer)
+            WriteToFile(roStr_211, stringAtPointer)
+.end_235:
+
+	jmp .end_234
+.else_234:
+
+;.if_236:
+	mov r15, [gsType]
+	cmp r15, [TYPE_ARRAY]
+	jne .else_236
+;then_236:
+
+;.if_237:
+	mov r15, [gsKind]
+	cmp r15, [VAR_KIND_PRIMITIVE]
+	jne .else_237
+;then_237:
+
+;.if_238:
+	mov r15, [gsSubType]
+	cmp r15, [TYPE_UINT8]
+	jne .else_238
+;then_238:
+
+                WriteToFile(roStr_212)
+                WriteToFile(roStr_213)
+	jmp .end_238
+.else_238:
+
+;.if_239:
+	mov r15, [gsSubType]
+	cmp r15, [TYPE_UINT64]
+	jne .else_239
+;then_239:
+
+                WriteToFile(roStr_214)
+                WriteToFile(roStr_215)
+	jmp .end_239
+.else_239:
+
+;.if_240:
+	mov r15, [gsSubType]
+	cmp r15, [TYPE_POINTER]
+	jne .else_240
+;then_240:
+
+                WriteToFile(roStr_216)
+                WriteToFile(roStr_217)
+	jmp .end_240
+.else_240:
+
+;.if_241:
+	mov r15, [gsSubType]
+	cmp r15, [TYPE_STRING]
+	jne .else_241
+;then_241:
+
+                WriteToFile(roStr_218)
+                WriteToFile(roStr_219)
+	jmp .end_241
+.else_241:
+ 
+                printf(roStr_220, [gsType])
+                ExitProcess(1)
+.end_241:
+
+.end_240:
+
+.end_239:
+
+.end_238:
+
+	jmp .end_237
+.else_237:
+
+;.if_242:
+	mov r15, [gsKind]
+	cmp r15, [VAR_KIND_USER_DEFINED]
+	jne .else_242
+;then_242:
+
+            WriteToFile(roStr_221)
+            WriteToFile(roStr_222)
+	jmp .end_242
+.else_242:
+ 
+            printf(roStr_223, [gsKind])
+            ExitProcess(1)
+.end_242:
+
+.end_237:
+
+	jmp .end_236
+.else_236:
+
+;.if_243:
+	mov r15, [gsType]
+	cmp r15, [TYPE_USER_DEFINED]
+	jne .else_243
+;then_243:
+
+        WriteToFile(roStr_224)
+        WriteToFile(roStr_225)
+	jmp .end_243
+.else_243:
+
+        printf(roStr_226, [gsType])
+        ExitProcess(1)
+.end_243:
+
+.end_236:
+
+.end_234:
+
+.end_227:
+
+.end_223:
+
+.end_219:
+
+    ;printf(roStr_227, stringAtPointer)
 	mov rsp, rbp
 	pop rbp
 	ret
@@ -8787,8 +9451,8 @@ parseIfStatement:
 
 	call consumeToken
 
-    ;printf(roStr_221)
-    WriteToFile(roStr_222, [rbp + 16])
+    ;printf(roStr_228)
+    WriteToFile(roStr_229, [rbp + 16])
     
 	call parseLogicalOrExpression
 	push qword [TOKEN_THEN]
@@ -8797,16 +9461,16 @@ parseIfStatement:
 
 	call consumeToken
 
-    ;printf(roStr_223)
-    WriteToFile(roStr_224, [rbp + 16], [rbp + 16])
+    ;printf(roStr_230)
+    WriteToFile(roStr_231, [rbp + 16], [rbp + 16])
     
 	call parseStatements
 
-;.if_221:
+;.if_244:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_ELSE]
-	jne .end_221
-;then_221:
+	jne .end_244
+;then_244:
 	push 1
 	pop rax
 	mov qword [rbp + 24], rax
@@ -8816,13 +9480,13 @@ parseIfStatement:
 
 	call consumeToken
 
-        WriteToFile(roStr_225, [rbp + 16])
-        WriteToFile(roStr_226, [rbp + 16], [rbp + 16])
-        ;printf(roStr_227)
+        WriteToFile(roStr_232, [rbp + 16])
+        WriteToFile(roStr_233, [rbp + 16], [rbp + 16])
+        ;printf(roStr_234)
         
 	call parseStatements
 
-.end_221:
+.end_244:
 	push qword [TOKEN_END]
 	pop rax
 	mov qword [expectedToken], rax
@@ -8832,20 +9496,20 @@ parseIfStatement:
 	pop rax
 	mov qword [_], rax
 
-;.if_222:
+;.if_245:
 	mov r15, [_]
 	cmp r15, 1
-	jne .else_222
-;then_222:
+	jne .else_245
+;then_245:
 
-        WriteToFile(roStr_228, [rbp + 16])
-	jmp .end_222
-.else_222:
+        WriteToFile(roStr_235, [rbp + 16])
+	jmp .end_245
+.else_245:
 
-        WriteToFile(roStr_229, [rbp + 16])
-.end_222:
+        WriteToFile(roStr_236, [rbp + 16])
+.end_245:
 
-    ;printf(roStr_230)
+    ;printf(roStr_237)
 	mov rsp, rbp
 	pop rbp
 	ret
@@ -8891,8 +9555,8 @@ parseWhileStatement:
 
 	call consumeToken
 
-    ;printf(roStr_231)
-    WriteToFile(roStr_232, [rbp + 16])
+    ;printf(roStr_238)
+    WriteToFile(roStr_239, [rbp + 16])
     
 	call parseLogicalOrExpression
 	push qword [TOKEN_DO]
@@ -8901,8 +9565,8 @@ parseWhileStatement:
 
 	call consumeToken
 
-    ;printf(roStr_233)
-    WriteToFile(roStr_234, [rbp + 16], [rbp + 16])
+    ;printf(roStr_240)
+    WriteToFile(roStr_241, [rbp + 16], [rbp + 16])
     
 	call parseStatements
 	push qword [TOKEN_END]
@@ -8911,9 +9575,9 @@ parseWhileStatement:
 
 	call consumeToken
 
-    ;printf(roStr_235)
-    WriteToFile(roStr_236, [rbp + 16])
-    WriteToFile(roStr_237, [rbp + 16])
+    ;printf(roStr_242)
+    WriteToFile(roStr_243, [rbp + 16])
+    WriteToFile(roStr_244, [rbp + 16])
 	mov rsp, rbp
 	pop rbp
 	ret
@@ -8959,11 +9623,11 @@ parseBreakStatement:
 	pop rax
 	mov qword [pbsIndex], rax
 
-.while_223:
+.while_246:
 	mov r15, [pbsIndex]
 	cmp r15, 0
-	jl .end_223
-;do_223:
+	jl .end_246
+;do_246:
 	mov rax, [pbsIndex]
 	mov rdx, 8
 	mul rdx
@@ -8973,11 +9637,11 @@ parseBreakStatement:
 	pop rax
 	mov qword [pbsCurrentToken], rax
 
-;.if_224:
+;.if_247:
 	mov r15, [pbsCurrentToken]
 	cmp r15, [TOKEN_WHILE]
-	jne .end_224
-;then_224:
+	jne .end_247
+;then_247:
 	push qword [pbsIndex]
 	push 1
 	pop rax
@@ -8995,11 +9659,11 @@ parseBreakStatement:
 	pop rax
 	mov qword [pbsBlockId], rax
 
-            WriteToFile(roStr_238)
-            WriteToFile(roStr_239, [pbsBlockId])
-    jmp .end_223
+            WriteToFile(roStr_245)
+            WriteToFile(roStr_246, [pbsBlockId])
+    jmp .end_246
 
-.end_224:
+.end_247:
 	push qword [pbsIndex]
 	push qword [tokenSize]
 	pop rcx
@@ -9009,9 +9673,9 @@ parseBreakStatement:
 	pop rax
 	mov qword [pbsIndex], rax
 
-    jmp .while_223
-    ; end while_223
-.end_223:
+    jmp .while_246
+    ; end while_246
+.end_246:
 
 	mov rsp, rbp
 	pop rbp
@@ -9058,11 +9722,11 @@ parseContinueStatement:
 	pop rax
 	mov qword [pcsIndex], rax
 
-.while_225:
+.while_248:
 	mov r15, [pcsIndex]
 	cmp r15, 0
-	jl .end_225
-;do_225:
+	jl .end_248
+;do_248:
 	mov rax, [pcsIndex]
 	mov rdx, 8
 	mul rdx
@@ -9072,11 +9736,11 @@ parseContinueStatement:
 	pop rax
 	mov qword [pcsCurrentToken], rax
 
-;.if_226:
+;.if_249:
 	mov r15, [pcsCurrentToken]
 	cmp r15, [TOKEN_WHILE]
-	jne .end_226
-;then_226:
+	jne .end_249
+;then_249:
 	push qword [pcsIndex]
 	push 1
 	pop rax
@@ -9094,11 +9758,11 @@ parseContinueStatement:
 	pop rax
 	mov qword [pcsBlockId], rax
 
-            WriteToFile(roStr_240)
-            WriteToFile(roStr_241, [pcsBlockId])
-    jmp .end_225
+            WriteToFile(roStr_247)
+            WriteToFile(roStr_248, [pcsBlockId])
+    jmp .end_248
 
-.end_226:
+.end_249:
 	push qword [pcsIndex]
 	push qword [tokenSize]
 	pop rcx
@@ -9108,9 +9772,9 @@ parseContinueStatement:
 	pop rax
 	mov qword [pcsIndex], rax
 
-    jmp .while_225
-    ; end while_225
-.end_225:
+    jmp .while_248
+    ; end while_248
+.end_248:
 
 	mov rsp, rbp
 	pop rbp
@@ -9173,17 +9837,17 @@ parseArguments:
 	pop rax
 	mov qword [paProArgumentCount], rax
 
-.while_227:
+.while_250:
 	mov r15, [true]
 	cmp r15, 1
-	jne .end_227
-;do_227:
+	jne .end_250
+;do_250:
 
-;.if_228:
+;.if_251:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_COMMA]
-	jne .else_228
-;then_228:
+	jne .else_251
+;then_251:
 	push qword [TOKEN_COMMA]
 	pop rax
 	mov qword [expectedToken], rax
@@ -9234,16 +9898,16 @@ parseArguments:
 	pop rax
 	mov qword [paProArgumentCount], rax
 
-	jmp .end_228
-.else_228:
+	jmp .end_251
+.else_251:
 
-    jmp .end_227
+    jmp .end_250
 
-.end_228:
+.end_251:
 
-    jmp .while_227
-    ; end while_227
-.end_227:
+    jmp .while_250
+    ; end while_250
+.end_250:
 
     mov rax, [paProArgumentCount]
 	mov rsp, rbp
@@ -9268,11 +9932,11 @@ parseProcedureDeclaration:
 	push rbp
 	mov rbp, rsp
 
-;.if_229:
+;.if_252:
 	mov r15, [globalBoolParsingProcedure]
 	cmp r15, 1
-	jne .end_229
-;then_229:
+	jne .end_252
+;then_252:
 	push qword [i]
 	push qword [tokenSize]
 	pop rcx
@@ -9322,10 +9986,10 @@ parseProcedureDeclaration:
 	pop rax
 	mov qword [errorAtColumn], rax
  
-        printf(roStr_242, [errorAtLine], [errorAtColumn])
-        printf(roStr_243)
+        printf(roStr_249, [errorAtLine], [errorAtColumn])
+        printf(roStr_250)
         ExitProcess(1)
-.end_229:
+.end_252:
 	push qword [TOKEN_PROC]
 	pop rax
 	mov qword [expectedToken], rax
@@ -9341,18 +10005,26 @@ parseProcedureDeclaration:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_230:
+;.if_253:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	je .end_230
-;then_230:
+	je .end_253
+;then_253:
+
+;.if_254:
+	mov r15, [gsType]
+	cmp r15, [TYPE_PROCEDURE_FWD]
+	je .end_254
+;then_254:
 	push qword [ppdIdentifier]
 
 	call indentifierRedeclared
 	mov [_], rax
 	add rsp, 8
 
-.end_230:
+.end_254:
+
+.end_253:
 	push qword [TOKEN_LEFT_PARENTHESIS]
 	pop rax
 	mov qword [expectedToken], rax
@@ -9362,18 +10034,18 @@ parseProcedureDeclaration:
 	pop rax
 	mov qword [paProArgumentCount], rax
 
-;.if_231:
+;.if_255:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_RIGHT_PARENTHESIS]
-	je .end_231
-;then_231:
+	je .end_255
+;then_255:
 	push 16
 	pop rax
 	mov qword [ppdRbpOffset], rax
 
 	call parseArguments
 
-.end_231:
+.end_255:
 	push qword [TOKEN_RIGHT_PARENTHESIS]
 	pop rax
 	mov qword [expectedToken], rax
@@ -9383,11 +10055,11 @@ parseProcedureDeclaration:
 	pop rax
 	mov qword [ppdHasReturnValue], rax
 
-;.if_232:
+;.if_256:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_ARROW_RIGHT]
-	jne .end_232
-;then_232:
+	jne .end_256
+;then_256:
 	push qword [TOKEN_ARROW_RIGHT]
 	pop rax
 	mov qword [expectedToken], rax
@@ -9401,7 +10073,41 @@ parseProcedureDeclaration:
 	pop rax
 	mov qword [ppdHasReturnValue], rax
 
-.end_232:
+.end_256:
+
+;.if_257:
+	mov r15, [currentToken]
+	cmp r15, [TOKEN_SEMICOLON]
+	jne .else_257
+;then_257:
+	push qword [TOKEN_SEMICOLON]
+	pop rax
+	mov qword [expectedToken], rax
+
+	call consumeToken
+	push qword [VARIABLE_SCOPE_GLOBAL]
+	push qword [paProArgumentCount]
+	push qword [ppdIdentifier]
+	push qword [VAR_KIND_USER_DEFINED]
+	push qword [gvType]
+	push qword [TYPE_PROCEDURE_FWD]
+
+	call addSymbol
+	mov [_], rax
+	add rsp, 48
+
+	jmp .end_257
+.else_257:
+	push qword [VARIABLE_SCOPE_GLOBAL]
+	push qword [paProArgumentCount]
+	push qword [ppdIdentifier]
+	push qword [VAR_KIND_USER_DEFINED]
+	push qword [gvType]
+	push qword [TYPE_PROCEDURE]
+
+	call addSymbol
+	mov [_], rax
+	add rsp, 48
 	push 1
 	pop rax
 	mov qword [globalBoolParsingProcedure], rax
@@ -9412,40 +10118,40 @@ parseProcedureDeclaration:
 	pop rax
 	mov qword [ppdLocalVariableCount], rax
 
-;.if_233:
+;.if_258:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_VARS]
-	jne .end_233
-;then_233:
+	jne .end_258
+;then_258:
 	push qword [TOKEN_VARS]
 	pop rax
 	mov qword [expectedToken], rax
 
 	call consumeToken
 
-.while_234:
+.while_259:
 	mov r15, [true]
 	cmp r15, 1
-	jne .end_234
-;do_234:
+	jne .end_259
+;do_259:
 
 	call parseVariableDeclaration
 
-;.if_235:
+;.if_260:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_CODE]
-	jne .end_235
-;then_235:
+	jne .end_260
+;then_260:
 
-    jmp .end_234
+    jmp .end_259
 
-.end_235:
+.end_260:
 
-    jmp .while_234
-    ; end while_234
-.end_234:
+    jmp .while_259
+    ; end while_259
+.end_259:
 
-.end_233:
+.end_258:
 	push qword [ppdLocalVariableCount]
 	push 8
 	pop rax
@@ -9461,12 +10167,12 @@ parseProcedureDeclaration:
 	mov [_], rax
 	add rsp, 8
 
-    ;printf(roStr_244, stringAtPointer)
-    WriteToFile(roStr_245, stringAtPointer)
-    WriteToFile(roStr_246, stringAtPointer, stringAtPointer)
-    WriteToFile(roStr_247)
-    WriteToFile(roStr_248, [ppdLocalVariableCount])
-    	push qword [TOKEN_CODE]
+        ;printf(roStr_251, stringAtPointer)
+        WriteToFile(roStr_252, stringAtPointer)
+        WriteToFile(roStr_253, stringAtPointer, stringAtPointer)
+        WriteToFile(roStr_254)
+        WriteToFile(roStr_255, [ppdLocalVariableCount])
+        	push qword [TOKEN_CODE]
 	pop rax
 	mov qword [expectedToken], rax
 
@@ -9499,48 +10205,40 @@ parseProcedureDeclaration:
 
 	call consumeToken
 
-;.if_236:
+;.if_261:
 	mov r15, [ppdReturnStatementCount]
 	cmp r15, 0
-	jne .end_236
-;then_236:
+	jne .end_261
+;then_261:
 
-;.if_237:
+;.if_262:
 	mov r15, [ppdHasReturnValue]
 	cmp r15, 1
-	jne .end_237
-;then_237:
+	jne .end_262
+;then_262:
 	push qword [ppdIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-            printf(roStr_249, stringAtPointer)
-            ExitProcess(1)
-.end_237:
+                printf(roStr_256, stringAtPointer)
+                ExitProcess(1)
+.end_262:
 
-        WriteToFile(roStr_250)
-.end_236:
-	push qword [VARIABLE_SCOPE_GLOBAL]
-	push qword [paProArgumentCount]
-	push qword [ppdIdentifier]
-	push qword [VAR_KIND_USER_DEFINED]
-	push qword [gvType]
-	push qword [TYPE_PROCEDURE]
-
-	call addSymbol
-	mov [_], rax
-	add rsp, 48
+            WriteToFile(roStr_257)
+.end_261:
 	push qword [ppdIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-    ;printf(roStr_251, stringAtPointer, [paProArgumentCount])
-    WriteToFile(roStr_252, stringAtPointer)
-    WriteToFile(roStr_253, stringAtPointer)
+        ;printf(roStr_258, stringAtPointer, [paProArgumentCount])
+        WriteToFile(roStr_259, stringAtPointer)
+        WriteToFile(roStr_260, stringAtPointer)
+.end_257:
+
 	mov rsp, rbp
 	pop rbp
 	ret
@@ -9571,45 +10269,109 @@ parseReturnStatement:
 	pop rax
 	mov qword [prsIsEmptyResult], rax
 
-;.if_238:
+;.if_263:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_SEMICOLON]
-	je .end_238
-;then_238:
+	je .end_263
+;then_263:
 	push 0
 	pop rax
 	mov qword [prsIsEmptyResult], rax
 
 	call parseLogicalOrExpression
 
-.end_238:
+.end_263:
 	push qword [TOKEN_SEMICOLON]
 	pop rax
 	mov qword [expectedToken], rax
 
 	call consumeToken
 
-    WriteToFile(roStr_254)
+    WriteToFile(roStr_261)
     
-;.if_239:
+;.if_264:
 	mov r15, [prsIsEmptyResult]
 	cmp r15, 0
-	jne .else_239
-;then_239:
+	jne .else_264
+;then_264:
 
         ; has result
-        WriteToFile(roStr_255)
-	jmp .end_239
-.else_239:
+        WriteToFile(roStr_262)
+	jmp .end_264
+.else_264:
 
         ; no result
-        WriteToFile(roStr_256)
-.end_239:
+        WriteToFile(roStr_263)
+.end_264:
 
 	mov rsp, rbp
 	pop rbp
 	ret
 parseReturnStatement_end:
+
+section .data
+	pcsaIdentifier dq 0
+section .text
+
+section .data
+	pcsaIndex dq 0
+section .text
+
+	jmp parseConstantStringArgument_end
+parseConstantStringArgument:
+	push rbp
+	mov rbp, rsp
+	push qword [i]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [_], rax
+	mov rax, [_]
+	mov rdx, 8
+	mul rdx
+	mov rdx, tokens
+	add rdx, rax
+	push qword [rdx]
+	pop rax
+	mov qword [pcsaIdentifier], rax
+	push qword [TOKEN_CONSTANT_STRING]
+	pop rax
+	mov qword [expectedToken], rax
+
+	call consumeToken
+	push qword [pcsaIdentifier]
+
+	call readString
+	mov [_], rax
+	add rsp, 8
+
+    WriteToFile(roStr_264, [pcsaIndex])
+    	push qword [VARIABLE_SCOPE_GLOBAL]
+	push qword [pcsaIdentifier]
+	push qword 0
+	push qword [VAR_KIND_PRIMITIVE]
+	push qword [pcsaIndex]
+	push qword [TYPE_STRING]
+
+	call addVariable
+	mov [_], rax
+	add rsp, 48
+	push qword [pcsaIndex]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [pcsaIndex], rax
+
+	mov rsp, rbp
+	pop rbp
+	ret
+parseConstantStringArgument_end:
 
 section .data
 	ppcIdentifier dq 0
@@ -9633,6 +10395,10 @@ section .text
 
 section .data
 	ppcCallCounter dq 0
+section .text
+
+section .data
+	ppcIsProcOrFwdProc dq 0
 section .text
 
 	jmp parseProcedureCall_end
@@ -9662,26 +10428,54 @@ parseProcedureCall:
 	mov [_], rax
 	add rsp, 8
 
-    ;printf(roStr_257, stringAtPointer)
+    ;printf(roStr_265, stringAtPointer)
     
-;.if_240:
+;.if_265:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_240
-;then_240:
+	jne .end_265
+;then_265:
 	push qword [ppcIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_240:
+.end_265:
+	push 0
+	pop rax
+	mov qword [ppcIsProcOrFwdProc], rax
 
-;.if_241:
+;.if_266:
+	mov r15, [gsType]
+	cmp r15, [TYPE_PROCEDURE_FWD]
+	jne .else_266
+;then_266:
+	push 1
+	pop rax
+	mov qword [ppcIsProcOrFwdProc], rax
+
+	jmp .end_266
+.else_266:
+
+;.if_267:
 	mov r15, [gsType]
 	cmp r15, [TYPE_PROCEDURE]
-	jne .else_241
-;then_241:
+	jne .end_267
+;then_267:
+	push 1
+	pop rax
+	mov qword [ppcIsProcOrFwdProc], rax
+
+.end_267:
+
+.end_266:
+
+;.if_268:
+	mov r15, [ppcIsProcOrFwdProc]
+	cmp r15, 1
+	jne .else_268
+;then_268:
 	push qword [gsValue]
 	pop rax
 	mov qword [ppcPrcArgumentCount], rax
@@ -9703,29 +10497,35 @@ parseProcedureCall:
 
 	call consumeToken
 
-;.if_242:
+;.if_269:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_RIGHT_PARENTHESIS]
-	je .end_242
-;then_242:
+	je .end_269
+;then_269:
 
-            WriteToFile(roStr_258)
-            WriteToFile(roStr_259, [ppcShadowSpace])
-.end_242:
+            WriteToFile(roStr_266)
+            WriteToFile(roStr_267, [ppcShadowSpace])
+.end_269:
 	push 0
 	pop rax
 	mov qword [ppcPrcCallArgumentCount], rax
 
-.while_243:
+.while_270:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_RIGHT_PARENTHESIS]
-	je .end_243
-;do_243:
+	je .end_270
+;do_270:
 
-	call parseLogicalOrExpression
+;.if_271:
+	mov r15, [currentToken]
+	cmp r15, [TOKEN_CONSTANT_STRING]
+	jne .else_271
+;then_271:
 
-            WriteToFile(roStr_260, [ppdRbpOffset])
-            	push qword [ppcPrcCallArgumentCount]
+	call parseConstantStringArgument
+
+                WriteToFile(roStr_268, [ppdRbpOffset])
+                	push qword [ppcPrcCallArgumentCount]
 	push 1
 	pop rax
 	pop rcx
@@ -9742,33 +10542,71 @@ parseProcedureCall:
 	pop rax
 	mov qword [ppdRbpOffset], rax
 
-;.if_244:
+;.if_272:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_COMMA]
-	jne .end_244
-;then_244:
+	jne .end_272
+;then_272:
 	push qword [TOKEN_COMMA]
 	pop rax
 	mov qword [expectedToken], rax
 
 	call consumeToken
 
-.end_244:
+.end_272:
 
-    jmp .while_243
-    ; end while_243
-.end_243:
+	jmp .end_271
+.else_271:
+
+	call parseLogicalOrExpression
+
+                WriteToFile(roStr_269, [ppdRbpOffset])
+                	push qword [ppcPrcCallArgumentCount]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [ppcPrcCallArgumentCount], rax
+	push qword [ppdRbpOffset]
+	push 8
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [ppdRbpOffset], rax
+
+;.if_273:
+	mov r15, [currentToken]
+	cmp r15, [TOKEN_COMMA]
+	jne .end_273
+;then_273:
+	push qword [TOKEN_COMMA]
+	pop rax
+	mov qword [expectedToken], rax
+
+	call consumeToken
+
+.end_273:
+
+.end_271:
+
+    jmp .while_270
+    ; end while_270
+.end_270:
 	push qword [TOKEN_RIGHT_PARENTHESIS]
 	pop rax
 	mov qword [expectedToken], rax
 
 	call consumeToken
 
-;.if_245:
+;.if_274:
 	mov r15, [ppcPrcArgumentCount]
 	cmp r15, [ppcPrcCallArgumentCount]
-	je .end_245
-;then_245:
+	je .end_274
+;then_274:
 	push qword [i]
 	push qword [tokenSize]
 	pop rcx
@@ -9818,38 +10656,38 @@ parseProcedureCall:
 	pop rax
 	mov qword [errorAtColumn], rax
  
-            printf(roStr_261, [errorAtLine], [errorAtColumn])
-            printf(roStr_262, [ppcPrcArgumentCount], [ppcPrcCallArgumentCount])
+            printf(roStr_270, [errorAtLine], [errorAtColumn])
+            printf(roStr_271, [ppcPrcArgumentCount], [ppcPrcCallArgumentCount])
             ExitProcess(1)
-.end_245:
+.end_274:
 	push qword [ppcIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-;.if_246:
+;.if_275:
 	mov r15, [ppcPrcArgumentCount]
 	cmp r15, 0
-	je .else_246
-;then_246:
+	je .else_275
+;then_275:
 
-            WriteToFile(roStr_263, stringAtPointer, [ppcShadowSpace])
-	jmp .end_246
-.else_246:
+            WriteToFile(roStr_272, stringAtPointer, [ppcShadowSpace])
+	jmp .end_275
+.else_275:
 
-            WriteToFile(roStr_264, stringAtPointer, [ppcShadowSpace])
-.end_246:
+            WriteToFile(roStr_273, stringAtPointer, [ppcShadowSpace])
+.end_275:
 
-        WriteToFile(roStr_265, stringAtPointer, [ppcPrcArgumentCount])
-	jmp .end_241
-.else_241:
+        WriteToFile(roStr_274, stringAtPointer, [ppcPrcArgumentCount])
+	jmp .end_268
+.else_268:
 
-;.if_247:
+;.if_276:
 	mov r15, [gsType]
 	cmp r15, [TYPE_EXTERNAL_PROCEDURE]
-	jne .else_247
-;then_247:
+	jne .else_276
+;then_276:
 	push qword [gsValue]
 	pop rax
 	mov qword [ppcPrcArgumentCount], rax
@@ -9863,24 +10701,24 @@ parseProcedureCall:
 	pop rax
 	mov qword [ppcShadowSpace], rax
 
-;.if_248:
+;.if_277:
 	mov r15, [ppcShadowSpace]
 	cmp r15, 32
-	jge .end_248
-;then_248:
+	jge .end_277
+;then_277:
 	push 32
 	pop rax
 	mov qword [ppcShadowSpace], rax
 
-.end_248:
+.end_277:
 	push qword [TOKEN_LEFT_PARENTHESIS]
 	pop rax
 	mov qword [expectedToken], rax
 
 	call consumeToken
 
-        WriteToFile(roStr_266)
-        WriteToFile(roStr_267, [ppcShadowSpace])
+        WriteToFile(roStr_275)
+        WriteToFile(roStr_276, [ppcShadowSpace])
         	push 0
 	pop rax
 	mov qword [ppcPrcCallArgumentCount], rax
@@ -9888,16 +10726,20 @@ parseProcedureCall:
 	pop rax
 	mov qword [ppdRbpOffset], rax
 
-.while_249:
+.while_278:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_RIGHT_PARENTHESIS]
-	je .end_249
-;do_249:
+	je .end_278
+;do_278:
 
-	call parseLogicalOrExpression
+;.if_279:
+	mov r15, [currentToken]
+	cmp r15, [TOKEN_CONSTANT_STRING]
+	jne .else_279
+;then_279:
 
-            ;WriteToFile(roStr_268, [ppdRbpOffset])
-            	push qword [ppcPrcCallArgumentCount]
+	call parseConstantStringArgument
+	push qword [ppcPrcCallArgumentCount]
 	push 1
 	pop rax
 	pop rcx
@@ -9914,22 +10756,60 @@ parseProcedureCall:
 	pop rax
 	mov qword [ppdRbpOffset], rax
 
-;.if_250:
+;.if_280:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_COMMA]
-	jne .end_250
-;then_250:
+	jne .end_280
+;then_280:
 	push qword [TOKEN_COMMA]
 	pop rax
 	mov qword [expectedToken], rax
 
 	call consumeToken
 
-.end_250:
+.end_280:
 
-    jmp .while_249
-    ; end while_249
-.end_249:
+	jmp .end_279
+.else_279:
+
+	call parseLogicalOrExpression
+
+                ;WriteToFile(roStr_277, [ppdRbpOffset])
+                	push qword [ppcPrcCallArgumentCount]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [ppcPrcCallArgumentCount], rax
+	push qword [ppdRbpOffset]
+	push 8
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [ppdRbpOffset], rax
+
+;.if_281:
+	mov r15, [currentToken]
+	cmp r15, [TOKEN_COMMA]
+	jne .end_281
+;then_281:
+	push qword [TOKEN_COMMA]
+	pop rax
+	mov qword [expectedToken], rax
+
+	call consumeToken
+
+.end_281:
+
+.end_279:
+
+    jmp .while_278
+    ; end while_278
+.end_278:
 	push qword [ppcPrcCallArgumentCount]
 	pop rax
 	mov qword [ppcIndex], rax
@@ -9942,68 +10822,68 @@ parseProcedureCall:
 	pop rax
 	mov qword [ppdRbpOffset], rax
 
-.while_251:
+.while_282:
 	mov r15, [ppcIndex]
 	cmp r15, 0
-	jl .end_251
-;do_251:
+	jl .end_282
+;do_282:
 
-;.if_252:
+;.if_283:
 	mov r15, [ppcIndex]
 	cmp r15, 4
-	jle .else_252
-;then_252:
+	jle .else_283
+;then_283:
 
-                WriteToFile(roStr_269, [ppdRbpOffset])
-	jmp .end_252
-.else_252:
+                WriteToFile(roStr_278, [ppdRbpOffset])
+	jmp .end_283
+.else_283:
 
-;.if_253:
+;.if_284:
 	mov r15, [ppcIndex]
 	cmp r15, 4
-	jne .else_253
-;then_253:
+	jne .else_284
+;then_284:
 
-                WriteToFile(roStr_270, [ppdRbpOffset])
-	jmp .end_253
-.else_253:
+                WriteToFile(roStr_279, [ppdRbpOffset])
+	jmp .end_284
+.else_284:
 
-;.if_254:
+;.if_285:
 	mov r15, [ppcIndex]
 	cmp r15, 3
-	jne .else_254
-;then_254:
+	jne .else_285
+;then_285:
 
-                WriteToFile(roStr_271, [ppdRbpOffset])
-	jmp .end_254
-.else_254:
+                WriteToFile(roStr_280, [ppdRbpOffset])
+	jmp .end_285
+.else_285:
 
-;.if_255:
+;.if_286:
 	mov r15, [ppcIndex]
 	cmp r15, 2
-	jne .else_255
-;then_255:
+	jne .else_286
+;then_286:
 
-                WriteToFile(roStr_272, [ppdRbpOffset])
-	jmp .end_255
-.else_255:
+                WriteToFile(roStr_281, [ppdRbpOffset])
+	jmp .end_286
+.else_286:
 
-;.if_256:
+;.if_287:
 	mov r15, [ppcIndex]
 	cmp r15, 1
-	jne .end_256
-;then_256:
+	jne .end_287
+;then_287:
 
-                WriteToFile(roStr_273, [ppdRbpOffset])
-.end_256:
+                WriteToFile(roStr_282, [ppdRbpOffset])
+.end_287:
 
-.end_255:
+.end_286:
 
-.end_254:
+.end_285:
 
-.end_253:
+.end_284:
 
-.end_252:
+.end_283:
 	push qword [ppcIndex]
 	push 1
 	pop rcx
@@ -10021,20 +10901,20 @@ parseProcedureCall:
 	pop rax
 	mov qword [ppdRbpOffset], rax
 
-    jmp .while_251
-    ; end while_251
-.end_251:
+    jmp .while_282
+    ; end while_282
+.end_282:
 	push qword [TOKEN_RIGHT_PARENTHESIS]
 	pop rax
 	mov qword [expectedToken], rax
 
 	call consumeToken
 
-;.if_257:
+;.if_288:
 	mov r15, [ppcPrcArgumentCount]
 	cmp r15, [ppcPrcCallArgumentCount]
-	je .end_257
-;then_257:
+	je .end_288
+;then_288:
 	push qword [i]
 	push qword [tokenSize]
 	pop rcx
@@ -10084,27 +10964,27 @@ parseProcedureCall:
 	pop rax
 	mov qword [errorAtColumn], rax
  
-            printf(roStr_274, [errorAtLine], [errorAtColumn])
-            printf(roStr_275, [ppcPrcArgumentCount], [ppcPrcCallArgumentCount])
+            printf(roStr_283, [errorAtLine], [errorAtColumn])
+            printf(roStr_284, [ppcPrcArgumentCount], [ppcPrcCallArgumentCount])
             ExitProcess(1)
-.end_257:
+.end_288:
 	push qword [ppcIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-        WriteToFile(roStr_276, stringAtPointer, [ppcCallCounter])
-        WriteToFile(roStr_277, stringAtPointer, [ppcShadowSpace])
-        WriteToFile(roStr_278, stringAtPointer, [ppcPrcArgumentCount])
-	jmp .end_247
-.else_247:
+        WriteToFile(roStr_285, stringAtPointer, [ppcCallCounter])
+        WriteToFile(roStr_286, stringAtPointer, [ppcShadowSpace])
+        WriteToFile(roStr_287, stringAtPointer, [ppcPrcArgumentCount])
+	jmp .end_276
+.else_276:
 
-        printf(roStr_279)
+        printf(roStr_288)
         ExitProcess(1)
-.end_247:
+.end_276:
 
-.end_241:
+.end_268:
 
 	mov rsp, rbp
 	pop rbp
@@ -10155,17 +11035,17 @@ parseStructBody:
 	pop rax
 	mov qword [psbCurrentOffset], rax
 
-.while_258:
+.while_289:
 	mov r15, [true]
 	cmp r15, 1
-	jne .end_258
-;do_258:
+	jne .end_289
+;do_289:
 
-;.if_259:
+;.if_290:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_UINT8]
-	jne .else_259
-;then_259:
+	jne .else_290
+;then_290:
 	push qword [i]
 	push qword [tokenSize]
 	pop rcx
@@ -10215,17 +11095,17 @@ parseStructBody:
 	pop rax
 	mov qword [errorAtColumn], rax
  
-            printf(roStr_280, [errorAtLine], [errorAtColumn])
-            printf(roStr_281)
+            printf(roStr_289, [errorAtLine], [errorAtColumn])
+            printf(roStr_290)
             ExitProcess(1)
-	jmp .end_259
-.else_259:
+	jmp .end_290
+.else_290:
 
-;.if_260:
+;.if_291:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_UINT64]
-	jne .else_260
-;then_260:
+	jne .else_291
+;then_291:
 
 	call parseType
 	mov [psbType], rax
@@ -10239,14 +11119,14 @@ parseStructBody:
 	pop rax
 	mov qword [psbSizeOfStruct], rax
 
-	jmp .end_260
-.else_260:
+	jmp .end_291
+.else_291:
 
-;.if_261:
+;.if_292:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_POINTER]
-	jne .else_261
-;then_261:
+	jne .else_292
+;then_292:
 
 	call parseType
 	mov [psbType], rax
@@ -10260,16 +11140,16 @@ parseStructBody:
 	pop rax
 	mov qword [psbSizeOfStruct], rax
 
-	jmp .end_261
-.else_261:
+	jmp .end_292
+.else_292:
 
-    jmp .end_258
+    jmp .end_289
 
-.end_261:
+.end_292:
 
-.end_260:
+.end_291:
 
-.end_259:
+.end_290:
 
 	call parseIdentifier
 	mov [psbIdentifier], rax
@@ -10301,10 +11181,10 @@ parseStructBody:
 	pop rax
 	mov qword [psbCurrentOffset], rax
 
-        ;printf(roStr_282, stringAtPointer, [psbType])
-    jmp .while_258
-    ; end while_258
-.end_258:
+        ;printf(roStr_291, stringAtPointer, [psbType])
+    jmp .while_289
+    ; end while_289
+.end_289:
 
 	mov rsp, rbp
 	pop rbp
@@ -10334,18 +11214,18 @@ parseStructDefinition:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_262:
+;.if_293:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	je .end_262
-;then_262:
+	je .end_293
+;then_293:
 	push qword [psdIdentifier]
 
 	call indentifierRedeclared
 	mov [_], rax
 	add rsp, 8
 
-.end_262:
+.end_293:
 
 	call parseStructBody
 	push qword [TOKEN_END]
@@ -10369,7 +11249,7 @@ parseStructDefinition:
 	mov [_], rax
 	add rsp, 8
 
-    ;printf(roStr_283, stringAtPointer, [psbSizeOfStruct])
+    ;printf(roStr_292, stringAtPointer, [psbSizeOfStruct])
     	push qword [globalUserTypeId]
 	push 1
 	pop rax
@@ -10390,6 +11270,10 @@ section .text
 
 section .data
 	putvdIdentifier dq 0
+section .text
+
+section .data
+	putvdDefineIdentifier dq 0
 section .text
 
 	jmp parseUserTypeVariableDeclaration_end
@@ -10423,36 +11307,82 @@ parseUserTypeVariableDeclaration:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_263:
+;.if_294:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	jne .end_263
-;then_263:
+	jne .end_294
+;then_294:
 	push qword [putvdTypeIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_263:
+.end_294:
 	push qword [gsSubType]
 	pop rax
 	mov qword [putvdTypeIdentifier], rax
 
-;.if_264:
+;.if_295:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_LEFT_BRACKET]
-	jne .else_264
-;then_264:
+	jne .else_295
+;then_295:
 	push qword [TOKEN_LEFT_BRACKET]
 	pop rax
 	mov qword [expectedToken], rax
 
 	call consumeToken
 
+;.if_296:
+	mov r15, [currentToken]
+	cmp r15, [TOKEN_IDENTIFIER]
+	jne .else_296
+;then_296:
+
+	call parseIdentifier
+	mov [putvdDefineIdentifier], rax
+	add rsp, 0
+	push qword [putvdDefineIdentifier]
+
+	call findSymbol
+	mov [fgsIndex], rax
+	add rsp, 8
+
+;.if_297:
+	mov r15, [fgsIndex]
+	cmp r15, -1
+	jne .end_297
+;then_297:
+	push qword [putvdDefineIdentifier]
+
+	call identifierUnknown
+	mov [_], rax
+	add rsp, 8
+
+.end_297:
+
+;.if_298:
+	mov r15, [gsType]
+	cmp r15, [TYPE_DEFINE]
+	je .end_298
+;then_298:
+
+                printf(roStr_293)
+                ExitProcess(1)
+.end_298:
+	push qword [gsValue]
+	pop rax
+	mov qword [gvValue], rax
+
+	jmp .end_296
+.else_296:
+
 	call parseNumber
 	mov [gvValue], rax
 	add rsp, 0
+
+.end_296:
 	push qword [TOKEN_RIGHT_BRACKET]
 	pop rax
 	mov qword [expectedToken], rax
@@ -10468,18 +11398,18 @@ parseUserTypeVariableDeclaration:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_265:
+;.if_299:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	je .end_265
-;then_265:
+	je .end_299
+;then_299:
 	push qword [putvdIdentifier]
 
 	call indentifierRedeclared
 	mov [_], rax
 	add rsp, 8
 
-.end_265:
+.end_299:
 	push qword [TOKEN_SEMICOLON]
 	pop rax
 	mov qword [expectedToken], rax
@@ -10511,15 +11441,15 @@ parseUserTypeVariableDeclaration:
 	mov [_], rax
 	add rsp, 8
 
-        ;printf(roStr_284, stringAtPointer)
-	jmp .end_264
-.else_264:
+        ;printf(roStr_294, stringAtPointer)
+	jmp .end_295
+.else_295:
 
-;.if_266:
+;.if_300:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_MULTIPLY]
-	jne .else_266
-;then_266:
+	jne .else_300
+;then_300:
 	push qword [TOKEN_MULTIPLY]
 	pop rax
 	mov qword [expectedToken], rax
@@ -10535,18 +11465,18 @@ parseUserTypeVariableDeclaration:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_267:
+;.if_301:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	je .end_267
-;then_267:
+	je .end_301
+;then_301:
 	push qword [putvdIdentifier]
 
 	call indentifierRedeclared
 	mov [_], rax
 	add rsp, 8
 
-.end_267:
+.end_301:
 	push qword [TOKEN_SEMICOLON]
 	pop rax
 	mov qword [expectedToken], rax
@@ -10573,8 +11503,8 @@ parseUserTypeVariableDeclaration:
 	mov [_], rax
 	add rsp, 48
 
-	jmp .end_266
-.else_266:
+	jmp .end_300
+.else_300:
 
 	call parseIdentifier
 	mov [putvdIdentifier], rax
@@ -10585,18 +11515,18 @@ parseUserTypeVariableDeclaration:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_268:
+;.if_302:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	je .end_268
-;then_268:
+	je .end_302
+;then_302:
 	push qword [putvdIdentifier]
 
 	call indentifierRedeclared
 	mov [_], rax
 	add rsp, 8
 
-.end_268:
+.end_302:
 	push qword [TOKEN_SEMICOLON]
 	pop rax
 	mov qword [expectedToken], rax
@@ -10628,10 +11558,10 @@ parseUserTypeVariableDeclaration:
 	mov [_], rax
 	add rsp, 8
 
-        ;printf(roStr_285, stringAtPointer)
-.end_266:
+        ;printf(roStr_295, stringAtPointer)
+.end_300:
 
-.end_264:
+.end_295:
 
 	mov rsp, rbp
 	pop rbp
@@ -10666,18 +11596,18 @@ parseExternDeclaration:
 	mov [fgsIndex], rax
 	add rsp, 8
 
-;.if_269:
+;.if_303:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	je .end_269
-;then_269:
+	je .end_303
+;then_303:
 	push qword [pedIdentifier]
 
 	call indentifierRedeclared
 	mov [_], rax
 	add rsp, 8
 
-.end_269:
+.end_303:
 	push qword [TOKEN_LEFT_PARENTHESIS]
 	pop rax
 	mov qword [expectedToken], rax
@@ -10687,29 +11617,29 @@ parseExternDeclaration:
 	pop rax
 	mov qword [paProArgumentCount], rax
 
-;.if_270:
+;.if_304:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_RIGHT_PARENTHESIS]
-	je .end_270
-;then_270:
+	je .end_304
+;then_304:
 	push 16
 	pop rax
 	mov qword [ppdRbpOffset], rax
 
 	call parseArguments
 
-.end_270:
+.end_304:
 	push qword [TOKEN_RIGHT_PARENTHESIS]
 	pop rax
 	mov qword [expectedToken], rax
 
 	call consumeToken
 
-;.if_271:
+;.if_305:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_ARROW_RIGHT]
-	jne .end_271
-;then_271:
+	jne .end_305
+;then_305:
 	push qword [TOKEN_ARROW_RIGHT]
 	pop rax
 	mov qword [expectedToken], rax
@@ -10720,7 +11650,7 @@ parseExternDeclaration:
 	mov [gvType], rax
 	add rsp, 0
 
-.end_271:
+.end_305:
 	push qword [TOKEN_SEMICOLON]
 	pop rax
 	mov qword [expectedToken], rax
@@ -10742,7 +11672,7 @@ parseExternDeclaration:
 	mov [_], rax
 	add rsp, 8
 
-    WriteToFile(roStr_286, stringAtPointer)
+    WriteToFile(roStr_296, stringAtPointer)
 	mov rsp, rbp
 	pop rbp
 	ret
@@ -10781,9 +11711,9 @@ parseExitStatement:
 
 	call consumeToken
 
-    WriteToFile(roStr_287)
-    WriteToFile(roStr_288, [pesNumber])
-    WriteToFile(roStr_289)
+    WriteToFile(roStr_297)
+    WriteToFile(roStr_298, [pesNumber])
+    WriteToFile(roStr_299)
 	mov rsp, rbp
 	pop rbp
 	ret
@@ -10836,6 +11766,315 @@ parsePreprocessorDirective:
 parsePreprocessorDirective_end:
 
 section .data
+	pisIdentifier dq 0
+section .text
+
+	jmp parseIncrementStatement_end
+parseIncrementStatement:
+	push rbp
+	mov rbp, rsp
+
+	call parseIdentifier
+	mov [pisIdentifier], rax
+	add rsp, 0
+	push qword [pisIdentifier]
+
+	call findSymbol
+	mov [fgsIndex], rax
+	add rsp, 8
+
+;.if_306:
+	mov r15, [fgsIndex]
+	cmp r15, -1
+	jne .end_306
+;then_306:
+	push qword [pisIdentifier]
+
+	call identifierUnknown
+	mov [_], rax
+	add rsp, 8
+
+.end_306:
+	push qword [TOKEN_INCREMENT]
+	pop rax
+	mov qword [expectedToken], rax
+
+	call consumeToken
+	push qword [TOKEN_SEMICOLON]
+	pop rax
+	mov qword [expectedToken], rax
+
+	call consumeToken
+	push qword [pisIdentifier]
+
+	call readString
+	mov [_], rax
+	add rsp, 8
+
+;.if_307:
+	mov r15, [gsScope]
+	cmp r15, [VARIABLE_SCOPE_GLOBAL]
+	jne .else_307
+;then_307:
+
+        WriteToFile(roStr_300, stringAtPointer)
+        WriteToFile(roStr_301, stringAtPointer, stringAtPointer)
+	jmp .end_307
+.else_307:
+
+;.if_308:
+	mov r15, [gsSubType]
+	cmp r15, [VARTYPE_PARAMETER]
+	jne .else_308
+;then_308:
+
+            printf(roStr_302, [stringAtPointer])
+	jmp .end_308
+.else_308:
+
+;.if_309:
+	mov r15, [gsSubType]
+	cmp r15, [VARTYPE_LOCAL]
+	jne .else_309
+;then_309:
+ 
+            WriteToFile(roStr_303, stringAtPointer)
+            WriteToFile(roStr_304, [gsValue])
+	jmp .end_309
+.else_309:
+ 
+            printf(roStr_305, [gsType])
+            ExitProcess(1)
+.end_309:
+
+.end_308:
+
+.end_307:
+
+	mov rsp, rbp
+	pop rbp
+	ret
+parseIncrementStatement_end:
+
+section .data
+	pdsIdentifier dq 0
+section .text
+
+	jmp parseDecrementStatement_end
+parseDecrementStatement:
+	push rbp
+	mov rbp, rsp
+
+	call parseIdentifier
+	mov [pdsIdentifier], rax
+	add rsp, 0
+	push qword [pdsIdentifier]
+
+	call findSymbol
+	mov [fgsIndex], rax
+	add rsp, 8
+
+;.if_310:
+	mov r15, [fgsIndex]
+	cmp r15, -1
+	jne .end_310
+;then_310:
+	push qword [pdsIdentifier]
+
+	call identifierUnknown
+	mov [_], rax
+	add rsp, 8
+
+.end_310:
+	push qword [TOKEN_DECREMENT]
+	pop rax
+	mov qword [expectedToken], rax
+
+	call consumeToken
+	push qword [TOKEN_SEMICOLON]
+	pop rax
+	mov qword [expectedToken], rax
+
+	call consumeToken
+	push qword [pisIdentifier]
+
+	call readString
+	mov [_], rax
+	add rsp, 8
+
+;.if_311:
+	mov r15, [gsScope]
+	cmp r15, [VARIABLE_SCOPE_GLOBAL]
+	jne .else_311
+;then_311:
+
+        WriteToFile(roStr_306, stringAtPointer)
+        WriteToFile(roStr_307, stringAtPointer, stringAtPointer)
+	jmp .end_311
+.else_311:
+
+;.if_312:
+	mov r15, [gsSubType]
+	cmp r15, [VARTYPE_PARAMETER]
+	jne .else_312
+;then_312:
+
+            printf(roStr_308, [stringAtPointer])
+	jmp .end_312
+.else_312:
+
+;.if_313:
+	mov r15, [gsSubType]
+	cmp r15, [VARTYPE_LOCAL]
+	jne .else_313
+;then_313:
+ 
+            WriteToFile(roStr_309, stringAtPointer)
+            WriteToFile(roStr_310, [gsValue])
+	jmp .end_313
+.else_313:
+ 
+            printf(roStr_311, [gsType])
+            ExitProcess(1)
+.end_313:
+
+.end_312:
+
+.end_311:
+
+	mov rsp, rbp
+	pop rbp
+	ret
+parseDecrementStatement_end:
+
+section .data
+	penumIdentifier dq 0
+section .text
+
+section .data
+	penumValue dq 0
+section .text
+
+	jmp parseEnumDefinition_end
+parseEnumDefinition:
+	push rbp
+	mov rbp, rsp
+	push 0
+	pop rax
+	mov qword [penumValue], rax
+	push qword [TOKEN_ENUM]
+	pop rax
+	mov qword [expectedToken], rax
+
+	call consumeToken
+
+	call parseIdentifier
+	mov [_], rax
+	add rsp, 0
+
+.while_314:
+	mov r15, [currentToken]
+	cmp r15, [TOKEN_END]
+	je .end_314
+;do_314:
+
+	call parseIdentifier
+	mov [penumIdentifier], rax
+	add rsp, 0
+	push qword [penumIdentifier]
+
+	call findSymbol
+	mov [fgsIndex], rax
+	add rsp, 8
+
+;.if_315:
+	mov r15, [fgsIndex]
+	cmp r15, -1
+	je .end_315
+;then_315:
+	push qword [penumIdentifier]
+
+	call indentifierRedeclared
+	mov [_], rax
+	add rsp, 8
+
+.end_315:
+
+;.if_316:
+	mov r15, [currentToken]
+	cmp r15, [TOKEN_ASSIGNMENT]
+	jne .end_316
+;then_316:
+	push qword [TOKEN_ASSIGNMENT]
+	pop rax
+	mov qword [expectedToken], rax
+
+	call consumeToken
+
+	call parseNumber
+	mov [penumValue], rax
+	add rsp, 0
+
+.end_316:
+
+;.if_317:
+	mov r15, [currentToken]
+	cmp r15, [TOKEN_END]
+	jne .end_317
+;then_317:
+	push qword [VARIABLE_SCOPE_GLOBAL]
+	push qword [penumValue]
+	push qword [penumIdentifier]
+	push qword [VAR_KIND_PRIMITIVE]
+	push qword 0
+	push qword [TYPE_DEFINE]
+
+	call addSymbol
+	mov [_], rax
+	add rsp, 48
+
+    jmp .end_314
+
+.end_317:
+	push qword [TOKEN_COMMA]
+	pop rax
+	mov qword [expectedToken], rax
+
+	call consumeToken
+	push qword [VARIABLE_SCOPE_GLOBAL]
+	push qword [penumValue]
+	push qword [penumIdentifier]
+	push qword [VAR_KIND_PRIMITIVE]
+	push qword 0
+	push qword [TYPE_DEFINE]
+
+	call addSymbol
+	mov [_], rax
+	add rsp, 48
+	push qword [penumValue]
+	push 1
+	pop rax
+	pop rcx
+	add rax, rcx
+	push rax
+	pop rax
+	mov qword [penumValue], rax
+
+    jmp .while_314
+    ; end while_314
+.end_314:
+	push qword [TOKEN_END]
+	pop rax
+	mov qword [expectedToken], rax
+
+	call consumeToken
+
+	mov rsp, rbp
+	pop rbp
+	ret
+parseEnumDefinition_end:
+
+section .data
 	psIdentifier dq 0
 section .text
 
@@ -10844,44 +12083,44 @@ parseStatement:
 	push rbp
 	mov rbp, rsp
 
-;.if_272:
+;.if_318:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_UINT8]
-	jne .else_272
-;then_272:
+	jne .else_318
+;then_318:
 
 	call parseVariableDeclaration
 
-	jmp .end_272
-.else_272:
+	jmp .end_318
+.else_318:
 
-;.if_273:
+;.if_319:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_UINT64]
-	jne .else_273
-;then_273:
+	jne .else_319
+;then_319:
 
 	call parseVariableDeclaration
 
-	jmp .end_273
-.else_273:
+	jmp .end_319
+.else_319:
 
-;.if_274:
+;.if_320:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_POINTER]
-	jne .else_274
-;then_274:
+	jne .else_320
+;then_320:
 
 	call parseVariableDeclaration
 
-	jmp .end_274
-.else_274:
+	jmp .end_320
+.else_320:
 
-;.if_275:
+;.if_321:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_IDENTIFIER]
-	jne .else_275
-;then_275:
+	jne .else_321
+;then_321:
 	push qword [i]
 	push 1
 	pop rax
@@ -10909,71 +12148,97 @@ parseStatement:
 	mov [_], rax
 	add rsp, 8
 
-;.if_276:
+;.if_322:
 	mov r15, [fgsIndex]
 	cmp r15, -1
-	je .else_276
-;then_276:
+	je .else_322
+;then_322:
 
-;.if_277:
+;.if_323:
 	mov r15, [nextToken]
 	cmp r15, [TOKEN_DOT]
-	jne .else_277
-;then_277:
+	jne .else_323
+;then_323:
 
 	call parseAssignmentStatement
 
-	jmp .end_277
-.else_277:
+	jmp .end_323
+.else_323:
 
-;.if_278:
+;.if_324:
+	mov r15, [nextToken]
+	cmp r15, [TOKEN_INCREMENT]
+	jne .else_324
+;then_324:
+
+	call parseIncrementStatement
+
+	jmp .end_324
+.else_324:
+
+;.if_325:
+	mov r15, [nextToken]
+	cmp r15, [TOKEN_DECREMENT]
+	jne .else_325
+;then_325:
+
+	call parseDecrementStatement
+
+	jmp .end_325
+.else_325:
+
+;.if_326:
 	mov r15, [gsType]
 	cmp r15, [TYPE_USER_DEFINED]
-	jne .else_278
-;then_278:
+	jne .else_326
+;then_326:
 
 	call parseUserTypeVariableDeclaration
 
-	jmp .end_278
-.else_278:
+	jmp .end_326
+.else_326:
 
-;.if_279:
+;.if_327:
 	mov r15, [nextToken]
 	cmp r15, [TOKEN_LEFT_PARENTHESIS]
-	jne .else_279
-;then_279:
+	jne .else_327
+;then_327:
 
 	call parseProcedureCallStatement
 
-	jmp .end_279
-.else_279:
+	jmp .end_327
+.else_327:
 
 	call parseAssignmentStatement
 
-.end_279:
+.end_327:
 
-.end_278:
+.end_326:
 
-.end_277:
+.end_325:
 
-	jmp .end_276
-.else_276:
+.end_324:
+
+.end_323:
+
+	jmp .end_322
+.else_322:
 	push qword [psIdentifier]
 
 	call identifierUnknown
 	mov [_], rax
 	add rsp, 8
 
-.end_276:
+.end_322:
 
-	jmp .end_275
-.else_275:
+	jmp .end_321
+.else_321:
 
-;.if_280:
+;.if_328:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_IF]
-	jne .else_280
-;then_280:
+	jne .else_328
+;then_328:
 	push qword 0
 	push qword 0
 	push qword [globalBlockId]
@@ -10982,153 +12247,166 @@ parseStatement:
 	mov [_], rax
 	add rsp, 24
 
-	jmp .end_280
-.else_280:
+	jmp .end_328
+.else_328:
 
-;.if_281:
+;.if_329:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_WHILE]
-	jne .else_281
-;then_281:
+	jne .else_329
+;then_329:
 	push qword [globalBlockId]
 
 	call parseWhileStatement
 	mov [_], rax
 	add rsp, 8
 
-	jmp .end_281
-.else_281:
+	jmp .end_329
+.else_329:
 
-;.if_282:
+;.if_330:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_BREAK]
-	jne .else_282
-;then_282:
+	jne .else_330
+;then_330:
 
 	call parseBreakStatement
 
-	jmp .end_282
-.else_282:
+	jmp .end_330
+.else_330:
 
-;.if_283:
+;.if_331:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_CONTINUE]
-	jne .else_283
-;then_283:
+	jne .else_331
+;then_331:
 
 	call parseContinueStatement
 
-	jmp .end_283
-.else_283:
+	jmp .end_331
+.else_331:
 
-;.if_284:
+;.if_332:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_PROC]
-	jne .else_284
-;then_284:
+	jne .else_332
+;then_332:
 
 	call parseProcedureDeclaration
 
-	jmp .end_284
-.else_284:
+	jmp .end_332
+.else_332:
 
-;.if_285:
+;.if_333:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_RETURN]
-	jne .else_285
-;then_285:
+	jne .else_333
+;then_333:
 
 	call parseReturnStatement
 
-	jmp .end_285
-.else_285:
+	jmp .end_333
+.else_333:
 
-;.if_286:
+;.if_334:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_STRUCT]
-	jne .else_286
-;then_286:
+	jne .else_334
+;then_334:
 
 	call parseStructDefinition
 
-	jmp .end_286
-.else_286:
+	jmp .end_334
+.else_334:
 
-;.if_287:
+;.if_335:
+	mov r15, [currentToken]
+	cmp r15, [TOKEN_ENUM]
+	jne .else_335
+;then_335:
+
+	call parseEnumDefinition
+
+	jmp .end_335
+.else_335:
+
+;.if_336:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_EXTERN]
-	jne .else_287
-;then_287:
+	jne .else_336
+;then_336:
 
 	call parseExternDeclaration
 
-	jmp .end_287
-.else_287:
+	jmp .end_336
+.else_336:
 
-;.if_288:
+;.if_337:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_EXIT]
-	jne .else_288
-;then_288:
+	jne .else_337
+;then_337:
 
 	call parseExitStatement
 
-	jmp .end_288
-.else_288:
+	jmp .end_337
+.else_337:
 
-;.if_289:
+;.if_338:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_AT_SIGN]
-	jne .else_289
-;then_289:
+	jne .else_338
+;then_338:
 
 	call parsePreprocessorDirective
 
-	jmp .end_289
-.else_289:
+	jmp .end_338
+.else_338:
 
-;.if_290:
+;.if_339:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_MULTIPLY]
-	jne .else_290
-;then_290:
+	jne .else_339
+;then_339:
 
 	call parseAssignmentStatement
 
-	jmp .end_290
-.else_290:
+	jmp .end_339
+.else_339:
 
 	call unexpectedToken
 
-.end_290:
+.end_339:
 
-.end_289:
+.end_338:
 
-.end_288:
+.end_337:
 
-.end_287:
+.end_336:
 
-.end_286:
+.end_335:
 
-.end_285:
+.end_334:
 
-.end_284:
+.end_333:
 
-.end_283:
+.end_332:
 
-.end_282:
+.end_331:
 
-.end_281:
+.end_330:
 
-.end_280:
+.end_329:
 
-.end_275:
+.end_328:
 
-.end_274:
+.end_321:
 
-.end_273:
+.end_320:
 
-.end_272:
+.end_319:
+
+.end_318:
 
 	mov rsp, rbp
 	pop rbp
@@ -11140,43 +12418,43 @@ parseStatements:
 	push rbp
 	mov rbp, rsp
 
-.while_291:
+.while_340:
 	mov r15, [true]
 	cmp r15, 1
-	jne .end_291
-;do_291:
+	jne .end_340
+;do_340:
 
-;.if_292:
+;.if_341:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_END]
-	jne .else_292
-;then_292:
+	jne .else_341
+;then_341:
 
-    jmp .end_291
+    jmp .end_340
 
-	jmp .end_292
-.else_292:
+	jmp .end_341
+.else_341:
 
-;.if_293:
+;.if_342:
 	mov r15, [currentToken]
 	cmp r15, [TOKEN_ELSE]
-	jne .else_293
-;then_293:
+	jne .else_342
+;then_342:
 
-    jmp .end_291
+    jmp .end_340
 
-	jmp .end_293
-.else_293:
+	jmp .end_342
+.else_342:
 
 	call parseStatement
 
-.end_293:
+.end_342:
 
-.end_292:
+.end_341:
 
-    jmp .while_291
-    ; end while_291
-.end_291:
+    jmp .while_340
+    ; end while_340
+.end_340:
 
 	mov rsp, rbp
 	pop rbp
@@ -11186,11 +12464,11 @@ parseStatements_end:
 	pop rax
 	mov qword [i], rax
 
-.while_294:
+.while_343:
 	mov r15, [i]
 	cmp r15, [tokenCount]
-	jge .end_294
-;do_294:
+	jge .end_343
+;do_343:
 	mov rax, [i]
 	mov rdx, 8
 	mul rdx
@@ -11202,17 +12480,17 @@ parseStatements_end:
 
 	call parseStatement
 
-    jmp .while_294
-    ; end while_294
-.end_294:
+    jmp .while_343
+    ; end while_343
+.end_343:
 	push 0
 	pop rax
 	mov qword [i], rax
 
-WriteToFile(roStr_290)
-WriteToFile(roStr_291)
-WriteToFile(roStr_292)
-WriteToFile(roStr_293)
+WriteToFile(roStr_312)
+WriteToFile(roStr_313)
+WriteToFile(roStr_314)
+WriteToFile(roStr_315)
 section .bss
 	encodedString resb 512
 section .text
@@ -11257,17 +12535,17 @@ encodeString:
 	pop rax
 	mov byte [esChar], al
 
-.while_295:
+.while_344:
 	movzx r15, byte [esChar]
 	cmp r15, 0
-	jle .end_295
-;do_295:
+	jle .end_344
+;do_344:
 
-;.if_296:
+;.if_345:
 	movzx r15, byte [esChar]
 	cmp r15, 32
-	jl .else_296
-;then_296:
+	jl .else_345
+;then_345:
 	mov rdx, encodedString
 	add rdx, [esDestIndex]
 	movzx rax, byte [esChar]
@@ -11281,8 +12559,8 @@ encodeString:
 	pop rax
 	mov qword [esDestIndex], rax
 
-	jmp .end_296
-.else_296:
+	jmp .end_345
+.else_345:
 	mov rdx, encodedString
 	add rdx, [esDestIndex]
 	mov byte [rdx], 34
@@ -11306,11 +12584,11 @@ encodeString:
 	pop rax
 	mov qword [esDestIndex], rax
 
-;.if_297:
+;.if_346:
 	movzx r15, byte [esChar]
 	cmp r15, 13
-	jne .else_297
-;then_297:
+	jne .else_346
+;then_346:
 	mov rdx, encodedString
 	add rdx, [esDestIndex]
 	mov byte [rdx], 49
@@ -11334,14 +12612,14 @@ encodeString:
 	pop rax
 	mov qword [esDestIndex], rax
 
-	jmp .end_297
-.else_297:
+	jmp .end_346
+.else_346:
 
-;.if_298:
+;.if_347:
 	movzx r15, byte [esChar]
 	cmp r15, 10
-	jne .else_298
-;then_298:
+	jne .else_347
+;then_347:
 	mov rdx, encodedString
 	add rdx, [esDestIndex]
 	mov byte [rdx], 49
@@ -11365,14 +12643,14 @@ encodeString:
 	pop rax
 	mov qword [esDestIndex], rax
 
-	jmp .end_298
-.else_298:
+	jmp .end_347
+.else_347:
 
-;.if_299:
+;.if_348:
 	movzx r15, byte [esChar]
 	cmp r15, 9
-	jne .end_299
-;then_299:
+	jne .end_348
+;then_348:
 	mov rdx, encodedString
 	add rdx, [esDestIndex]
 	mov byte [rdx], 57
@@ -11385,11 +12663,11 @@ encodeString:
 	pop rax
 	mov qword [esDestIndex], rax
 
-.end_299:
+.end_348:
 
-.end_298:
+.end_347:
 
-.end_297:
+.end_346:
 	mov rdx, encodedString
 	add rdx, [esDestIndex]
 	mov byte [rdx], 44
@@ -11413,7 +12691,7 @@ encodeString:
 	pop rax
 	mov qword [esDestIndex], rax
 
-.end_296:
+.end_345:
 	push qword [esIndex]
 	push 1
 	pop rax
@@ -11429,9 +12707,9 @@ encodeString:
 	pop rax
 	mov byte [esChar], al
 
-    jmp .while_295
-    ; end while_295
-.end_295:
+    jmp .while_344
+    ; end while_344
+.end_344:
 	mov rdx, encodedString
 	add rdx, [esDestIndex]
 	mov byte [rdx], 34
@@ -11456,11 +12734,11 @@ section .data
 	wsdIdentifier dq 0
 section .text
 
-.while_300:
+.while_349:
 	mov r15, [i]
 	cmp r15, [globalVariableCount]
-	jge .end_300
-;do_300:
+	jge .end_349
+;do_349:
 	push qword [gvTypeOffset]
 	push qword [i]
 	push qword [globalVariableSize]
@@ -11594,11 +12872,11 @@ section .text
 	pop rax
 	mov qword [gvScope], rax
 
-;.if_301:
+;.if_350:
 	mov r15, [gvScope]
 	cmp r15, [VARIABLE_SCOPE_GLOBAL]
-	je .end_301
-;then_301:
+	je .end_350
+;then_350:
 	push qword [i]
 	push 1
 	pop rax
@@ -11608,104 +12886,104 @@ section .text
 	pop rax
 	mov qword [i], rax
 
-    jmp .while_300
+    jmp .while_349
 
-.end_301:
+.end_350:
 	push qword [gvNamePointer]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-;.if_302:
+;.if_351:
 	mov r15, [gvType]
 	cmp r15, [TYPE_UINT8]
-	jne .else_302
-;then_302:
+	jne .else_351
+;then_351:
 
-        WriteToFile(roStr_294, stringAtPointer, [gvValue])
-	jmp .end_302
-.else_302:
+        WriteToFile(roStr_316, stringAtPointer, [gvValue])
+	jmp .end_351
+.else_351:
 
-;.if_303:
+;.if_352:
 	mov r15, [gvType]
 	cmp r15, [TYPE_UINT64]
-	jne .else_303
-;then_303:
+	jne .else_352
+;then_352:
 
-        WriteToFile(roStr_295, stringAtPointer, [gvValue])
-	jmp .end_303
-.else_303:
+        WriteToFile(roStr_317, stringAtPointer, [gvValue])
+	jmp .end_352
+.else_352:
 
-;.if_304:
+;.if_353:
 	mov r15, [gvType]
 	cmp r15, [TYPE_POINTER]
-	jne .else_304
-;then_304:
+	jne .else_353
+;then_353:
 
-        WriteToFile(roStr_296, stringAtPointer, [gvValue])
-	jmp .end_304
-.else_304:
+        WriteToFile(roStr_318, stringAtPointer, [gvValue])
+	jmp .end_353
+.else_353:
 
-;.if_305:
+;.if_354:
 	mov r15, [gvType]
 	cmp r15, [TYPE_STRUCT_POINTER]
-	jne .else_305
-;then_305:
+	jne .else_354
+;then_354:
 
-        WriteToFile(roStr_297, stringAtPointer)
-	jmp .end_305
-.else_305:
+        WriteToFile(roStr_319, stringAtPointer)
+	jmp .end_354
+.else_354:
 
-;.if_306:
+;.if_355:
 	mov r15, [gvType]
 	cmp r15, [TYPE_ARRAY]
-	jne .else_306
-;then_306:
+	jne .else_355
+;then_355:
 
-;.if_307:
+;.if_356:
 	mov r15, [gvKind]
 	cmp r15, [VAR_KIND_PRIMITIVE]
-	jne .else_307
-;then_307:
+	jne .else_356
+;then_356:
 
-;.if_308:
+;.if_357:
 	mov r15, [gvSubType]
 	cmp r15, [TYPE_UINT8]
-	jne .else_308
-;then_308:
+	jne .else_357
+;then_357:
 
-                WriteToFile(roStr_298, stringAtPointer, [gvValue])
-	jmp .end_308
-.else_308:
+                WriteToFile(roStr_320, stringAtPointer, [gvValue])
+	jmp .end_357
+.else_357:
 
-;.if_309:
+;.if_358:
 	mov r15, [gvSubType]
 	cmp r15, [TYPE_UINT64]
-	jne .else_309
-;then_309:
+	jne .else_358
+;then_358:
 
-                WriteToFile(roStr_299, stringAtPointer, [gvValue])
-	jmp .end_309
-.else_309:
+                WriteToFile(roStr_321, stringAtPointer, [gvValue])
+	jmp .end_358
+.else_358:
 
-;.if_310:
+;.if_359:
 	mov r15, [gvSubType]
 	cmp r15, [TYPE_POINTER]
-	jne .else_310
-;then_310:
+	jne .else_359
+;then_359:
 
-                WriteToFile(roStr_300, stringAtPointer, [gvValue])
-	jmp .end_310
-.else_310:
+                WriteToFile(roStr_322, stringAtPointer, [gvValue])
+	jmp .end_359
+.else_359:
 
-;.if_311:
+;.if_360:
 	mov r15, [gvSubType]
 	cmp r15, [TYPE_STRING]
-	jne .else_311
-;then_311:
+	jne .else_360
+;then_360:
 
-                WriteToFile(roStr_301, stringAtPointer)
+                WriteToFile(roStr_323, stringAtPointer)
                 	push qword [gvValue]
 
 	call readString
@@ -11714,22 +12992,22 @@ section .text
 
 	call encodeString
 
-                WriteToFile(roStr_302, encodedString)
-	jmp .end_311
-.else_311:
+                WriteToFile(roStr_324, encodedString)
+	jmp .end_360
+.else_360:
 
-                printf(roStr_303, [gvType])
+                printf(roStr_325, [gvType])
                 ExitProcess(1)
-.end_311:
+.end_360:
 
-.end_310:
+.end_359:
 
-.end_309:
+.end_358:
 
-.end_308:
+.end_357:
 
-	jmp .end_307
-.else_307:
+	jmp .end_356
+.else_356:
 	push qword [gvNamePointer]
 	pop rax
 	mov qword [wsdIdentifier], rax
@@ -11739,15 +13017,15 @@ section .text
 	mov [_], rax
 	add rsp, 8
 
-;.if_312:
+;.if_361:
 	mov r15, [_]
 	cmp r15, -1
-	jne .end_312
-;then_312:
+	jne .end_361
+;then_361:
 
-                printf(roStr_304, [gvSubType])
+                printf(roStr_326, [gvSubType])
                 ExitProcess(1)
-.end_312:
+.end_361:
 	push qword [gvValue]
 	push qword [gsValue]
 	pop rax
@@ -11763,17 +13041,36 @@ section .text
 	mov [_], rax
 	add rsp, 8
 
-            WriteToFile(roStr_305, stringAtPointer, [gvValue])
-.end_307:
+            WriteToFile(roStr_327, stringAtPointer, [gvValue])
+.end_356:
 
-	jmp .end_306
-.else_306:
+	jmp .end_355
+.else_355:
 
-;.if_313:
+;.if_362:
+	mov r15, [gvType]
+	cmp r15, [TYPE_STRING]
+	jne .else_362
+;then_362:
+
+        WriteToFile(roStr_328, [gvSubType])
+        	push qword [gvValue]
+
+	call readString
+	mov [_], rax
+	add rsp, 8
+
+	call encodeString
+
+        WriteToFile(roStr_329, encodedString)
+	jmp .end_362
+.else_362:
+
+;.if_363:
 	mov r15, [gvType]
 	cmp r15, [TYPE_USER_DEFINED]
-	jne .else_313
-;then_313:
+	jne .else_363
+;then_363:
 	push qword [gvNamePointer]
 	pop rax
 	mov qword [wsdIdentifier], rax
@@ -11783,38 +13080,40 @@ section .text
 	mov [_], rax
 	add rsp, 8
 
-;.if_314:
+;.if_364:
 	mov r15, [_]
 	cmp r15, -1
-	jne .end_314
-;then_314:
+	jne .end_364
+;then_364:
 
-            printf(roStr_306, [gvSubType])
+            printf(roStr_330, [gvSubType])
             ExitProcess(1)
-.end_314:
+.end_364:
 	push qword [wsdIdentifier]
 
 	call readString
 	mov [_], rax
 	add rsp, 8
 
-        WriteToFile(roStr_307, stringAtPointer, [gsValue])
-	jmp .end_313
-.else_313:
+        WriteToFile(roStr_331, stringAtPointer, [gsValue])
+	jmp .end_363
+.else_363:
 
-        printf(roStr_308, [gvType])
+        printf(roStr_332, [gvType])
         ExitProcess(1)
-.end_313:
+.end_363:
 
-.end_306:
+.end_362:
 
-.end_305:
+.end_355:
 
-.end_304:
+.end_354:
 
-.end_303:
+.end_353:
 
-.end_302:
+.end_352:
+
+.end_351:
 	push qword [i]
 	push 1
 	pop rax
@@ -11824,9 +13123,9 @@ section .text
 	pop rax
 	mov qword [i], rax
 
-    jmp .while_300
-    ; end while_300
-.end_300:
+    jmp .while_349
+    ; end while_349
+.end_349:
 
 	call CloseOutputFile
 
@@ -11840,8 +13139,8 @@ section .text
     extern WaitForSingleObject
     extern GetExitCodeProcess
 
-    sprintf(buffer1, roStr_309, cStrOutputFile, cStrObjectFile)
-    printf(roStr_310, buffer1)
+    sprintf(buffer1, roStr_333, cStrOutputFile, cStrObjectFile)
+    printf(roStr_334, buffer1)
 
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
@@ -11866,14 +13165,14 @@ section .text
     mov rcx, NULL
     call CreateProcessA
     add rsp, 0x20 + 7 * 0x8 
-;.if_315:
+;.if_365:
     cmp rax, 0
-	jne .end_315
-;then_315:
+	jne .end_365
+;then_365:
 
-        printf(roStr_311)
+        printf(roStr_335)
         ExitProcess(1)
-.end_315:
+.end_365:
 
 
     mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
@@ -11884,21 +13183,21 @@ section .text
     mov rdx , lpExitCode
     call GetExitCodeProcess 
     
-    ; printf(roStr_312, [lpExitCode])
+    ; printf(roStr_336, [lpExitCode])
     mov rax, [lpExitCode]
     
-;.if_316:
+;.if_366:
     cmp rax, 0
-	je .end_316
-;then_316:
+	je .end_366
+;then_366:
 
-        printf(roStr_313)
+        printf(roStr_337)
         ExitProcess(1)
-.end_316:
+.end_366:
 
 
-    sprintf(buffer1, roStr_314, cStrObjectFile, cStrLinkerFile)
-    printf(roStr_315, buffer1)
+    sprintf(buffer1, roStr_338, cStrObjectFile, cStrLinkerFile)
+    printf(roStr_339, buffer1)
     
     memset(lpProcessInformation, 0, 24)
     memset(lpStartupInfo, 0, 104)
@@ -11923,14 +13222,14 @@ section .text
     mov rcx, NULL
     call CreateProcessA
     add rsp, 0x20 + 7 * 0x8
-;.if_317:
+;.if_367:
     cmp rax, 0
-	jne .end_317
-;then_317:
+	jne .end_367
+;then_367:
 
-        printf(roStr_316)
+        printf(roStr_340)
         ExitProcess(1)
-.end_317:
+.end_367:
 
 
     mov rcx , [lpProcessInformation + PROCESS_INFORMATION.hProcess]
@@ -11942,314 +13241,338 @@ section .text
     call GetExitCodeProcess 
     mov rax, [lpExitCode]
     
-;.if_318:
+;.if_368:
     cmp rax, 0
-	je .end_318
-;then_318:
+	je .end_368
+;then_368:
 
-        printf(roStr_317)
+        printf(roStr_341)
         ExitProcess(1)
-.end_318:
+.end_368:
 
 
-    printf(roStr_318, cStrLinkerFile)
+    printf(roStr_342, cStrLinkerFile)
 
     ExitProcess(0)
 section .rodata
-    roStr_318 db "[\#27[92mINFO\#27[0m] Generated %s\r\n", 0
-    roStr_317 db "[\#27[91mERROR\#27[0m] Linking failed.", 0
-    roStr_316 db "[\#27[91mERROR\#27[0m] Linking failed.", 0
-    roStr_315 db "[\#27[92mINFO\#27[0m] Linking using 'ld':\r\n\t%s\r\n", 0
-    roStr_314 db "ld -e _start %s -o %s -lkernel32 -Llib", 0
-    roStr_313 db "[\#27[91mERROR\#27[0m] Assembling failed.", 0
-    roStr_312 db "[DEBUG] Exit code: %d.\r\n", 0
-    roStr_311 db "[\#27[91mERROR\#27[0m] Assembling failed.", 0
-    roStr_310 db "[\#27[92mINFO\#27[0m] Assembling using 'nasm':\r\n\t%s\r\n", 0
-    roStr_309 db "nasm.exe -f win64 %s -o %s -w+all -w+error", 0
-    roStr_308 db "Error: unknown type %d in 'writeVars'", 0
-    roStr_307 db "section .bss\r\n\t%s resb %d\n", 0
-    roStr_306 db "Error: unknown user type %d\n", 0
-    roStr_305 db "section .bss\r\n\t%s resb %d\n", 0
-    roStr_304 db "Error: unknown user type %d\n", 0
-    roStr_303 db "Error: unknown array type %d\n", 0
-    roStr_302 db " db %s,0\n", 0
-    roStr_301 db "section .data\r\n\t%s", 0
-    roStr_300 db "section .bss\r\n\t%s resq %d\n", 0
-    roStr_299 db "section .bss\r\n\t%s resq %d\n", 0
-    roStr_298 db "section .bss\r\n\t%s resb %d\n", 0
-    roStr_297 db "section .bss\r\n\t%s resq 1\n", 0
-    roStr_296 db "section .data\r\n\t%s dq %d\n", 0
-    roStr_295 db "section .data\r\n\t%s dq %d\n", 0
-    roStr_294 db "section .data\r\n\t%s db %d\n", 0
-    roStr_293 db ";==== global variables ====\n", 0
-    roStr_292 db "\tcall ExitProcess\n\n", 0
-    roStr_291 db "\tmov rcx, 0\n", 0
-    roStr_290 db "; -- exit process -- \n", 0
-    roStr_289 db "\tcall ExitProcess\n\n", 0
-    roStr_288 db "\tmov rcx, %d\n", 0
-    roStr_287 db "; -- exit process -- \n", 0
-    roStr_286 db "section .text\n\textern %s\n", 0
-    roStr_285 db "[Trace] Variable definition for user type: %s\n", 0
-    roStr_284 db "[Trace] Variable definition for user type array: %s\n", 0
-    roStr_283 db "[Trace] Struct definition: %s with %d bytes\n", 0
-    roStr_282 db "[Trace] Struct field: %s of type %d\n", 0
-    roStr_281 db "valid struct member types are 'uint64' and 'pointer'\n", 0
-    roStr_280 db "parser.strata:%d:%d: ", 0
-    roStr_279 db "NOT A PROCEDURE\n", 0
-    roStr_278 db "; external procedure call: %s with %d arguments\n\n", 0
-    roStr_277 db "\tmov rsp, r15\n\tpop r15\n\tcall %s\n\tadd rsp, %d\n", 0
-    roStr_276 db "external_%s_%d:\n", 0
-    roStr_275 db "external procedure requires %d arguments, but %d arguments are provided\n", 0
-    roStr_274 db "parser.strata:%d:%d: ", 0
-    roStr_273 db "\tpop rcx\n", 0
-    roStr_272 db "\tpop rdx\n", 0
-    roStr_271 db "\tpop r8\n", 0
-    roStr_270 db "\tpop r9\n", 0
+    roStr_342 db "[\#27[92mINFO\#27[0m] Generated %s\r\n", 0
+    roStr_341 db "[\#27[91mERROR\#27[0m] Linking failed.", 0
+    roStr_340 db "[\#27[91mERROR\#27[0m] Linking failed.", 0
+    roStr_339 db "[\#27[92mINFO\#27[0m] Linking using 'ld':\r\n\t%s\r\n", 0
+    roStr_338 db "ld -e _start %s -o %s -lkernel32 -Llib", 0
+    roStr_337 db "[\#27[91mERROR\#27[0m] Assembling failed.", 0
+    roStr_336 db "[DEBUG] Exit code: %d.\r\n", 0
+    roStr_335 db "[\#27[91mERROR\#27[0m] Assembling failed.", 0
+    roStr_334 db "[\#27[92mINFO\#27[0m] Assembling using 'nasm':\r\n\t%s\r\n", 0
+    roStr_333 db "nasm.exe -f win64 %s -o %s -w+all -w+error", 0
+    roStr_332 db "Error: unknown type %d in 'writeVars'", 0
+    roStr_331 db "section .bss\r\n\t%s resb %d\n", 0
+    roStr_330 db "Error: unknown user type %d\n", 0
+    roStr_329 db " db %s,0\n", 0
+    roStr_328 db "section .rodata\r\n\tro_str_%d", 0
+    roStr_327 db "section .bss\r\n\t%s resb %d\n", 0
+    roStr_326 db "Error: unknown user type %d\n", 0
+    roStr_325 db "Error: unknown array type %d\n", 0
+    roStr_324 db " db %s,0\n", 0
+    roStr_323 db "section .data\r\n\t%s", 0
+    roStr_322 db "section .bss\r\n\t%s resq %d\n", 0
+    roStr_321 db "section .bss\r\n\t%s resq %d\n", 0
+    roStr_320 db "section .bss\r\n\t%s resb %d\n", 0
+    roStr_319 db "section .bss\r\n\t%s resq 1\n", 0
+    roStr_318 db "section .data\r\n\t%s dq %d\n", 0
+    roStr_317 db "section .data\r\n\t%s dq %d\n", 0
+    roStr_316 db "section .data\r\n\t%s db %d\n", 0
+    roStr_315 db ";==== global variables ====\n", 0
+    roStr_314 db "\tcall ExitProcess\n\n", 0
+    roStr_313 db "\tmov rcx, 0\n", 0
+    roStr_312 db "; -- exit process -- \n", 0
+    roStr_311 db "[Error] Error: unknown subtype %d 'parseDecrementStatement'\n", 0
+    roStr_310 db "\tdec qword [rbp - %d]\n", 0
+    roStr_309 db "; -- increment local '%s' -- \n", 0
+    roStr_308 db "[Error] Error: cannot decrement parameter '%s'\n", 0
+    roStr_307 db "\tmov rax, [%s]\n\tdec rax\n\tmov [%s], rax\n\n", 0
+    roStr_306 db "; -- decrement '%s' -- \n", 0
+    roStr_305 db "[Error] Error: unknown subtype %d 'parseIncrementStatement'\n", 0
+    roStr_304 db "\tinc qword [rbp - %d]\n", 0
+    roStr_303 db "; -- increment local '%s' -- \n", 0
+    roStr_302 db "[Error] Error: cannot increment parameter '%s'\n", 0
+    roStr_301 db "\tmov rax, [%s]\n\tinc rax\n\tmov [%s], rax\n\n", 0
+    roStr_300 db "; -- increment '%s' -- \n", 0
+    roStr_299 db "\tcall ExitProcess\n\n", 0
+    roStr_298 db "\tmov rcx, %d\n", 0
+    roStr_297 db "; -- exit process -- \n", 0
+    roStr_296 db "section .text\n\textern %s\n", 0
+    roStr_295 db "[Trace] Variable definition for user type: %s\n", 0
+    roStr_294 db "[Trace] Variable definition for user type array: %s\n", 0
+    roStr_293 db "Error: expected a define identifier\n", 0
+    roStr_292 db "[Trace] Struct definition: %s with %d bytes\n", 0
+    roStr_291 db "[Trace] Struct field: %s of type %d\n", 0
+    roStr_290 db "valid struct member types are 'uint64' and 'pointer'\n", 0
+    roStr_289 db "parser.strata:%d:%d: ", 0
+    roStr_288 db "NOT A PROCEDURE\n", 0
+    roStr_287 db "; external procedure call: %s with %d arguments\n\n", 0
+    roStr_286 db "\tmov rsp, r15\n\tpop r15\n\tcall %s\n\tadd rsp, %d\n", 0
+    roStr_285 db "external_%s_%d:\n", 0
+    roStr_284 db "external procedure requires %d arguments, but %d arguments are provided\n", 0
+    roStr_283 db "parser.strata:%d:%d: ", 0
+    roStr_282 db "\tpop rcx\n", 0
+    roStr_281 db "\tpop rdx\n", 0
+    roStr_280 db "\tpop r8\n", 0
+    roStr_279 db "\tpop r9\n", 0
+    roStr_278 db "\tpop qword [r15 + %d]\n", 0
+    roStr_277 db "\tpop qword [r15 + %d]\n", 0
+    roStr_276 db "\tsub rsp, %d\n\tpush r15\n\tmov r15, rsp\n", 0
+    roStr_275 db "; -- external procedure call --\n", 0
+    roStr_274 db "; procedure call: %s with %d arguments\n\n", 0
+    roStr_273 db "\tcall %s\n\tadd rsp, %d\n", 0
+    roStr_272 db "\tmov rsp, r15\n\tpop r15\n\tcall %s\n\tadd rsp, %d\n", 0
+    roStr_271 db "procedure requires %d arguments, but %d arguments are provided\n", 0
+    roStr_270 db "parser.strata:%d:%d: ", 0
     roStr_269 db "\tpop qword [r15 + %d]\n", 0
     roStr_268 db "\tpop qword [r15 + %d]\n", 0
     roStr_267 db "\tsub rsp, %d\n\tpush r15\n\tmov r15, rsp\n", 0
-    roStr_266 db "; -- external procedure call --\n", 0
-    roStr_265 db "; procedure call: %s with %d arguments\n\n", 0
-    roStr_264 db "\tcall %s\n\tadd rsp, %d\n", 0
-    roStr_263 db "\tmov rsp, rbp\n\tpop rbp\n\tcall %s\n\tadd rsp, %d\n", 0
-    roStr_262 db "procedure requires %d arguments, but %d arguments are provided\n", 0
-    roStr_261 db "parser.strata:%d:%d: ", 0
-    roStr_260 db "\tpop qword [rbp + %d]\n", 0
-    roStr_259 db "\tsub rsp, %d\n\tpush rbp\n\tmov rbp, rsp\n", 0
-    roStr_258 db "; -- procedure call --\n", 0
-    roStr_257 db "[Trace] Procedure call: %s\n", 0
-    roStr_256 db "\tmov rsp, rbp\n\tpop rbp\n\tret\n", 0
-    roStr_255 db "\tpop rax\n\tmov rsp, rbp\n\tpop rbp\n\tret\n", 0
-    roStr_254 db "; -- return --\n", 0
-    roStr_253 db ";==== end proc %s ====\n\n", 0
-    roStr_252 db "%s_end:\n", 0
-    roStr_251 db "[Trace] Procedure declaration: %s with %d parameters\n", 0
-    roStr_250 db "\tmov rsp, rbp\n\tpop rbp\n\tret\n", 0
-    roStr_249 db "Error: procedure %s has no return statement\n", 0
-    roStr_248 db "\tsub rsp, %d\n\n", 0
-    roStr_247 db "\tpush rbp\n\tmov rbp, rsp\n", 0
-    roStr_246 db "\tjmp %s_end\n%s:\n", 0
-    roStr_245 db ";==== proc %s ====\n", 0
-    roStr_244 db "[Trace] Procedure declaration: %s\n", 0
-    roStr_243 db "nested procedure declaration is not allowed\n", 0
-    roStr_242 db "parser.strata:%d:%d: ", 0
-    roStr_241 db "\tjmp while_%d\n", 0
-    roStr_240 db "; -- continue --\n", 0
-    roStr_239 db "\tjmp end_while_%d\n", 0
-    roStr_238 db "; -- break --\n", 0
-    roStr_237 db "end_while_%d:\n", 0
-    roStr_236 db "\tjmp while_%d\n", 0
-    roStr_235 db "[Trace] While statement: END\n", 0
-    roStr_234 db "\tpop rax\n\tcmp rax, 0\n\tjz end_while_%d\n; do statement %d\n", 0
-    roStr_233 db "[Trace] While statement: DO\n", 0
-    roStr_232 db "while_%d:\n", 0
-    roStr_231 db "[Trace] While statement: WHILE\n", 0
-    roStr_230 db "[Trace] If statement: END\n", 0
-    roStr_229 db "condition_false_%d:\n", 0
-    roStr_228 db "end_if_%d:\n", 0
-    roStr_227 db "[Trace] If statement: ELSE\n", 0
-    roStr_226 db "condition_false_%d:\n; else statement block id %d\n", 0
-    roStr_225 db "\tjmp end_if_%d\n", 0
-    roStr_224 db "\tpop rax\n\tcmp rax, 0\n\tjz condition_false_%d\n; then statement block id %d\n", 0
-    roStr_223 db "[Trace] If statement: THEN\n", 0
-    roStr_222 db "; if statement block id: %d\n", 0
-    roStr_221 db "[Trace] If statement: IF\n", 0
-    roStr_220 db "[Trace] Assignment statement for: '%s'\n", 0
-    roStr_219 db "[Error] Error: unknown type %d in 'parseAssignmentStatement'\n", 0
-    roStr_218 db "\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n\n", 0
-    roStr_217 db "; assigning value to a struct field\n", 0
-    roStr_216 db "[Error] Error: unknown array kind %d\n", 0
+    roStr_266 db "; -- procedure call --\n", 0
+    roStr_265 db "[Trace] Procedure call: %s\n", 0
+    roStr_264 db "\tmov rax, ro_str_%d\n\tpush rax\n", 0
+    roStr_263 db "\tmov rsp, rbp\n\tpop rbp\n\tret\n", 0
+    roStr_262 db "\tpop rax\n\tmov rsp, rbp\n\tpop rbp\n\tret\n", 0
+    roStr_261 db "; -- return --\n", 0
+    roStr_260 db ";==== end proc %s ====\n\n", 0
+    roStr_259 db "\tret\n%s_end:\n", 0
+    roStr_258 db "[Trace] Procedure declaration: %s with %d parameters\n", 0
+    roStr_257 db "\tmov rsp, rbp\n\tpop rbp\n\tret\n", 0
+    roStr_256 db "Error: procedure %s has no return statement\n", 0
+    roStr_255 db "\tsub rsp, %d\n\n", 0
+    roStr_254 db "\tpush rbp\n\tmov rbp, rsp\n", 0
+    roStr_253 db "\tjmp %s_end\n%s:\n", 0
+    roStr_252 db ";==== proc %s ====\n", 0
+    roStr_251 db "[Trace] Procedure declaration: %s\n", 0
+    roStr_250 db "nested procedure declaration is not allowed\n", 0
+    roStr_249 db "parser.strata:%d:%d: ", 0
+    roStr_248 db "\tjmp while_%d\n", 0
+    roStr_247 db "; -- continue --\n", 0
+    roStr_246 db "\tjmp end_while_%d\n", 0
+    roStr_245 db "; -- break --\n", 0
+    roStr_244 db "end_while_%d:\n", 0
+    roStr_243 db "\tjmp while_%d\n", 0
+    roStr_242 db "[Trace] While statement: END\n", 0
+    roStr_241 db "\tpop rax\n\tcmp rax, 0\n\tjz end_while_%d\n; do statement %d\n", 0
+    roStr_240 db "[Trace] While statement: DO\n", 0
+    roStr_239 db "while_%d:\n", 0
+    roStr_238 db "[Trace] While statement: WHILE\n", 0
+    roStr_237 db "[Trace] If statement: END\n", 0
+    roStr_236 db "condition_false_%d:\n", 0
+    roStr_235 db "end_if_%d:\n", 0
+    roStr_234 db "[Trace] If statement: ELSE\n", 0
+    roStr_233 db "condition_false_%d:\n; else statement block id %d\n", 0
+    roStr_232 db "\tjmp end_if_%d\n", 0
+    roStr_231 db "\tpop rax\n\tcmp rax, 0\n\tjz condition_false_%d\n; then statement block id %d\n", 0
+    roStr_230 db "[Trace] If statement: THEN\n", 0
+    roStr_229 db "; if statement block id: %d\n", 0
+    roStr_228 db "[Trace] If statement: IF\n", 0
+    roStr_227 db "[Trace] Assignment statement for: '%s'\n", 0
+    roStr_226 db "[Error] Error: unknown type %d in 'parseAssignmentStatement'\n", 0
+    roStr_225 db "\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n\n", 0
+    roStr_224 db "; assigning value to a struct field\n", 0
+    roStr_223 db "[Error] Error: unknown array kind %d\n", 0
+    roStr_222 db "\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n\n", 0
+    roStr_221 db "; assigning value to a struct array element\n", 0
+    roStr_220 db "[Error] Error: unknown array type %d\n", 0
+    roStr_219 db "\tpop rbx\n\tpop rax\n\tmov byte [rax], bl\n\n", 0
+    roStr_218 db "; -- (string) set value --\n", 0
+    roStr_217 db "\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n\n", 0
+    roStr_216 db "; -- (pointer[]) set value --\n", 0
     roStr_215 db "\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n\n", 0
-    roStr_214 db "; assigning value to a struct array element\n", 0
-    roStr_213 db "[Error] Error: unknown array type %d\n", 0
-    roStr_212 db "\tpop rbx\n\tpop rax\n\tmov byte [rax], bl\n\n", 0
-    roStr_211 db "; -- (string) set value --\n", 0
-    roStr_210 db "\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n\n", 0
-    roStr_209 db "; -- (pointer[]) set value --\n", 0
-    roStr_208 db "\tpop rbx\n\tpop rax\n\tmov qword [rax], rbx\n\n", 0
-    roStr_207 db "; -- (uint64[]) set value --\n", 0
-    roStr_206 db "\tpop rbx\n\tpop rax\n\tmov byte [rax], bl\n\n", 0
-    roStr_205 db "; -- (uint8[]) set value --\n", 0
+    roStr_214 db "; -- (uint64[]) set value --\n", 0
+    roStr_213 db "\tpop rbx\n\tpop rax\n\tmov byte [rax], bl\n\n", 0
+    roStr_212 db "; -- (uint8[]) set value --\n", 0
+    roStr_211 db "\tpop rax\n\tmov qword [%s], rax\n\n", 0
+    roStr_210 db "; -- (struct pointer) set value of '%s' --\n", 0
+    roStr_209 db "\tpop rax\n\tpop rbx\n\tmov [rbx], rax\n\n", 0
+    roStr_208 db "; -- (struct pointer) set value of '%s' --\n", 0
+    roStr_207 db "Cannot assign to a parameter\n", 0
+    roStr_206 db "\tpop rax\n\tmov qword [rbp - %d], rax\n\n", 0
+    roStr_205 db "; assigning value to a local pointer\n", 0
     roStr_204 db "\tpop rax\n\tmov qword [%s], rax\n\n", 0
-    roStr_203 db "; -- (struct pointer) set value of '%s' --\n", 0
-    roStr_202 db "\tpop rax\n\tpop rbx\n\tmov [rbx], rax\n\n", 0
-    roStr_201 db "; -- (struct pointer) set value of '%s' --\n", 0
-    roStr_200 db "Cannot assign to a parameter\n", 0
-    roStr_199 db "\tpop rax\n\tmov qword [rbp - %d], rax\n\n", 0
-    roStr_198 db "; assigning value to a local pointer\n", 0
-    roStr_197 db "\tpop rax\n\tmov qword [%s], rax\n\n", 0
-    roStr_196 db "; -- (pointer) set value of '%s' --\n", 0
-    roStr_195 db "[Error] Error: unknown pointer type %d\n", 0
-    roStr_194 db "\tmov rbx, [%s]\n\tpop rax\n\tmov [rbx], rax\n\n", 0
-    roStr_193 db "\tmov rbx, [%s]\n\tpop rax\n\tmov [rbx], al\n\n", 0
-    roStr_192 db "; -- (pointer deref) set value of '%s' subtype %d --\n", 0
-    roStr_191 db "Cannot assign to a parameter\n", 0
-    roStr_190 db "\tpop rax\n\tmov qword [rbp - %d], rax\n\n", 0
-    roStr_189 db "; assigning value to a local uint64\n", 0
-    roStr_188 db "\tpop rax\n\tmov qword [%s], rax\n\n", 0
-    roStr_187 db "; -- (uint64) set value of '%s' --\n", 0
-    roStr_186 db "Cannot assign to a parameter\n", 0
-    roStr_185 db "\tpop rax\n\tmov qword [rbp - %d], rax\n\n", 0
-    roStr_184 db "; assigning value to a local uint8\n", 0
-    roStr_183 db "\tpop rax\n\tmov byte [%s], al\n\n", 0
-    roStr_182 db "; -- (uint8) set value of '%s' --\n", 0
-    roStr_181 db "; -- assignment statement --\n", 0
-    roStr_180 db "[Trace] Assignable: variable\n", 0
-    roStr_179 db "\tpush rax\n", 0
-    roStr_178 db "\tadd rax, %d\n\tpush rax\n", 0
-    roStr_177 db "; -- accessing struct field --\n", 0
-    roStr_176 db "\tpop rax\n\tmov rdx, %d\n\tmul rdx\n\tmov rbx, %s\n\tadd rax, rbx\n", 0
-    roStr_175 db "; -- indexing n-th element of struct array --\n", 0
-    roStr_174 db "Error: unknown user type %d\n", 0
-    roStr_173 db "[Trace] Assignable: array, ct %d\n", 0
-    roStr_172 db "[Error] Error: unknown array type %d\n", 0
-    roStr_171 db "\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush rax\n", 0
-    roStr_170 db "; -- indexing n-th element of array --\n", 0
-    roStr_169 db "\tpop rax\n\tshl rax, 3\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush rax\n", 0
-    roStr_168 db "; -- indexing n-th element of array --\n", 0
-    roStr_167 db "\tpop rax\n\tshl rax, 3\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush rax\n", 0
-    roStr_166 db "; -- indexing n-th element of array --\n", 0
-    roStr_165 db "\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush rax\n", 0
-    roStr_164 db "; -- indexing n-th element of array --\n", 0
-    roStr_163 db "\tadd rax, %d\n\tpush rax\n", 0
-    roStr_162 db "\tmov rax, %s\n", 0
-    roStr_161 db "; -- accessing struct field --\n", 0
-    roStr_160 db "\tmov rax, [%s]\n", 0
-    roStr_159 db "; -- accessing struct pointer field --\n", 0
-    roStr_158 db "\tpop rbx\n\tpop rax\n\tor rax, rbx\n\tpush rax\n", 0
-    roStr_157 db "; -- || --\n", 0
-    roStr_156 db "; -- eval expression --\n", 0
-    roStr_155 db "\tpop rbx\n\tpop rax\n\tand rax, rbx\n\tpush rax\n", 0
-    roStr_154 db "; -- && --\n", 0
-    roStr_153 db ".true_%d:\n\tpush 1\n.end_%d:\n", 0
-    roStr_152 db "\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjne .true_%d\n\tpush 0\n\tjmp .end_%d\n", 0
-    roStr_151 db "; -- != --\n", 0
-    roStr_150 db ".true_%d:\n\tpush 1\n.end_%d:\n", 0
-    roStr_149 db "\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tje .true_%d\n\tpush 0\n\tjmp .end_%d\n", 0
-    roStr_148 db "; -- == --\n", 0
-    roStr_147 db ".true_%d:\n\tpush 1\n.end_%d:\n", 0
-    roStr_146 db "\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjge .true_%d\n\tpush 0\n\tjmp .end_%d\n", 0
-    roStr_145 db "; -- >= --\n", 0
-    roStr_144 db ".true_%d:\n\tpush 1\n.end_%d:\n", 0
-    roStr_143 db "\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjg .true_%d\n\tpush 0\n\tjmp .end_%d\n", 0
-    roStr_142 db "; -- > --\n", 0
-    roStr_141 db ".true_%d:\n\tpush 1\n.end_%d:\n", 0
-    roStr_140 db "\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjle .true_%d\n\tpush 0\n\tjmp .end_%d\n", 0
-    roStr_139 db "; -- <= --\n", 0
-    roStr_138 db ".true_%d:\n\tpush 1\n.end_%d:\n", 0
-    roStr_137 db "\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjl .true_%d\n\tpush 0\n\tjmp .end_%d\n", 0
-    roStr_136 db "; -- < --\n", 0
-    roStr_135 db "\tpop rbx\n\tpop rax\n\tsub rax, rbx\n\tpush rax\n", 0
-    roStr_134 db "; -- - --\n", 0
-    roStr_133 db "\tpop rbx\n\tpop rax\n\tadd rax, rbx\n\tpush rax\n", 0
-    roStr_132 db "; -- + --\n", 0
-    roStr_131 db "\tpop rbx\n\tpop rax\n\tdiv rbx\n\tpush rdx\n", 0
-    roStr_130 db "; -- %% --\n", 0
-    roStr_129 db "\tpop rbx\n\tpop rax\n\tdiv rbx\n\tpush rax\n", 0
-    roStr_128 db "; -- / --\n", 0
-    roStr_127 db "\tpop rbx\n\tpop rax\n\tmul rbx\n\tpush rax\n", 0
-    roStr_126 db "; -- * --\n", 0
-    roStr_125 db "[Error] Error: unknown type %d in 'parseFactor*'\n", 0
-    roStr_124 db "\tmov rax, [%s]\n\tpush qword [rax]\n", 0
-    roStr_123 db "\tmov rbx, [%s]\n\tmovzx rax, byte [rbx]\n\tpush qword rax\n", 0
-    roStr_122 db "\tadd rax, %d\n\tmov rbx, [rax]\n\tpush qword [rbx]\n", 0
-    roStr_121 db "\tmov rax, [%s]\n", 0
-    roStr_120 db "; -- accessing struct field value --\n", 0
-    roStr_119 db "[Trace] Factor: dereference\n", 0
-    roStr_118 db "[Trace] parseFactor, gsType: %d\n", 0
+    roStr_203 db "; -- (pointer) set value of '%s' --\n", 0
+    roStr_202 db "[Error] Error: unknown pointer type %d\n", 0
+    roStr_201 db "\tmov rbx, [%s]\n\tpop rax\n\tmov [rbx], rax\n\n", 0
+    roStr_200 db "\tmov rbx, [%s]\n\tpop rax\n\tmov [rbx], al\n\n", 0
+    roStr_199 db "; -- (pointer deref) set value of '%s' subtype %d --\n", 0
+    roStr_198 db "Cannot assign to a parameter\n", 0
+    roStr_197 db "\tpop rax\n\tmov qword [rbp - %d], rax\n\n", 0
+    roStr_196 db "; assigning value to a local uint64\n", 0
+    roStr_195 db "\tpop rax\n\tmov qword [%s], rax\n\n", 0
+    roStr_194 db "; -- (uint64) set value of '%s' --\n", 0
+    roStr_193 db "Cannot assign to a parameter\n", 0
+    roStr_192 db "\tpop rax\n\tmov qword [rbp - %d], rax\n\n", 0
+    roStr_191 db "; assigning value to a local uint8\n", 0
+    roStr_190 db "\tpop rax\n\tmov byte [%s], al\n\n", 0
+    roStr_189 db "; -- (uint8) set value of '%s' --\n", 0
+    roStr_188 db "; -- assignment statement --\n", 0
+    roStr_187 db "[Trace] Assignable: variable\n", 0
+    roStr_186 db "\tpush rax\n", 0
+    roStr_185 db "\tadd rax, %d\n\tpush rax\n", 0
+    roStr_184 db "; -- accessing struct field --\n", 0
+    roStr_183 db "\tpop rax\n\tmov rdx, %d\n\tmul rdx\n\tmov rbx, %s\n\tadd rax, rbx\n", 0
+    roStr_182 db "; -- indexing n-th element of struct array --\n", 0
+    roStr_181 db "Error: unknown user type %d\n", 0
+    roStr_180 db "[Trace] Assignable: array, ct %d\n", 0
+    roStr_179 db "[Error] Error: unknown array type %d\n", 0
+    roStr_178 db "\tpop rax\n\tmov rbx, %s\n\tshl rax, 3\n\tadd rax, rbx\n\tpush rax\n", 0
+    roStr_177 db "; -- indexing n-th element of array --\n", 0
+    roStr_176 db "\tpop rax\n\tshl rax, 3\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush rax\n", 0
+    roStr_175 db "; -- indexing n-th element of array --\n", 0
+    roStr_174 db "\tpop rax\n\tshl rax, 3\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush rax\n", 0
+    roStr_173 db "; -- indexing n-th element of array --\n", 0
+    roStr_172 db "\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush rax\n", 0
+    roStr_171 db "; -- indexing n-th element of array --\n", 0
+    roStr_170 db "\tadd rax, %d\n\tpush rax\n", 0
+    roStr_169 db "\tmov rax, %s\n", 0
+    roStr_168 db "; -- accessing struct field --\n", 0
+    roStr_167 db "\tmov rax, [%s]\n", 0
+    roStr_166 db "; -- accessing struct pointer field --\n", 0
+    roStr_165 db "\tpop rbx\n\tpop rax\n\tor rax, rbx\n\tpush rax\n", 0
+    roStr_164 db "; -- || --\n", 0
+    roStr_163 db "; -- eval expression --\n", 0
+    roStr_162 db "\tpop rbx\n\tpop rax\n\tand rax, rbx\n\tpush rax\n", 0
+    roStr_161 db "; -- && --\n", 0
+    roStr_160 db ".true_%d:\n\tpush 1\n.end_%d:\n", 0
+    roStr_159 db "\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjne .true_%d\n\tpush 0\n\tjmp .end_%d\n", 0
+    roStr_158 db "; -- != --\n", 0
+    roStr_157 db ".true_%d:\n\tpush 1\n.end_%d:\n", 0
+    roStr_156 db "\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tje .true_%d\n\tpush 0\n\tjmp .end_%d\n", 0
+    roStr_155 db "; -- == --\n", 0
+    roStr_154 db ".true_%d:\n\tpush 1\n.end_%d:\n", 0
+    roStr_153 db "\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjge .true_%d\n\tpush 0\n\tjmp .end_%d\n", 0
+    roStr_152 db "; -- >= --\n", 0
+    roStr_151 db ".true_%d:\n\tpush 1\n.end_%d:\n", 0
+    roStr_150 db "\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjg .true_%d\n\tpush 0\n\tjmp .end_%d\n", 0
+    roStr_149 db "; -- > --\n", 0
+    roStr_148 db ".true_%d:\n\tpush 1\n.end_%d:\n", 0
+    roStr_147 db "\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjle .true_%d\n\tpush 0\n\tjmp .end_%d\n", 0
+    roStr_146 db "; -- <= --\n", 0
+    roStr_145 db ".true_%d:\n\tpush 1\n.end_%d:\n", 0
+    roStr_144 db "\tpop rbx\n\tpop rax\n\tcmp rax, rbx\n\tjl .true_%d\n\tpush 0\n\tjmp .end_%d\n", 0
+    roStr_143 db "; -- < --\n", 0
+    roStr_142 db "\tpop rbx\n\tpop rax\n\tsub rax, rbx\n\tpush rax\n", 0
+    roStr_141 db "; -- - --\n", 0
+    roStr_140 db "\tpop rbx\n\tpop rax\n\tadd rax, rbx\n\tpush rax\n", 0
+    roStr_139 db "; -- + --\n", 0
+    roStr_138 db "\tpop rbx\n\tpop rax\n\tcqo\n\tdiv rbx\n\tpush rdx\n", 0
+    roStr_137 db "; -- %% --\n", 0
+    roStr_136 db "\tpop rbx\n\tpop rax\n\tcqo\n\tdiv rbx\n\tpush rax\n", 0
+    roStr_135 db "; -- / --\n", 0
+    roStr_134 db "\tpop rbx\n\tpop rax\n\tmul rbx\n\tpush rax\n", 0
+    roStr_133 db "; -- * --\n", 0
+    roStr_132 db "[Error] Error: unknown type %d in 'parseFactor*'\n", 0
+    roStr_131 db "\tmov rax, [%s]\n\tpush qword [rax]\n", 0
+    roStr_130 db "\tmov rbx, [%s]\n\tmovzx rax, byte [rbx]\n\tpush qword rax\n", 0
+    roStr_129 db "\tadd rax, %d\n\tmov rbx, [rax]\n\tpush qword rbx\n", 0
+    roStr_128 db "\tadd rax, %d\n\tmov rbx, [rax]\n\tpush qword rbx\n", 0
+    roStr_127 db "\tmov rax, [%s]\n", 0
+    roStr_126 db "; -- accessing struct field value --\n", 0
+    roStr_125 db "[Trace] Factor: dereference\n", 0
+    roStr_124 db "[Trace] parseFactor, gsType: %d\n", 0
+    roStr_123 db "\tmov rax, %s\n\tpush rax\n", 0
+    roStr_122 db "[Error] Error: unknown subtype %d\n", 0
+    roStr_121 db "\tpush qword [rbp - %d]\n", 0
+    roStr_120 db "\tpush qword [rbp + %d]\n", 0
+    roStr_119 db "[Error] Error: unknown type %d in 'parseFactor'\n", 0
+    roStr_118 db "\tmov rax, %d ; %s\n\tpush rax\n", 0
     roStr_117 db "\tmov rax, %s\n\tpush rax\n", 0
-    roStr_116 db "[Error] Error: unknown subtype %d\n", 0
-    roStr_115 db "\tpush qword [rbp - %d]\n", 0
-    roStr_114 db "\tpush qword [rbp + %d]\n", 0
-    roStr_113 db "[Error] Error: unknown type %d in 'parseFactor'\n", 0
-    roStr_112 db "\tmov rax, %d ; %s\n\tpush rax\n", 0
-    roStr_111 db "\tmov rax, %s\n\tpush rax\n", 0
-    roStr_110 db "\tpush qword [%s]\n", 0
-    roStr_109 db "\tpush qword [%s]\n", 0
-    roStr_108 db "\tpush qword [%s]\n", 0
-    roStr_107 db "\tmovzx rax, byte [%s]\n\tpush rax\n", 0
-    roStr_106 db "[Trace] Factor: variable #%d\n", 0
-    roStr_105 db "\tadd rax, %d\n\tpush qword [rax]\n", 0
-    roStr_104 db "\tmov rax, %s\n", 0
-    roStr_103 db "; -- accessing struct field value --\n", 0
-    roStr_102 db "\tpush rax\n", 0
-    roStr_101 db "[Trace] Factor: procedure call\n", 0
-    roStr_100 db "[Trace] Factor: array\n", 0
-    roStr_99 db "\tpush qword [rax]\n", 0
-    roStr_98 db "\tadd rax, %d\n\tpush qword [rax]\n", 0
-    roStr_97 db "; -- accessing struct field value --\n", 0
-    roStr_96 db "\tpop rax\n\tmov rdx, %d\n\tmul rdx\n\tmov rbx, %s\n\tadd rax, rbx\n", 0
-    roStr_95 db "; -- indexing struct[] array --\n", 0
-    roStr_94 db "Error: unknown user type %d\n", 0
-    roStr_93 db "[Error] Error: unknown array type %d\n", 0
-    roStr_92 db "\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush qword [rax]\n", 0
-    roStr_91 db "; -- string access\n", 0
-    roStr_90 db "\tpop rax\n\tshl rax, 3\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush qword [rax]\n", 0
-    roStr_89 db "; -- pointer[] access\n", 0
-    roStr_88 db "\tpop rax\n\tshl rax, 3\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush qword [rax]\n", 0
-    roStr_87 db "; -- uint64[] access\n", 0
-    roStr_86 db "\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush qword [rax]\n", 0
-    roStr_85 db "; -- uint8[] access\n", 0
-    roStr_84 db "\tpush %d\n", 0
-    roStr_83 db "\tmov rax, %d\n\tpush rax\n", 0
-    roStr_82 db "\tpush %d ; sizeof %s\n", 0
-    roStr_81 db "variable declarations are not allowed in procedure code section\n", 0
-    roStr_80 db "parser.strata:%d:%d: ", 0
-    roStr_79 db "[Trace] Variable declaration: type %d, value %d\n", 0
-    roStr_78 db "[Error] Error: pointer declaration in procedures is not supported\n", 0
-    roStr_77 db "\tpop rax\n\tmov qword [%s], rax\n", 0
-    roStr_76 db "[Trace] String declaration: type %d, value %d\n", 0
-    roStr_75 db "[Trace] String declaration: type %d, subtype %d\n", 0
-    roStr_74 db "[Trace] Array declaration: type %d, value %d\n", 0
-    roStr_73 db "[Trace] Array declaration: type %d, subtype %d\n", 0
-    roStr_72 db "global array size must be known at compile time\n", 0
-    roStr_71 db "parser.strata:%d:%d: ", 0
-    roStr_70 db "[Trace] Array declaration: type %d, value %d\n", 0
-    roStr_69 db "[Trace] Array declaration: type %d, subtype %d\n", 0
-    roStr_68 db "gvValue: %d\n", 0
-    roStr_67 db "arrays declarations are not allowed in procedures\n", 0
-    roStr_66 db "parser.strata:%d:%d: ", 0
-    roStr_65 db "[Trace] Identifier: #%d\n", 0
-    roStr_64 db "[Trace] Identifier: #%d\n", 0
-    roStr_63 db "[Trace] Number: %d\n", 0
-    roStr_62 db "unexpected token %d\n", 0
+    roStr_116 db "\tpush qword [%s]\n", 0
+    roStr_115 db "\tpush qword [%s]\n", 0
+    roStr_114 db "\tpush qword [%s]\n", 0
+    roStr_113 db "\tmovzx rax, byte [%s]\n\tpush rax\n", 0
+    roStr_112 db "[Trace] Factor: variable #%d\n", 0
+    roStr_111 db "\tadd rax, %d\n\tpush qword [rax]\n", 0
+    roStr_110 db "\tmov rax, %s\n", 0
+    roStr_109 db "; -- accessing struct field value --\n", 0
+    roStr_108 db "\tpush rax\n", 0
+    roStr_107 db "[Trace] Factor: procedure call\n", 0
+    roStr_106 db "[Trace] Factor: array\n", 0
+    roStr_105 db "\tpush qword [rax]\n", 0
+    roStr_104 db "\tpush qword [rax]\n", 0
+    roStr_103 db "\tadd rax, %d\n\tpush qword [rax]\n", 0
+    roStr_102 db "; -- accessing struct field value --\n", 0
+    roStr_101 db "\tpop rax\n\tmov rdx, %d\n\tmul rdx\n\tmov rbx, %s\n\tadd rax, rbx\n", 0
+    roStr_100 db "; -- indexing struct[] array --\n", 0
+    roStr_99 db "Error: unknown user type %d\n", 0
+    roStr_98 db "[Error] Error: unknown array type %d\n", 0
+    roStr_97 db "\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush qword [rax]\n", 0
+    roStr_96 db "; -- string access\n", 0
+    roStr_95 db "\tpop rax\n\tshl rax, 3\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush qword [rax]\n", 0
+    roStr_94 db "; -- pointer[] access\n", 0
+    roStr_93 db "\tpop rax\n\tshl rax, 3\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush qword [rax]\n", 0
+    roStr_92 db "; -- uint64[] access\n", 0
+    roStr_91 db "\tpop rax\n\tmov rbx, %s\n\tadd rax, rbx\n\tpush qword [rax]\n", 0
+    roStr_90 db "; -- uint8[] access\n", 0
+    roStr_89 db "\tpush %d\n", 0
+    roStr_88 db "\tmov rax, %d\n\tpush rax\n", 0
+    roStr_87 db "\tpush %d ; sizeof %s\n", 0
+    roStr_86 db "variable declarations are not allowed in procedure code section\n", 0
+    roStr_85 db "parser.strata:%d:%d: ", 0
+    roStr_84 db "[Trace] Variable declaration: type %d, value %d\n", 0
+    roStr_83 db "[Error] Error: pointer declaration in procedures is not supported\n", 0
+    roStr_82 db "\tpop rax\n\tmov qword [%s], rax\n", 0
+    roStr_81 db "\tpush %d\n", 0
+    roStr_80 db "\tpop rax\n\tmov qword [%s], rax\n", 0
+    roStr_79 db "\tpush %d\n", 0
+    roStr_78 db "[Trace] String declaration: type %d, value %d\n", 0
+    roStr_77 db "[Trace] String declaration: type %d, subtype %d\n", 0
+    roStr_76 db "[Trace] Array declaration: type %d, value %d\n", 0
+    roStr_75 db "[Trace] Array declaration: type %d, subtype %d\n", 0
+    roStr_74 db "global array size must be known at compile time\n", 0
+    roStr_73 db "parser.strata:%d:%d: ", 0
+    roStr_72 db "[Trace] Array declaration: type %d, value %d\n", 0
+    roStr_71 db "[Trace] Array declaration: type %d, subtype %d\n", 0
+    roStr_70 db "gvValue: %d\n", 0
+    roStr_69 db "arrays declarations are not allowed in procedures\n", 0
+    roStr_68 db "parser.strata:%d:%d: ", 0
+    roStr_67 db "[Trace] Identifier: #%d\n", 0
+    roStr_66 db "[Trace] Identifier: #%d\n", 0
+    roStr_65 db "[Trace] Number: %d\n", 0
+    roStr_64 db "unexpected token %d\n", 0
+    roStr_63 db "parser.strata:%d:%d: ", 0
+    roStr_62 db "unknown identifier: %s\n", 0
     roStr_61 db "parser.strata:%d:%d: ", 0
-    roStr_60 db "unknown identifier: %s\n", 0
+    roStr_60 db "identifier redeclared: %s\n", 0
     roStr_59 db "parser.strata:%d:%d: ", 0
-    roStr_58 db "identifier redeclared: %s\n", 0
+    roStr_58 db "expected token %d but got %d\n", 0
     roStr_57 db "parser.strata:%d:%d: ", 0
-    roStr_56 db "expected token %d but got %d\n", 0
-    roStr_55 db "parser.strata:%d:%d: ", 0
-    roStr_54 db "[Trace] Read string: #%d with length %d.\n", 0
-    roStr_53 db "[Trace] Pushed string: #%d with length %d.\n", 0
-    roStr_52 db "[Trace] Did not find user type field.\n", 0
-    roStr_51 db "[Trace] Found user type field: #%d with offset %d.\n", 0
-    roStr_50 db "[Trace] Did not find user type.\n", 0
-    roStr_49 db "[Trace] Found user type: #%d with value %d.\n", 0
-    roStr_48 db "[Trace] Did not find global symbol.\n", 0
-    roStr_47 db "[Trace] Found global symbol: #%d with value %d.\n", 0
-    roStr_46 db "[Trace] Comparing strings: %s and %s\n", 0
-    roStr_45 db "[\#27[92mINFO\#27[0m] Token count: %d\n", 0
+    roStr_56 db "[Trace] Read string: #%d with length %d.\n", 0
+    roStr_55 db "[Trace] Pushed string: #%d with length %d.\n", 0
+    roStr_54 db "[Trace] Did not find user type field.\n", 0
+    roStr_53 db "[Trace] Found user type field: #%d with offset %d.\n", 0
+    roStr_52 db "[Trace] Did not find user type.\n", 0
+    roStr_51 db "[Trace] Found user type: #%d with value %d.\n", 0
+    roStr_50 db "[Trace] Did not find global symbol.\n", 0
+    roStr_49 db "[Trace] Found global symbol: #%d with value %d.\n", 0
+    roStr_48 db "[Trace] Comparing strings: %s and %s\n", 0
+    roStr_47 db "[\#27[92mINFO\#27[0m] Token count: %d\n", 0
+    roStr_46 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
+    roStr_45 db "[\#27[92mINFO\#27[0m] Token: '%s'\n", 0
     roStr_44 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
     roStr_43 db "[\#27[92mINFO\#27[0m] Token: '%s'\n", 0
     roStr_42 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
     roStr_41 db "[\#27[92mINFO\#27[0m] Token: '%s'\n", 0
-    roStr_40 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
-    roStr_39 db "[\#27[92mINFO\#27[0m] Token: '%s'\n", 0
+    roStr_40 db "[\#27[92mINFO\#27[0m] Token: '%s'\n", 0
+    roStr_39 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
     roStr_38 db "[\#27[92mINFO\#27[0m] Token: '%s'\n", 0
     roStr_37 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
     roStr_36 db "[\#27[92mINFO\#27[0m] Token: '%s'\n", 0
     roStr_35 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
-    roStr_34 db "[\#27[92mINFO\#27[0m] Token: '%s'\n", 0
+    roStr_34 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
     roStr_33 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
     roStr_32 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
-    roStr_31 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
+    roStr_31 db "[\#27[92mINFO\#27[0m] Token: '%s'\n", 0
     roStr_30 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
-    roStr_29 db "[\#27[92mINFO\#27[0m] Token: '%s'\n", 0
+    roStr_29 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
     roStr_28 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
     roStr_27 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
-    roStr_26 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
-    roStr_25 db "[\#27[92mINFO\#27[0m] Token: [x] '%s'\n", 0
+    roStr_26 db "[\#27[92mINFO\#27[0m] Token: [!] '%s'\n", 0
+    roStr_25 db "[\#27[91mERROR\#27[0m] Invalid escape sequence\n", 0
     roStr_24 db "[\#27[92mINFO\#27[0m] Token: [!] '%s'\n", 0
     roStr_23 db "[\#27[91mERROR\#27[0m] Invalid escape sequence\n", 0
     roStr_22 db "---------------SCIndex: %d, col: %d\n", 0
@@ -12272,6 +13595,6 @@ section .rodata
     roStr_5 db "default rel\n", 0
     roStr_4 db "bits 64\n", 0
     roStr_3 db "\n", 0
-    roStr_2 db "; Generated by Strata v2.0\n", 0
+    roStr_2 db "; Generated by Strata v1.0\n", 0
     roStr_1 db "[\#27[92mINFO\#27[0m] Output file '%s'\r\n", 0
     roStr_0 db "[\#27[92mINFO\#27[0m] Input file '%s'\r\n", 0
