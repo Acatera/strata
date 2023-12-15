@@ -1137,6 +1137,7 @@ enum Operation_Type
     OPERATION_GREATER_THAN_EQUALS,
     OPERATION_LEFT_SHIFT,
     OPERATION_RIGHT_SHIFT,
+    OPERATION_UNARY_MINUS = 18,
     OPERATION_UNARY_LOGICAL_NOT,
     OPERATION_VALUE,
 end
@@ -1352,11 +1353,17 @@ code
         pe_op_index = parse_expression();
         consume_token(TOKEN_CLOSE_PAREN);
         return pe_op_index;
-    else if tokens[token_index].type == TOKEN_MINUS and tokens[token_index + 1].type == TOKEN_LITERAL_INT then
-        // Unary minus
+    else if tokens[token_index].type == TOKEN_MINUS then
         consume_token(TOKEN_MINUS);
-        pe_term_index = 0 - parse_literal_int();
-        return add_operation(OPERATION_VALUE, pe_term_index, TERM_TYPE_LITERAL_INT, 0);
+        if tokens[token_index].type == TOKEN_LITERAL_INT then
+            // Unary minus on literal
+            pe_term_index = 0 - parse_literal_int();
+            return add_operation(OPERATION_VALUE, pe_term_index, TERM_TYPE_LITERAL_INT, 0);
+        else 
+            // Unary minus 
+            pe_term_index = parse_factor();
+            return add_operation(OPERATION_UNARY_MINUS, pe_term_index, TERM_TYPE_UNARY_OPERATION, 0);
+        end
     else if tokens[token_index].type == TOKEN_NOT then
         consume_token(TOKEN_NOT);
         pe_term_index = parse_factor();
@@ -2333,6 +2340,49 @@ code
     return;
 end
 
+proc write_op_unary_minus(uint64 file_handle, uint64 op_index)
+vars
+    uint64 woum_op_index = 0;
+    uint64 woum_reg = 0;
+code
+    woum_op_index = operations[op_index].left_index;
+
+    if operations[woum_op_index].type == OPERATION_VALUE or operations[woum_op_index].type == OPERATION_UNARY_MINUS then
+        print_string("write_op_unary_minus: Unary\n");
+        write_op_value(file_handle, woum_op_index, operations[op_index].type);
+    else if operations[woum_op_index].type == OPERATION_ADD or operations[woum_op_index].type == OPERATION_SUBTRACT then
+        print_string("write_op_unary_minus: Addition or subtraction\n");
+        write_op_addition(file_handle, woum_op_index);
+    else if 
+        operations[woum_op_index].type == OPERATION_MULTIPLY or 
+        operations[woum_op_index].type == OPERATION_DIVIDE or
+        operations[woum_op_index].type == OPERATION_MODULO
+    then
+        print_string("write_op_unary_minus: Multiplication, division or modulo\n");
+        write_op_multiplication(file_handle, woum_op_index);
+    else if operations[woum_op_index].type == OPERATION_LEFT_SHIFT or operations[woum_op_index].type == OPERATION_RIGHT_SHIFT then
+        print_string("write_op_unary_minus: Shift\n");
+        write_op_shift(file_handle, woum_op_index);
+    else 
+        print_string("write_op_unary_minus: Unsupported left type ");
+        str_number = to_string(operations[woum_op_index].type);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string("\n");
+        exit(1);
+    end end end end
+
+    woum_reg = pop_register();
+
+    emit_string(file_handle, "\tneg ");
+    emit_string(file_handle, reg_names[woum_reg]);
+    emit_string(file_handle, "\n");
+
+    woum_reg = get_register(OPERATION_VALUE);
+
+    emit_string(file_handle, "\t; -- end unary minus --\n");
+    return;
+end
+
 proc write_assignment(uint64 file_handle, uint64 op_index)
 vars
     uint64 wa_left_index = 0;
@@ -2371,6 +2421,9 @@ code
     else if operations[wa_right_index].type == OPERATION_UNARY_LOGICAL_NOT then
         log_codegen("write_assignment: Unary not\n");
         write_unary_logical_not(file_handle, wa_right_index);
+    else if operations[wa_right_index].type == OPERATION_UNARY_MINUS then
+        print_string("write_assignment: Unary minus\n");
+        write_op_unary_minus(file_handle, wa_right_index);
     else if operations[wa_right_index].type == OPERATION_LEFT_SHIFT or operations[wa_right_index].type == OPERATION_RIGHT_SHIFT then
         log_codegen("write_assignment: Shift\n");
         write_op_shift(file_handle, wa_right_index);
@@ -2380,7 +2433,7 @@ code
         print_nstring(str_number, &buffer + buffer_size - str_number);
         print_string("\n");
         exit(1);
-    end end end end end end
+    end end end end end end end
 
     if operations[op_index].value_type == TERM_TYPE_VARIABLE then
         wa_right_reg = pop_register();
