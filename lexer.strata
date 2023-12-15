@@ -2741,7 +2741,7 @@ proc parseProcedureDeclaration ( )
 
         _ = readString ( ppdIdentifier ) ; `
         ;printf(`"[Trace] Procedure declaration: %s with %d parameters\n"`, stringAtPointer, [paProArgumentCount])
-        WriteToFile(`"%s_end:\n"`, stringAtPointer)
+        WriteToFile(`"\tret\n%s_end:\n"`, stringAtPointer)
         WriteToFile(`";==== end proc %s ====\n\n"`, stringAtPointer)`
     end
 endproc parseProcedureDeclaration
