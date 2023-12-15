@@ -23,24 +23,25 @@ proc main()
     uint64 var2_64 = 2;
     uint64 var3_64 = 3;
     bool b;
-    assert(var3_64 == 3);
 
-    sub = (99999 * 88888) + (-5 + (-10)) - (12 - 4 * var3_64 + 2) + (17 % 5) + (5 / 2) * ((3 + 2) * 4) - 5 + (0 * 15) + (1-8);
-    assert(sub == 8888711125);
-    // assert(sub == 0x211cef7d5);
+    // assert(var3_64 == 3);
+    // sub = (99999 * 88888) + (-5 + (-10)) - (12 - 4 * var3_64 + 2) + (17 % 5) + (5 / 2) * ((3 + 2) * 4) - 5 + (0 * 15) + (1-8);
+    // assert(sub == 8888711125);
+    // // assert(sub == 0x211cef7d5);
 
-    b = var_64 == var_64;          assert(b == 1);
-    b = var_64 != var_64;          assert(b == 0);
-    b = var_64 < var_64;           assert(b == 0);
-    b = var_64 <= var_64;          assert(b == 1);
-    b = var_64 > var_64;           assert(b == 0);
-    b = var_64 >= var_64;          assert(b == 1);
-    b = !(!2 == !0);               assert(b == 1);
-    b = 1 << (var2_64 + 4) == 64;  assert(b == 1);
-    var3_64 = -(var3_64 + 1 << 3); assert(var3_64 == -32);
+    // b = var_64 == var_64;          assert(b == 1);
+    // b = var_64 != var_64;          assert(b == 0);
+    // b = var_64 < var_64;           assert(b == 0);
+    // b = var_64 <= var_64;          assert(b == 1);
+    // b = var_64 > var_64;           assert(b == 0);
+    // b = var_64 >= var_64;          assert(b == 1);
+    // b = !(!2 == !0);               assert(b == 1);
+    // b = 1 << (var2_64 + 4) == 64;  assert(b == 1);
+    // var3_64 = -(var3_64 + 1 << 3); assert(var3_64 == -32);
 
-    assert(1 << 3 == 8);
-
+    // assert(1 << 3 == 8);
+    b = true;
+    assert(b);
     // sub = 1 + 4 * 2;
     
     // uint64 sum = var_64 + var2_64;

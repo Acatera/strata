@@ -242,6 +242,8 @@ enum TokenType
     TOKEN_PROC_DECL,
     TOKEN_END,
     TOKEN_ASSERT,
+    TOKEN_TRUE,
+    TOKEN_FALSE,
 end
 
 struct Keyword
@@ -463,7 +465,8 @@ add_keyword(TOKEN_LITERAL_CHAR, NULL, NULL, "TOKEN_TYPE_LITERAL_CHAR");
 add_keyword(TOKEN_PROC_DECL, "proc", 4, "TOKEN_TYPE_PROC_DECL");
 add_keyword(TOKEN_END, "end", 3, "TOKEN_TYPE_END");
 add_keyword(TOKEN_ASSERT, "assert", 6, "TOKEN_TYPE_ASSERT");
-
+add_keyword(TOKEN_TRUE, "true", 4, "TOKEN_TYPE_TRUE");
+add_keyword(TOKEN_FALSE, "false", 5, "TOKEN_TYPE_FALSE");
 
 proc lex_identifier()
 vars
@@ -1150,6 +1153,7 @@ enum Term_Type
     TERM_TYPE_LITERAL_INT = 1,
     TERM_TYPE_LITERAL_STRING,
     TERM_TYPE_LITERAL_CHAR,
+    TERM_TYPE_LITERAL_BOOL,
     TERM_TYPE_VARIABLE,
     TERM_TYPE_UNARY_OPERATION,
     TERM_TYPE_BINARY_OPERATION,
@@ -1357,6 +1361,12 @@ code
         pe_op_index = parse_expression();
         consume_token(TOKEN_CLOSE_PAREN);
         return pe_op_index;
+    else if tokens[token_index].type == TOKEN_TRUE then
+        consume_token(TOKEN_TRUE);
+        return add_operation(OPERATION_VALUE, 1, TERM_TYPE_LITERAL_BOOL, 0);
+    else if tokens[token_index].type == TOKEN_FALSE then
+        consume_token(TOKEN_FALSE);
+        return add_operation(OPERATION_VALUE, 0, TERM_TYPE_LITERAL_BOOL, 0);
     else if tokens[token_index].type == TOKEN_MINUS then
         consume_token(TOKEN_MINUS);
         if tokens[token_index].type == TOKEN_LITERAL_INT then
@@ -1386,7 +1396,7 @@ code
         end
     else
         unexpected_token();
-    end end end end end
+    end end end end end end end
 end
 
 proc parse_multiplicative_expression() -> uint64
@@ -1978,6 +1988,14 @@ code
         str_number = to_string(operations[op_index].left_index);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, "\n");
+    else if operations[op_index].value_type == TERM_TYPE_LITERAL_BOOL then
+        log_codegen("write_op_value: Unary op value is int literal\n");
+        emit_string(file_handle, "\tmov ");
+        emit_string(file_handle, reg_names[guov_free_reg]);
+        emit_string(file_handle, ", ");
+        str_number = to_string(operations[op_index].left_index);
+        emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
+        emit_string(file_handle, "\n");
     else if operations[op_index].value_type == TERM_TYPE_VARIABLE then
         log_codegen("write_op_value: Unary op value is variable\n");
         guov_left_index = operations[op_index].left_index;
@@ -1990,7 +2008,7 @@ code
     else
         print_string("write_op_value: Unsupported unary type\n");
         exit(1);
-    end end 
+    end end end
 end
 
 proc write_op_addition(uint64 file_handle, uint64 op_index);
@@ -2516,6 +2534,8 @@ code
     wa_left_index = operations[op_index].left_index;
     if is_comparison_operation(operations[wa_left_index].type) then
         write_op_comparison(file_handle, wa_left_index);
+    else if operations[wa_left_index].type == OPERATION_VALUE then
+        write_op_value(file_handle, wa_left_index, operations[op_index].type);
     else 
         print_string("write_assert: Unsupported type ");
         str_number = to_string(operations[op_index].left_index);
@@ -2523,7 +2543,7 @@ code
         print_string("\n");
 
         exit(1);
-    end
+    end end
 
     wa_reg = pop_register();
 
