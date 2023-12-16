@@ -7,15 +7,26 @@
 // char c = 'a';
 // string s = "hello";
 
-// bool b = var_8 == 0;
-// b = var_8 != 0;
-// b = var_8 < 0;
-// b = var_8 <= 0;
-// b = var_8 > 0;
-// b = var_8 >= 0;
+//  Type checking 
+//  Type Annotation: Assign types to all expressions, variables, and literals in the AST. This is often 
+//done during or immediately after the parsing phase.
+//  Type Inference (If Applicable): If your language supports type inference, implement algorithms to 
+//deduce types where they are not explicitly specified.
+//  Type Compatibility Checks: Implement checks for operations and assignments to ensure that operands 
+//are of compatible types (e.g., preventing adding a string and an integer).
+//  Function Call Checks: Verify that function calls match the definition in terms of the number and 
+//types of arguments and the return type.
+//  Error Reporting: Provide clear error messages for type mismatches, helping developers quickly 
+//understand and fix type-related issues.
 
-// uint64 var_64;
-// uint64 var2_64 = 1;
+// type checking
+// while loops
+// for loops
+// switch
+// structs
+// arrays
+// procedures and calls
+//
 
 proc main()
     uint64 sub;
@@ -24,39 +35,39 @@ proc main()
     uint64 var3_64 = 3;
     bool b;
 
-    assert(var3_64 == 3);
-    sub = (99999 * 88888) + (-5 + (-10)) - (12 - 4 * var3_64 + 2) + (17 % 5) + (5 / 2) * ((3 + 2) * 4) - 5 + (0 * 15) + (1-8);
-    assert(sub == 8888711125);
-    // assert(sub == 0x211cef7d5);
+    // assert(var3_64 == 3);
+    // sub = (99999 * 88888) + (-5 + (-10)) - (12 - 4 * var3_64 + 2) + (17 % 5) + (5 / 2) * ((3 + 2) * 4) - 5 + (0 * 15) + (1-8);
+    // assert(sub == 8888711125);
+    // // assert(sub == 0x211cef7d5);
 
-    b = var_64 == var_64;          assert(b == 1);
-    b = var_64 != var_64;          assert(b == 0);
-    b = var_64 < var_64;           assert(b == 0);
-    b = var_64 <= var_64;          assert(b == 1);
-    b = var_64 > var_64;           assert(b == 0);
-    b = var_64 >= var_64;          assert(b == 1);
-    b = !(!2 == !0);               assert(b == 1);
-    b = 1 << (var2_64 + 4) == 64;  assert(b == 1);
-    var3_64 = -(var3_64 + 1 << 3); assert(var3_64 == -32);
+    // b = var_64 == var_64;          assert(b == 1);
+    // b = var_64 != var_64;          assert(b == 0);
+    // b = var_64 < var_64;           assert(b == 0);
+    // b = var_64 <= var_64;          assert(b == 1);
+    // b = var_64 > var_64;           assert(b == 0);
+    // b = var_64 >= var_64;          assert(b == 1);
+    // b = !(!2 == !0);               assert(b == 1);
+    // b = 1 << (var2_64 + 4) == 64;  assert(b == 1);
+    // var3_64 = -(var3_64 + 1 << 3); assert(var3_64 == -32);
 
-    assert(1 << 3 == 8);
+    // assert(1 << 3 == 8);
 
-    b = true;
+    // b = true;
     
-    if b then
-        assert(b);
-        assert(b);
-    elif b == false then
-        assert(b);
-    elif b == true then
-        assert(b);
-    else
-        if true then 
-            sub = 1234;
-        else
-            sub = 4321;
-        end
-    end
+    // if b then
+    //     assert(b);
+    //     assert(b);
+    // elif b == false then
+    //     assert(b);
+    // elif b == true then
+    //     assert(b);
+    // else
+    //     if true then 
+    //         sub = 1234;
+    //     else
+    //         sub = 4321;
+    //     end
+    // end
 
     // if true then 
     // end
