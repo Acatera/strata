@@ -30,8 +30,8 @@ extern proc WriteFile(pointer hFile, pointer lpBuffer, uint64 nNumberOfBytesToWr
 
 uint64 NOT_FOUND = 0;
 NOT_FOUND = 0 - 1;
-uint64 NO_RESULT = 0;
-NO_RESULT = 0 - 1;
+uint64 NONE = 0;
+NONE = 0 - 1;
 
 uint64 std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 
@@ -211,6 +211,7 @@ enum TokenType
     TOKEN_INT32,
     TOKEN_INT64,
     TOKEN_BOOL,
+    TOKEN_CHAR,
     TOKEN_IDENTIFIER,
     TOKEN_OPEN_PAREN,
     TOKEN_CLOSE_PAREN,
@@ -424,6 +425,7 @@ add_keyword(TOKEN_INT16,  "int16",  5, "TOKEN_TYPE_INT16");
 add_keyword(TOKEN_INT32,  "int32",  5, "TOKEN_TYPE_INT32");
 add_keyword(TOKEN_INT64,  "int64",  5, "TOKEN_TYPE_INT64");
 add_keyword(TOKEN_BOOL,   "bool",   4, "TOKEN_TYPE_BOOL");
+add_keyword(TOKEN_CHAR,   "char",   4, "TOKEN_TYPE_CHAR");
 
 add_keyword(TOKEN_IDENTIFIER, NULL, NULL, "TOKEN_TYPE_IDENTIFIER");
 
@@ -1103,17 +1105,19 @@ uint64 procedure_count = 0;
 
 uint64 current_scope = 1;
 
-enum Data_Type_Enum
-    DATA_TYPE_UINT8,
-    DATA_TYPE_UINT16,
-    DATA_TYPE_UINT32,
-    DATA_TYPE_UINT64,
-    DATA_TYPE_INT8,
-    DATA_TYPE_INT16,
-    DATA_TYPE_INT32,
-    DATA_TYPE_INT64,
-    DATA_TYPE_BOOL,
-    DATA_TYPE_STRUCT,
+enum Primitive_Types
+    PRIMITIVE_ANY = 0,
+    PRIMITIVE_UINT8,
+    PRIMITIVE_UINT16,
+    PRIMITIVE_UINT32,
+    PRIMITIVE_UINT64,
+    PRIMITIVE_INT8,
+    PRIMITIVE_INT16,
+    PRIMITIVE_INT32,
+    PRIMITIVE_INT64,
+    PRIMITIVE_BOOL,
+    PRIMITIVE_CHAR,
+    PRIMITIVE_STRUCT,
 end
 
 struct Data_Type
@@ -1122,6 +1126,39 @@ struct Data_Type
     uint64 is_primitive;
     pointer name;
     uint64 name_length;
+end
+
+@define DATA_TYPE_COUNT 1000
+Data_Type[DATA_TYPE_COUNT] data_types;
+uint64 data_type_count = 0;
+
+proc add_data_type(uint64 type, uint64 size, uint64 is_primitive, pointer name, uint64 name_length)
+code
+    if data_type_count >= DATA_TYPE_COUNT then
+        print_string("Data type count exceeded\n");
+        exit(1);
+    end
+
+    data_types[data_type_count].type = type;
+    data_types[data_type_count].size = size;
+    data_types[data_type_count].is_primitive = is_primitive;
+    data_types[data_type_count].name = name;
+    data_types[data_type_count].name_length = name_length;
+    data_type_count++;
+end
+
+proc init_data_types()
+code
+    add_data_type(PRIMITIVE_UINT8, 1, 1, NULL, NULL);
+    add_data_type(PRIMITIVE_UINT16, 2, 1, NULL, NULL);
+    add_data_type(PRIMITIVE_UINT32, 4, 1, NULL, NULL);
+    add_data_type(PRIMITIVE_UINT64, 8, 1, NULL, NULL);
+    add_data_type(PRIMITIVE_INT8, 1, 1, NULL, NULL);
+    add_data_type(PRIMITIVE_INT16, 2, 1, NULL, NULL);
+    add_data_type(PRIMITIVE_INT32, 4, 1, NULL, NULL);
+    add_data_type(PRIMITIVE_INT64, 8, 1, NULL, NULL);
+    add_data_type(PRIMITIVE_BOOL, 1, 1, NULL, NULL);
+    add_data_type(PRIMITIVE_CHAR, 1, 1, NULL, NULL);
 end
 
 enum VariableKind
@@ -1180,9 +1217,12 @@ end
 
 struct Operation
     uint64 type;
-    uint64 left_index;
     uint64 value_type;
+    uint64 result_type;
+    uint64 left_index;
+    uint64 left_data_type;
     uint64 right_index;
+    uint64 right_data_type;
 end
 
 
@@ -1272,17 +1312,59 @@ code
     if_structs[if_struct_index].last_conditional_index = conditional_index;
 end
 
-proc add_operation(uint64 type, uint64 left_index, uint64 value_type, uint64 right_index) -> uint64
+proc are_data_types_compatible(uint64 left_data_type, uint64 right_data_type) -> uint64
+code
+    // print_string("Checking if data types are compatible: ");
+    // print_number(left_data_type);
+    // print_string(" and ");
+    // print_number(right_data_type);
+    // print_string("\n");
+
+    if left_data_type == PRIMITIVE_ANY or right_data_type == PRIMITIVE_ANY then
+        return 1;
+    end
+
+    if left_data_type == right_data_type then
+        return 1;
+    end
+
+    return 0;
+end
+
+proc add_operation(uint64 type, uint64 left_index, uint64 value_type, uint64 right_index, uint64 left_data_type, uint64 right_data_type) -> uint64
+vars
+    uint64 ao_left_data_type = 0;
+    uint64 ao_right_data_type = 0;
 code
     if operations_count >= BINARY_OP_COUNT then
         print_string("Binary operation count exceeded\n");
         exit(1);
     end
 
+    // TODO: Check if left and right data types are compatible
+    if are_data_types_compatible(left_data_type, right_data_type) == 0 then
+        token_index = token_index - 1;
+        print_string("Incompatible data types: ");
+        print_number(left_data_type);
+        print_string(" and ");
+        print_number(right_data_type);
+        print_string("\nLine: ");
+        print_number(tokens[token_index].line);
+        print_string(" Column: ");
+        print_number(tokens[token_index].column);
+        print_string("\n");
+        exit(1);
+    end
+
     operations[operations_count].type = type;
-    operations[operations_count].left_index = left_index;
     operations[operations_count].value_type = value_type;
+    operations[operations_count].left_index = left_index;
     operations[operations_count].right_index = right_index;
+    operations[operations_count].left_data_type = left_data_type;
+    operations[operations_count].right_data_type = right_data_type;
+
+    operations[operations_count].result_type = left_data_type;
+   
     operations_count++;
 
     return operations_count - 1;
@@ -1392,13 +1474,14 @@ code
     variable_count++;
 end
 
-proc find_variable(uint64 token_index) -> uint64
+proc find_variable(uint64 token_index, uint64 scope) -> uint64
 vars
     uint64 iv_i = 0;
 code
     iv_i = 0;
     while iv_i < variable_count do
-        if string_compare(tokens[token_index].text, variables[iv_i].name, tokens[token_index].length, variables[iv_i].name_length) then
+        if string_compare(tokens[token_index].text, variables[iv_i].name, tokens[token_index].length, variables[iv_i].name_length) and 
+            variables[iv_i].scope == scope then
             return iv_i;
         end
         iv_i++;
@@ -1422,18 +1505,47 @@ code
     return to_number(tokens[_pli_i].text, tokens[_pli_i].length);
 end
 
+proc get_data_type(uint64 token_type) -> uint64
+code
+    if token_type == TOKEN_UINT8 then
+        return PRIMITIVE_UINT8;
+    else if token_type == TOKEN_UINT16 then
+        return PRIMITIVE_UINT16;
+    else if token_type == TOKEN_UINT32 then
+        return PRIMITIVE_UINT32;
+    else if token_type == TOKEN_UINT64 then
+        return PRIMITIVE_UINT64;
+    else if token_type == TOKEN_INT8 then
+        return PRIMITIVE_INT8;
+    else if token_type == TOKEN_INT16 then
+        return PRIMITIVE_INT16;
+    else if token_type == TOKEN_INT32 then
+        return PRIMITIVE_INT32;
+    else if token_type == TOKEN_INT64 then
+        return PRIMITIVE_INT64;
+    else if token_type == TOKEN_BOOL then
+        return PRIMITIVE_BOOL;
+    else if token_type == TOKEN_CHAR then
+        return PRIMITIVE_CHAR;
+    else
+        print_string("Unknown data type\n");
+        exit(1);
+    end end end end end end end end end end 
+end
+
 proc parse_variable_declaration(uint64 scope)
 vars
     uint64 pvd_data_type = 0;
     uint64 pvd_identifier = 0;
     uint64 pvd_initial_value = 0;
 code
-    pvd_data_type = tokens[token_index].type;
-    consume_token(pvd_data_type);
+    pvd_data_type = get_data_type(tokens[token_index].type);
+    
+    consume_token(tokens[token_index].type);
     pvd_identifier = parse_identifier();
 
     // Check if variable already exists
-    if find_variable(pvd_identifier) != NOT_FOUND then
+    if find_variable(pvd_identifier, scope) != NOT_FOUND then
         // revert token index to identifier for error message
         token_index = pvd_identifier;
         redeclared_identifier();
@@ -1451,48 +1563,51 @@ code
     add_variable(tokens[pvd_identifier].text, tokens[pvd_identifier].length, pvd_data_type, pvd_initial_value, scope, VARIABLE_KIND_LOCAL);
 end
 
-proc parse_expression() -> uint64;
+proc parse_expression(uint64 scope) -> uint64;
 
-proc parse_factor() -> uint64
+proc parse_factor(uint64 scope) -> uint64
 vars
     uint64 pe_term_index = 0;
     uint64 pe_var_index = 0;
+    uint64 pe_var_type = 0;
     uint64 pe_op_index = 0;
 code
     if tokens[token_index].type == TOKEN_OPEN_PAREN then
         consume_token(TOKEN_OPEN_PAREN);
-        pe_op_index = parse_expression();
+        pe_op_index = parse_expression(scope);
         consume_token(TOKEN_CLOSE_PAREN);
         return pe_op_index;
     else if tokens[token_index].type == TOKEN_TRUE then
         consume_token(TOKEN_TRUE);
-        return add_operation(OPERATION_VALUE, 1, TERM_TYPE_LITERAL_BOOL, 0);
+        return add_operation(OPERATION_VALUE, 1, TERM_TYPE_LITERAL_BOOL, 0, PRIMITIVE_BOOL, PRIMITIVE_ANY);
     else if tokens[token_index].type == TOKEN_FALSE then
         consume_token(TOKEN_FALSE);
-        return add_operation(OPERATION_VALUE, 0, TERM_TYPE_LITERAL_BOOL, 0);
+        return add_operation(OPERATION_VALUE, 0, TERM_TYPE_LITERAL_BOOL, 0, PRIMITIVE_BOOL, PRIMITIVE_ANY);
     else if tokens[token_index].type == TOKEN_MINUS then
         consume_token(TOKEN_MINUS);
         if tokens[token_index].type == TOKEN_LITERAL_INT then
             // Unary minus on literal
             pe_term_index = 0 - parse_literal_int();
-            return add_operation(OPERATION_VALUE, pe_term_index, TERM_TYPE_LITERAL_INT, 0);
+            return add_operation(OPERATION_VALUE, pe_term_index, TERM_TYPE_LITERAL_INT, 0, PRIMITIVE_INT64, PRIMITIVE_ANY);
         else 
             // Unary minus 
-            pe_term_index = parse_factor();
-            return add_operation(OPERATION_UNARY_MINUS, pe_term_index, TERM_TYPE_UNARY_OPERATION, 0);
+            pe_term_index = parse_factor(scope);
+            return add_operation(OPERATION_UNARY_MINUS, pe_term_index, TERM_TYPE_UNARY_OPERATION, 0, 
+                operations[pe_term_index].result_type, PRIMITIVE_ANY);
         end
     else if tokens[token_index].type == TOKEN_NOT then
         consume_token(TOKEN_NOT);
-        pe_term_index = parse_factor();
-        return add_operation(OPERATION_UNARY_LOGICAL_NOT, pe_term_index, TERM_TYPE_UNARY_OPERATION, 0);
+        pe_term_index = parse_factor(scope);
+        return add_operation(OPERATION_UNARY_LOGICAL_NOT, pe_term_index, TERM_TYPE_UNARY_OPERATION, 0, PRIMITIVE_BOOL, PRIMITIVE_ANY);
     else if tokens[token_index].type == TOKEN_LITERAL_INT then
         pe_term_index = parse_literal_int();
-        return add_operation(OPERATION_VALUE, pe_term_index, TERM_TYPE_LITERAL_INT, 0);
+        return add_operation(OPERATION_VALUE, pe_term_index, TERM_TYPE_LITERAL_INT, 0, PRIMITIVE_INT64, PRIMITIVE_ANY);
     else if tokens[token_index].type == TOKEN_IDENTIFIER then
         pe_term_index = parse_identifier();
-        pe_var_index = find_variable(pe_term_index);
+        pe_var_index = find_variable(pe_term_index, scope);
         if pe_var_index != NOT_FOUND then
-            return add_operation(OPERATION_VALUE, pe_var_index, TERM_TYPE_VARIABLE, 0);
+            pe_var_type = variables[pe_var_index].data_type;
+            return add_operation(OPERATION_VALUE, pe_var_index, TERM_TYPE_VARIABLE, 0, pe_var_type, PRIMITIVE_ANY);
         else
             token_index = token_index - 1;
             unknown_identifier();
@@ -1502,13 +1617,13 @@ code
     end end end end end end end
 end
 
-proc parse_multiplicative_expression() -> uint64
+proc parse_multiplicative_expression(uint64 scope) -> uint64
 vars
     uint64 pme_op_index = 0;
     uint64 pme_right_index = 0;
     uint64 pme_op_type = 0;
 code
-    pme_op_index = parse_factor();
+    pme_op_index = parse_factor(scope);
 
     while 
         tokens[token_index].type == TOKEN_MULTIPLY or 
@@ -1525,22 +1640,23 @@ code
             consume_token(TOKEN_MODULO);
             pme_op_type = OPERATION_MODULO;
         end end
-        pme_right_index = parse_factor();
+        pme_right_index = parse_factor(scope);
 
-        pme_op_index = add_operation(pme_op_type, pme_op_index, TERM_TYPE_BINARY_OPERATION, pme_right_index);
+        pme_op_index = add_operation(pme_op_type, pme_op_index, TERM_TYPE_BINARY_OPERATION, pme_right_index, 
+            operations[pme_op_index].result_type, 
+            operations[pme_right_index].result_type);
     end
 
     return pme_op_index;
 end
 
-proc parse_additive_expression() -> uint64
+proc parse_additive_expression(uint64 scope) -> uint64
 vars
     uint64 pae_op_index = 0;
     uint64 pae_right_index = 0;
     uint64 pae_op_type = 0;
 code
-    // NOTE: Unary minus is handled in parse_factor
-    pae_op_index = parse_multiplicative_expression();
+    pae_op_index = parse_multiplicative_expression(scope);
 
     while tokens[token_index].type == TOKEN_PLUS or tokens[token_index].type == TOKEN_MINUS do
         if tokens[token_index].type == TOKEN_PLUS then
@@ -1550,21 +1666,23 @@ code
             consume_token(TOKEN_MINUS);
             pae_op_type = OPERATION_SUBTRACT;
         end
-        pae_right_index = parse_multiplicative_expression();
+        pae_right_index = parse_multiplicative_expression(scope);
 
-        pae_op_index = add_operation(pae_op_type, pae_op_index, TERM_TYPE_BINARY_OPERATION, pae_right_index);
+        pae_op_index = add_operation(pae_op_type, pae_op_index, TERM_TYPE_BINARY_OPERATION, pae_right_index, 
+            operations[pae_op_index].result_type, 
+            operations[pae_right_index].result_type);
     end
    
     return pae_op_index;
 end
 
-proc parse_shift_expression() -> uint64
+proc parse_shift_expression(uint64 scope) -> uint64
 vars
     uint64 pse_op_index = 0;
     uint64 pse_right_index = 0;
     uint64 pse_op_type = 0;
 code
-    pse_op_index = parse_additive_expression();
+    pse_op_index = parse_additive_expression(scope);
 
     while tokens[token_index].type == TOKEN_LSHIFT or tokens[token_index].type == TOKEN_RSHIFT do
         if tokens[token_index].type == TOKEN_LSHIFT then
@@ -1574,21 +1692,23 @@ code
             consume_token(TOKEN_RSHIFT);
             pse_op_type = OPERATION_RIGHT_SHIFT;
         end
-        pse_right_index = parse_additive_expression();
+        pse_right_index = parse_additive_expression(scope);
 
-        pse_op_index = add_operation(pse_op_type, pse_op_index, TERM_TYPE_BINARY_OPERATION, pse_right_index);
+        pse_op_index = add_operation(pse_op_type, pse_op_index, TERM_TYPE_BINARY_OPERATION, pse_right_index, 
+            operations[pse_op_index].result_type, 
+            operations[pse_right_index].result_type);
     end
    
     return pse_op_index;
 end
 
-proc parse_relational_expression() -> uint64
+proc parse_relational_expression(uint64 scope) -> uint64
 vars
     uint64 pre_op_index = 0;
     uint64 pre_right_index = 0;
     uint64 pre_op_type = 0;
 code
-    pre_op_index = parse_shift_expression();
+    pre_op_index = parse_shift_expression(scope);
 
     while 
         tokens[token_index].type == TOKEN_EQUALS or 
@@ -1617,17 +1737,21 @@ code
             consume_token(TOKEN_GREATER_THAN_EQUALS);
             pre_op_type = OPERATION_GREATER_THAN_EQUALS;
         end end end end end
-        pre_right_index = parse_shift_expression();
+        pre_right_index = parse_shift_expression(scope);
 
-        pre_op_index = add_operation(pre_op_type, pre_op_index, TERM_TYPE_BINARY_OPERATION, pre_right_index);
+        pre_op_index = add_operation(pre_op_type, pre_op_index, TERM_TYPE_BINARY_OPERATION, pre_right_index, 
+            operations[pre_op_index].result_type, 
+            operations[pre_right_index].result_type);
+        // Hack to make relational expressions return a boolean
+        operations[pre_op_index].result_type = PRIMITIVE_BOOL;
     end
 
     return pre_op_index;
 end
 
-proc parse_expression() -> uint64
+proc parse_expression(uint64 scope) -> uint64
 code
-    return parse_relational_expression();
+    return parse_relational_expression(scope);
 end
 
 proc add_statement_to_procedure(uint64 statement_index, uint64 proc_index)
@@ -1663,8 +1787,21 @@ code
     consume_token(TOKEN_OPEN_PAREN);
     
     // Parse expression
-    pas_expr_index = parse_expression();
-    pas_op_index = add_operation(OPERATION_ASSERT, pas_expr_index, TERM_TYPE_BINARY_OPERATION, 0);
+    pas_expr_index = parse_expression(scope);
+    pas_op_index = add_operation(OPERATION_ASSERT, pas_expr_index, TERM_TYPE_BINARY_OPERATION, 0, 
+        operations[pas_expr_index].result_type, PRIMITIVE_ANY);
+
+    // Check if expression is a boolean
+    if operations[pas_op_index].result_type != PRIMITIVE_BOOL then
+        token_index = token_index - 1;
+        print_string("Assertion expression must be a boolean\nLine: ");
+        print_number(tokens[token_index].line);
+        print_string(" Column: ");
+        print_number(tokens[token_index].column);
+        print_string("\n");
+        exit(1);
+    end
+
     pas_statement_index = create_statement(pas_op_index, procedures[proc_index].last_statement_index, NULL);
 
     consume_token(TOKEN_CLOSE_PAREN);
@@ -1709,7 +1846,7 @@ code
 
     // conditional block(s) -> else (optional)
     // Parse expression
-    pes_expr_index = parse_expression();
+    pes_expr_index = parse_expression(scope);
     // Create a conditional code block from the expression
     pes_cond_index = create_conditional_code(pes_expr_index);
 
@@ -1744,13 +1881,25 @@ code
 
     // proc -> statement -> operation(IF) -> if_struct -> conditional block(s) -> else (optional)
     // Parse expression
-    pis_expr_index = parse_expression();
+    pis_expr_index = parse_expression(scope);
+
+    // Check if expression is a boolean
+    if operations[pis_expr_index].result_type != PRIMITIVE_BOOL then
+        token_index = token_index - 1;
+        print_string("If expression must be a boolean\nLine: ");
+        print_number(tokens[token_index].line);
+        print_string(" Column: ");
+        print_number(tokens[token_index].column);
+        print_string("\n");
+        exit(1);
+    end
+
     // Create a conditional code block from the expression
     pis_cond_index = create_conditional_code(pis_expr_index);
     // Create an if struct to hold the conditional code block(s)
     pis_if_struct_index = create_if_struct(pis_cond_index);
     // Create an Operation for the if statement
-    pis_op_index = add_operation(OPERATION_IF, pis_if_struct_index, NULL, NULL);
+    pis_op_index = add_operation(OPERATION_IF, pis_if_struct_index, NULL, NULL, PRIMITIVE_ANY, PRIMITIVE_ANY);
     // Create a Statement for the Operation
     pis_statement_index = create_statement(pis_op_index, procedures[proc_index].last_statement_index, NULL);
 
@@ -1778,7 +1927,7 @@ code
         debug_string("Parsed else\n");
 
         // Create a conditional code block from the expression
-        pis_else_cond_index = create_conditional_code(NO_RESULT);
+        pis_else_cond_index = create_conditional_code(NONE);
         // Add the conditional code block to the if struct
         if_structs[pis_if_struct_index].else_index = pis_else_cond_index;
 
@@ -1810,7 +1959,7 @@ vars
 code
     if is_data_type_token(tokens[token_index].type) then
         parse_variable_declaration(scope);
-        return NO_RESULT;
+        return NONE;
     else if tokens[token_index].type == TOKEN_ASSERT then
         return parse_assert_statement(scope, proc_index);
     else if tokens[token_index].type == TOKEN_IF then
@@ -1818,9 +1967,9 @@ code
     else if tokens[token_index].type == TOKEN_IDENTIFIER then
         ps_identifier = parse_identifier();
 
-        ps_var_index = find_variable(ps_identifier);
+        ps_var_index = find_variable(ps_identifier, scope);
         if ps_var_index != NOT_FOUND then
-            ps_data_type = DATA_TYPE_UINT64;
+            ps_data_type = variables[ps_var_index].data_type;
         else
             token_index = token_index - 1;
             unknown_identifier();
@@ -1842,9 +1991,12 @@ code
             unexpected_token();
         end
 
-        ps_expr_index = parse_expression();
+        ps_expr_index = parse_expression(scope);
 
-        ps_op_index = add_operation(OPERATION_ASSIGNMENT, ps_var_index, TERM_TYPE_VARIABLE, ps_expr_index);
+        ps_op_index = add_operation(OPERATION_ASSIGNMENT, ps_var_index, TERM_TYPE_VARIABLE, ps_expr_index, 
+            ps_data_type, 
+            operations[ps_expr_index].result_type
+        );
 
         debug_string("Added binary op index: ");
         str_number = to_string(ps_op_index);
@@ -1887,7 +2039,7 @@ code
 
         // Some statements return NULL, like variable declarations
         // These should not be added to the procedure
-        if ppd_current_statement != NO_RESULT then
+        if ppd_current_statement != NONE then
             add_statement_to_procedure(ppd_current_statement, ppd_proc_index);
         end
     end
@@ -1895,6 +2047,10 @@ code
     consume_token(TOKEN_END);
 end
 
+// Initialize primitive data types
+init_data_types();
+
+// Start parsing
 while token_index < token_count do
     if is_data_type_token(tokens[token_index].type) then
         parse_variable_declaration(VARIABLE_SCOPE_GLOBAL);
@@ -2779,6 +2935,8 @@ code
     wa_left_index = operations[op_index].left_index;
     if is_comparison_operation(operations[wa_left_index].type) then
         write_op_comparison(file_handle, wa_left_index);
+    else if operations[wa_left_index].type == OPERATION_UNARY_LOGICAL_NOT then
+        write_unary_logical_not(file_handle, wa_left_index);
     else if operations[wa_left_index].type == OPERATION_VALUE then
         write_op_value(file_handle, wa_left_index, operations[op_index].type);
     else 
@@ -2788,7 +2946,7 @@ code
         print_string("\n");
 
         exit(1);
-    end end
+    end end end
 
     wa_reg = pop_register();
 
@@ -2820,7 +2978,7 @@ code
     emit_num_string(file_handle, wcc_block_index);
     emit_string(file_handle, ":\n");
 
-    if wcc_cond_index != NO_RESULT then
+    if wcc_cond_index != NONE then
         if operations[wcc_cond_index].type == OPERATION_VALUE then
             write_op_value(file_handle, wcc_cond_index, OPERATION_VALUE);
         else
