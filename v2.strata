@@ -257,6 +257,7 @@ enum TokenType
     TOKEN_THEN,
     TOKEN_ELSE,
     TOKEN_ELIF,
+    TOKEN_RETURN,
 end
 
 struct Keyword
@@ -478,6 +479,7 @@ add_keyword(TOKEN_LITERAL_CHAR, NULL, NULL, "TOKEN_TYPE_LITERAL_CHAR");
 // Keywords
 add_keyword(TOKEN_PROC_DECL, "proc", 4, "TOKEN_TYPE_PROC_DECL");
 add_keyword(TOKEN_END, "end", 3, "TOKEN_TYPE_END");
+add_keyword(TOKEN_RETURN, "return", 6, "TOKEN_TYPE_RETURN");
 add_keyword(TOKEN_ASSERT, "assert", 6, "TOKEN_TYPE_ASSERT");
 add_keyword(TOKEN_TRUE, "true", 4, "TOKEN_TYPE_TRUE");
 add_keyword(TOKEN_FALSE, "false", 5, "TOKEN_TYPE_FALSE");
@@ -1091,9 +1093,13 @@ struct Procedure
     uint64 variable_count;
     uint64 first_variable_index;
     uint64 last_variable_index;
+    uint64 param_count;
+    uint64 first_param_index;
+    uint64 last_param_index;
     uint64 statement_count;
     uint64 first_statement_index;
     uint64 last_statement_index;
+    uint64 return_type;
 end
 
 @define PROCEDURE_COUNT 1000
@@ -1199,9 +1205,12 @@ enum Operation_Type
     OPERATION_RIGHT_SHIFT,
     OPERATION_UNARY_MINUS,
     OPERATION_UNARY_LOGICAL_NOT,
+    // 17
     OPERATION_VALUE,
     OPERATION_ASSERT,
     OPERATION_IF,
+    OPERATION_PROCEDURE_CALL,
+    OPERATION_RETURN,
 end
 
 enum Term_Type
@@ -1406,15 +1415,24 @@ code
     procedures[procedure_count].name = name;
     procedures[procedure_count].name_length = name_length;
     procedures[procedure_count].variable_count = 0;
-    procedures[procedure_count].first_variable_index = NOT_FOUND;
-    procedures[procedure_count].last_variable_index = NOT_FOUND;
+    procedures[procedure_count].first_variable_index = NONE;
+    procedures[procedure_count].last_variable_index = NONE;
+    procedures[procedure_count].param_count = 0;
+    procedures[procedure_count].first_param_index = NONE;
+    procedures[procedure_count].last_param_index = NONE;
     procedures[procedure_count].statement_count = 0;
-    procedures[procedure_count].first_statement_index = NOT_FOUND;
-    procedures[procedure_count].last_statement_index = NOT_FOUND;
+    procedures[procedure_count].first_statement_index = NONE;
+    procedures[procedure_count].last_statement_index = NONE;
+    procedures[procedure_count].return_type = NONE;
     
     procedure_count++;
 
     return procedure_count - 1;
+end
+
+proc update_procedure_return_type(uint64 procedure_index, uint64 return_type)
+code
+    procedures[procedure_index].return_type = return_type;
 end
 
 proc find_procedure(pointer name, uint64 name_length) -> uint64
@@ -1453,6 +1471,28 @@ code
     procedures[avtp_current_proc].variable_count = procedures[avtp_current_proc].variable_count + 1;
 end
 
+proc add_param_to_procedure(uint64 param_index)
+vars
+    uint64 aptp_current_proc = 0;
+    uint64 aptp_last_param_index = 0;
+code
+    debug_string("Adding param to procedure\n");
+    aptp_current_proc = procedure_count - 1;
+    if procedures[aptp_current_proc].first_param_index == NOT_FOUND then
+        procedures[aptp_current_proc].first_param_index = param_index;
+        procedures[aptp_current_proc].last_param_index = param_index;
+    else
+        aptp_last_param_index = procedures[aptp_current_proc].last_param_index;
+        variables[aptp_last_param_index].next_variable_index = param_index;
+        procedures[aptp_current_proc].last_param_index = param_index;
+    end
+
+    // Set variable index
+    variables[param_index].rbp_offset = procedures[aptp_current_proc].param_count * 8 + 16;
+
+    procedures[aptp_current_proc].param_count = procedures[aptp_current_proc].param_count + 1;
+end
+
 proc add_variable(pointer name, uint64 name_length, uint64 data_type, uint64 initial_value, uint64 scope, uint64 kind)
 code
     if variable_count >= VARIABLE_COUNT then
@@ -1467,8 +1507,23 @@ code
     variables[variable_count].scope = scope;
     variables[variable_count].kind = kind;
 
+    print_string("Kind: ");
+    print_number(kind);
+    print_string("\n");
+
     if scope != VARIABLE_SCOPE_GLOBAL then
-        add_variable_to_procedure(variable_count);
+        if kind == VARIABLE_KIND_LOCAL then
+            print_string("Adding local variable\n");
+            add_variable_to_procedure(variable_count);
+            variables[variable_count].rbp_offset = 0;
+        else if kind == VARIABLE_KIND_PARAMETER then
+            print_string("Adding parameter\n");
+            variables[variable_count].rbp_offset = 0;
+            add_param_to_procedure(variable_count);
+        else
+            print_string("Unknown variable kind\n");
+            exit(1);
+        end end
     end
 
     variable_count++;
@@ -1606,9 +1661,14 @@ code
         pe_term_index = parse_identifier();
         pe_var_index = find_variable(pe_term_index, scope);
         if pe_var_index != NOT_FOUND then
+            print_string("Found variable: ");
+            print_nstring(variables[pe_var_index].name, variables[pe_var_index].name_length);
+            print_string("\n");
+
             pe_var_type = variables[pe_var_index].data_type;
             return add_operation(OPERATION_VALUE, pe_var_index, TERM_TYPE_VARIABLE, 0, pe_var_type, PRIMITIVE_ANY);
         else
+            print_string("blah\n");
             token_index = token_index - 1;
             unknown_identifier();
         end
@@ -1948,11 +2008,90 @@ code
     return pis_statement_index;
 end
 
+proc parse_procedure_call(uint64 scope, uint64 proc_index) -> uint64
+vars
+    uint64 ppc_identifier = 0;
+    uint64 ppc_proc_index = 0;
+    uint64 ppc_op_index = 0;
+    uint64 ppc_statement_index = 0;
+code
+    ppc_identifier = parse_identifier();
+
+    ppc_proc_index = find_procedure(tokens[ppc_identifier].text, tokens[ppc_identifier].length);
+    if ppc_proc_index != NOT_FOUND then
+        consume_token(TOKEN_OPEN_PAREN);
+
+        // TODO: Check if procedure has parameters
+
+        consume_token(TOKEN_CLOSE_PAREN);
+
+        ppc_op_index = add_operation(OPERATION_PROCEDURE_CALL, ppc_proc_index, TERM_TYPE_PROCEDURE_CALL, 0, PRIMITIVE_ANY, PRIMITIVE_ANY);
+
+        ppc_statement_index = create_statement(ppc_op_index, procedures[proc_index].last_statement_index, NULL);
+
+        consume_token(TOKEN_SEMICOLON);
+
+        return ppc_statement_index;
+    else
+        token_index = token_index - 1;
+        unknown_identifier();
+    end
+    return NONE;
+end
+
+proc parse_return_statement(uint64 scope, uint64 proc_index) -> uint64
+vars 
+    uint64 prs_expr_index = 0;
+    uint64 prs_op_index = 0;
+    uint64 prs_statement_index = 0;
+    uint64 prs_proc_return_type = 0;
+code
+    prs_proc_return_type = procedures[proc_index].return_type;
+
+    consume_token(TOKEN_RETURN);
+
+    if tokens[token_index].type == TOKEN_SEMICOLON then
+        if prs_proc_return_type == NONE then
+            prs_op_index = add_operation(OPERATION_RETURN, NONE, NONE, NONE, PRIMITIVE_ANY, PRIMITIVE_ANY);
+        else
+            token_index = token_index - 1;
+            print_string("Procedure must return a value\nLine: ");
+            print_number(tokens[token_index].line);
+            print_string(" Column: ");
+            print_number(tokens[token_index].column);
+            print_string("\n");
+            exit(1);
+        end
+    else
+        prs_expr_index = parse_expression(scope);
+
+        print_string("Return expr index: ");
+        print_number(prs_expr_index);
+        print_string("\n");
+        print_string("Return expr type: ");
+        print_number(operations[prs_expr_index].type);
+        print_string("\n");
+
+        print_string("Return value type: ");
+        print_number(operations[prs_expr_index].value_type);
+        print_string("\n");
+        prs_op_index = add_operation(OPERATION_RETURN, prs_expr_index, TERM_TYPE_UNARY_OPERATION, NONE, 
+            operations[prs_expr_index].result_type, PRIMITIVE_ANY);
+        
+    end
+
+    consume_token(TOKEN_SEMICOLON);
+
+    prs_statement_index = create_statement(prs_op_index, procedures[proc_index].last_statement_index, NULL);
+
+    return prs_statement_index;
+end
+
 proc parse_statement(uint64 scope, uint64 proc_index) -> uint64
 vars
     uint64 ps_identifier = 0;
     uint64 ps_data_type = 0;
-    uint64 ps_var_index = 0;
+    uint64 ps_symbol_index = 0;
     uint64 ps_expr_index = 0;
     uint64 ps_op_index = 0;
     uint64 ps_statement_index = 0;
@@ -1964,19 +2103,27 @@ code
         return parse_assert_statement(scope, proc_index);
     else if tokens[token_index].type == TOKEN_IF then
         return parse_if_statement(scope, proc_index);
+    else if tokens[token_index].type == TOKEN_RETURN then
+        return parse_return_statement(scope, proc_index);
     else if tokens[token_index].type == TOKEN_IDENTIFIER then
         ps_identifier = parse_identifier();
 
-        ps_var_index = find_variable(ps_identifier, scope);
-        if ps_var_index != NOT_FOUND then
-            ps_data_type = variables[ps_var_index].data_type;
+        ps_symbol_index = find_variable(ps_identifier, scope);
+        if ps_symbol_index != NOT_FOUND then
+            ps_data_type = variables[ps_symbol_index].data_type;
         else
-            token_index = token_index - 1;
-            unknown_identifier();
+            ps_symbol_index = find_procedure(tokens[ps_identifier].text, tokens[ps_identifier].length);
+            if ps_symbol_index != NOT_FOUND then
+                token_index = token_index - 1; // revert token index 
+                return parse_procedure_call(scope, proc_index);
+            else
+                token_index = token_index - 1;
+                unknown_identifier();
+            end
         end
 
         debug_string("Variable index is ");
-        str_number = to_string(ps_var_index);
+        str_number = to_string(ps_symbol_index);
         debug_nstring(str_number, &buffer + buffer_size - str_number);
         debug_string("\n");
 
@@ -1993,7 +2140,7 @@ code
 
         ps_expr_index = parse_expression(scope);
 
-        ps_op_index = add_operation(OPERATION_ASSIGNMENT, ps_var_index, TERM_TYPE_VARIABLE, ps_expr_index, 
+        ps_op_index = add_operation(OPERATION_ASSIGNMENT, ps_symbol_index, TERM_TYPE_VARIABLE, ps_expr_index, 
             ps_data_type, 
             operations[ps_expr_index].result_type
         );
@@ -2010,7 +2157,23 @@ code
         return ps_statement_index;
     else
         unexpected_token();
-    end end end end
+    end end end end end
+end
+
+proc parse_param_declaration(uint64 scope, uint64 proc_index)
+vars
+    uint64 pad_data_type = 0;
+    uint64 pad_identifier = 0;
+code
+    if is_data_type_token(tokens[token_index].type) then
+        pad_data_type = get_data_type(tokens[token_index].type);
+        consume_token(tokens[token_index].type);
+        pad_identifier = parse_identifier();
+    else    
+        unexpected_token();
+    end
+
+    add_variable(tokens[pad_identifier].text, tokens[pad_identifier].length, pad_data_type, 0, scope, VARIABLE_KIND_PARAMETER);
 end
 
 proc parse_procedure_declaration(uint64 scope)
@@ -2018,6 +2181,8 @@ vars
     uint64 ppd_identifier = 0;
     uint64 ppd_proc_index = 0;
     uint64 ppd_current_statement = 0;
+    uint64 ppd_param_index = 0;
+    uint64 ppd_return_type = 0;
 code
     consume_token(TOKEN_PROC_DECL);
     ppd_identifier = parse_identifier();
@@ -2032,7 +2197,24 @@ code
     ppd_proc_index = add_procedure(tokens[ppd_identifier].text, tokens[ppd_identifier].length);
 
     consume_token(TOKEN_OPEN_PAREN);
+
+    // Parse parameters
+    while tokens[token_index].type != TOKEN_CLOSE_PAREN do
+        ppd_param_index = parse_param_declaration(scope, ppd_proc_index);
+
+        if tokens[token_index].type == TOKEN_COMMA then
+            consume_token(TOKEN_COMMA);
+        end
+    end
+
     consume_token(TOKEN_CLOSE_PAREN);
+
+    if tokens[token_index].type == TOKEN_ARROW then
+        consume_token(TOKEN_ARROW);
+        ppd_return_type = get_data_type(tokens[token_index].type);
+        consume_token(tokens[token_index].type);
+        update_procedure_return_type(ppd_proc_index, ppd_return_type);
+    end
 
     while tokens[token_index].type != TOKEN_END and token_index < token_count do
         ppd_current_statement = parse_statement(scope, ppd_proc_index);
@@ -2227,7 +2409,8 @@ code
     if 
         op_type == OPERATION_MULTIPLY or 
         op_type == OPERATION_DIVIDE or 
-        op_type == OPERATION_MODULO
+        op_type == OPERATION_MODULO or 
+        op_type == OPERATION_RETURN
     then
         if reg_used[REG_RAX] == 0 then
             reg_used[REG_RAX] = 1;
@@ -2407,7 +2590,9 @@ code
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, "]\n");
     else
-        print_string("write_op_value: Unsupported unary type\n");
+        print_string("write_op_value: Unsupported unary type: ");
+        print_number(operations[op_index].value_type);
+        print_string("\n");
         exit(1);
     end end end
 end
@@ -2600,7 +2785,9 @@ code
     else if operations[op_index].type == OPERATION_SUBTRACT then
         emit_string(file_handle, "\tsub ");
     else
-        print_string("write_op_addition: Unsupported operation type\n");
+        print_string("write_op_addition: Unsupported operation type: ");
+        print_number(operations[op_index].type);
+        print_string("\n");
         exit(1);
     end end
     emit_string(file_handle, reg_names[woa_left_reg]);
@@ -3071,8 +3258,125 @@ code
     emit_string(file_handle, ": ; end-if statement\n\n");
 end
 
+proc emit_push_occupied_registers()
+vars
+    uint64 por_i = 0;
+    uint64 por_j = 0;
+code
+    por_i = 0;
+    while por_i < REG_COUNT do
+        if reg_used[por_i] > 1 then
+            por_j = 0;
+            while por_j < reg_used[por_i] - 1 do
+                emit_string(output_file_handle, "\tpush ");
+                emit_string(output_file_handle, reg_names[por_i]);
+                emit_string(output_file_handle, "\n");
+                por_j = por_j + 1;
+            end
+        else if reg_used[por_i] == 1 then
+            emit_string(output_file_handle, "\tpush ");
+            emit_string(output_file_handle, reg_names[por_i]);
+            emit_string(output_file_handle, "\n");
+        end end
+        por_i = por_i + 1;
+    end
+end
+
+proc emit_pop_occupied_registers(uint64 file_handle)
+vars
+    uint64 ppor_i = 0;
+    uint64 ppor_j = 0;
+code
+    ppor_i = REG_COUNT - 1;
+    print_string("ppor_i: ");
+    print_number(ppor_i);
+    print_string("\n");
+    while ppor_i >= 0 do
+        if reg_used[ppor_i] > 1 then
+            print_string("reg > 1\n");
+            ppor_j = reg_used[ppor_i] - 1;
+            while ppor_j >= 0  do
+                emit_string(file_handle, "\tpop ");
+                emit_string(file_handle, reg_names[ppor_i]);
+                emit_string(file_handle, "\n");
+                ppor_j = ppor_j - 1;
+            end
+        else if reg_used[ppor_i] == 1 then
+            print_string("reg = 1\n");
+            emit_string(file_handle, "\tpop ");
+            emit_string(file_handle, reg_names[ppor_i]);
+            emit_string(file_handle, "\n");
+        end end
+        ppor_i = ppor_i - 1;
+    end
+end
+
+proc write_procedure_call(uint64 file_handle, uint64 op_index)
+vars 
+    uint64 wpc_index = 0;
+code
+    emit_string(file_handle, "\t; procedure call\n");
+    emit_push_occupied_registers();
+    emit_string(file_handle, "\tcall proc_");
+    wpc_index = operations[op_index].left_index;
+    emit_nstring(file_handle, procedures[wpc_index].name, procedures[wpc_index].name_length);
+    emit_string(file_handle, "\n");
+    emit_pop_occupied_registers(file_handle);
+    emit_string(file_handle, "\t; -- end procedure call --\n");
+
+    if procedures[wpc_index].return_type != NONE then
+        get_register(OPERATION_RETURN);
+    end
+end
+
+proc write_return(uint64 file_handle, uint64 op_index, uint64 proc_index)
+vars
+    uint64 wr_reg = 0;
+    uint64 wr_index = 0;
+code
+    if operations[op_index].left_index != NONE then
+        wr_index = operations[op_index].left_index;
+        print_string("write_return: left type ");
+        print_number(operations[wr_index].type);
+        print_string("\n");
+        if operations[wr_index].type == OPERATION_VALUE then
+            write_op_value(file_handle, wr_index, OPERATION_VALUE);
+        else if operations[wr_index].type == OPERATION_ADD or operations[wr_index].type == OPERATION_SUBTRACT then
+            write_op_addition(file_handle, wr_index);
+        else if 
+            operations[wr_index].type == OPERATION_MULTIPLY or 
+            operations[wr_index].type == OPERATION_DIVIDE or
+            operations[wr_index].type == OPERATION_MODULO
+        then
+            write_op_multiplication(file_handle, wr_index);
+        else if operations[wr_index].type == OPERATION_UNARY_LOGICAL_NOT then
+            write_unary_logical_not(file_handle, wr_index);
+        else if operations[wr_index].type == OPERATION_UNARY_MINUS then
+            write_op_unary_minus(file_handle, wr_index);
+        else if operations[wr_index].type == OPERATION_LEFT_SHIFT or operations[wr_index].type == OPERATION_RIGHT_SHIFT then
+            write_op_shift(file_handle, wr_index);
+        else 
+            print_string("write_return: Unsupported left type ");
+            str_number = to_string(operations[wr_index].type);
+            print_nstring(str_number, &buffer + buffer_size - str_number);
+            print_string("\n");
+            exit(1);
+        end end end end end end 
+
+        wr_reg = pop_register();
+        emit_string(file_handle, "\tmov rax, ");
+        emit_string(file_handle, reg_names[wr_reg]);
+        emit_string(file_handle, "\n");
+    end
+
+    emit_string(file_handle, "\t; return early\n");
+    emit_string(file_handle, "\tmov rsp, rbp\n");
+    emit_string(file_handle, "\tpop rbp\n");
+    emit_string(file_handle, "\tret\n");
+end
+
 uint64 ws_statement_index = 0;
-proc write_statement(uint64 file_handle, uint64 statement_index)
+proc write_statement(uint64 file_handle, uint64 statement_index, uint64 proc_index)
 vars
     uint64 ws_op_index = 0;
     uint64 ws_left_index = 0;
@@ -3095,9 +3399,15 @@ code
         write_assert(file_handle, ws_op_index);
     else if operations[ws_op_index].type == OPERATION_IF then
         write_if_statement(file_handle, ws_op_index);
+    else if operations[ws_op_index].type == OPERATION_PROCEDURE_CALL then
+        write_procedure_call(file_handle, ws_op_index);
+    else if operations[ws_op_index].type == OPERATION_RETURN then
+        write_return(file_handle, ws_op_index, proc_index);
     else
-        unexpected_token();
-    end end end
+        print_string("write_statement: Unsupported operation type ");
+        print_number(operations[ws_op_index].type);
+        print_string("\n");
+    end end end end end
 
     ws_statement_index++;
 end
@@ -3136,7 +3446,7 @@ code
     wp_i = 0;
     wp_statement_index = procedures[procedure_index].first_statement_index;
     while wp_i < procedures[procedure_index].statement_count do
-        write_statement(file_handle, wp_statement_index);
+        write_statement(file_handle, wp_statement_index, procedure_index);
         wp_statement_index = statements[wp_statement_index].next_index;
         wp_i++;
     end
@@ -3170,22 +3480,3 @@ end
 
 output_file_handle = CreateFileA("v3.asm", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 write_program(output_file_handle);
-
-
-
-// Strings - compare, index, read, write
-// Uint16, uint32, int8, int16, uint32, int64
-// offsetof() intrinsic
-// Macros
-// Variadic procedures
-// `test`, `str` is not a valid identifier because it is a keyword in assembly
-// Includes
-// Asserts
-//
-// For loops
-// Generate byte code
-// Dead code elimination
-// Constant folding
-// Tests - edit some simple examples and develop a C# app to run them. Compare output
-// Type check
-//

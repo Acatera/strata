@@ -20,6 +20,8 @@
 //understand and fix type-related issues.
 
 // type checking
+
+
 // while loops
 // for loops
 // switch
@@ -29,62 +31,114 @@
 //
 
 
+
+// Allow global variables
+// int64 global_var = 0;
+
+// Allow structs
+// struct my_struct
+//     int64 a;
+//     int64 b;
+// end
+
+// Allow inner structs
+// struct my_struct2
+//     int64 a;
+//     int64 b;
+//     my_struct s;
+
+// Allow parameterized procedures 
+proc sum(int64 a, int64 b) -> int64
+    return a + b;
+end
+
+// Allow forward declarations
+// proc tests();
+
+// proc my_proc()
+//     int64 sub = 3;
+//     return;
+//     assert(sub == 3);
+// end
+
 proc main()
-    int64 sub;
-    int64 var_64 = 2147483648;
-    int64 var2_64 = 2;
-    int64 var3_64 = 3;
-    bool b;
+    // int64 sum = 0;
 
-
-    assert(var3_64 == 3);
-    sub = (99999 * 88888) + (-5 + (-10)) - (12 - 4 * var3_64 + 2) + (17 % 5) + (5 / 2) * ((3 + 2) * 4) - 5 + (0 * 15) + (1-8);
-    assert(sub == 8888711125);
-    // assert(sub == 0x211cef7d5);
-
-    b = var_64 == var_64;          assert(b);
-    b = var_64 != var_64;          assert(!b);
-    b = var_64 < var_64;           assert(!b);
-    b = var_64 <= var_64;          assert(b);
-    b = var_64 > var_64;           assert(!b);
-    b = var_64 >= var_64;          assert(b);
-    b = !(!2 == !0);               assert(b);
-    b = 1 << (var2_64 + 4) == 64;  assert(b);
-    var3_64 = -(var3_64 + 1 << 3); assert(var3_64 == -32);
-
-    assert(1 << 3 == 8);
-
-    b = !b;
-    b = true;
+    // Allow proc calls with arguments
+    // sum(1, 2);
     
-    if b then
-        assert(b);
-        assert(b);
-    elif b == false then
-        assert(b);
-    elif b == true then
-        assert(b);
-    else
-        if true then 
-            sub = 1234;
-        else
-            sub = 4321;
-        end
-    end
 
-    if true then 
-    end
-    sub = 1 + 4 * 2;
-    
-    // uint64 sum = var_64 + var2_64;
-    sub = var_64 - var2_64;
+    // int64 a = 1;
+    // my_proc(); // Allow procedure calls
+
+    // Allow forward procedure calls
+    // tests();
 end
 
-proc main2()
-    int64 sub;
+proc tests()
+    int64 a = 1;
+    int64 b = 2;
+    // Allow expressions to be used as initializers for variables
+    // int64 c = 1 + 2;
+    // int64 d = a * b;
+
+    // Allow while loops
+    // while a < 10 do
+    //     a = a + 1;
+    // // Allow increment and decrement operators
+    // // a++;
+    // // a--;
+    // end
+
 end
 
-// proc test_proc()
-//     uint8 ch;
-//     ch = 0;
+// proc main2()
+//     int64 sub;
+//     int64 var_64 = 2147483648;
+//     int64 var2_64 = 2;
+//     int64 var3_64 = 3;
+//     bool b;
+
+
+//     assert(var3_64 == 3);
+//     sub = (99999 * 88888) + (-5 + (-10)) - (12 - 4 * var3_64 + 2) + (17 % 5) + (5 / 2) * ((3 + 2) * 4) - 5 + (0 * 15) + (1-8);
+//     assert(sub == 8888711125);
+//     // assert(sub == 0x211cef7d5);
+
+//     b = var_64 == var_64;          assert(b);
+//     b = var_64 != var_64;          assert(!b);
+//     b = var_64 < var_64;           assert(!b);
+//     b = var_64 <= var_64;          assert(b);
+//     b = var_64 > var_64;           assert(!b);
+//     b = var_64 >= var_64;          assert(b);
+//     b = !(!2 == !0);               assert(b);
+//     b = 1 << (var2_64 + 4) == 64;  assert(b);
+//     var3_64 = -(var3_64 + 1 << 3); assert(var3_64 == -32);
+
+//     assert(1 << 3 == 8);
+
+//     b = !b;
+//     b = true;
+    
+//     if b then
+//         assert(b);
+//         assert(b);
+//     elif b == false then
+//         assert(b);
+//     elif b == true then
+//         assert(b);
+//     else
+//         if true then 
+//             sub = 1234;
+//         else
+//             sub = 4321;
+//         end
+//     end
+
+//     if true then 
+//     end
+//     sub = 1 + 4 * 2;
+    
+//     // uint64 sum = var_64 + var2_64;
+//     sub = var_64 - var2_64;
 // end
