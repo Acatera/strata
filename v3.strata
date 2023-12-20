@@ -52,6 +52,10 @@ proc sum(int64 a, int64 b) -> int64
     return a + b;
 end
 
+proc get_pi() -> int64
+    return 3;
+end
+
 // Allow forward declarations
 // proc tests();
 
@@ -63,10 +67,15 @@ end
 
 proc main()
     // int64 sum = 0;
+    int64 s = 0;
+    int64 pi = 0;
 
-    // Allow proc calls with arguments
-    // sum(1, 2);
-    
+    // pi = get_pi();
+    // assert(pi == 3);
+
+    // // Allow proc calls with arguments
+    // s = sum(1, 2);
+    sum(1,2);
 
     // int64 a = 1;
     // my_proc(); // Allow procedure calls
@@ -75,22 +84,22 @@ proc main()
     // tests();
 end
 
-proc tests()
-    int64 a = 1;
-    int64 b = 2;
-    // Allow expressions to be used as initializers for variables
-    // int64 c = 1 + 2;
-    // int64 d = a * b;
+// proc tests()
+//     int64 a = 1;
+//     int64 b = 2;
+//     // Allow expressions to be used as initializers for variables
+//     // int64 c = 1 + 2;
+//     // int64 d = a * b;
 
-    // Allow while loops
-    // while a < 10 do
-    //     a = a + 1;
-    // // Allow increment and decrement operators
-    // // a++;
-    // // a--;
-    // end
+//     // Allow while loops
+//     // while a < 10 do
+//     //     a = a + 1;
+//     // // Allow increment and decrement operators
+//     // // a++;
+//     // // a--;
+//     // end
 
-end
+// end
 
 // proc main2()
 //     int64 sub;

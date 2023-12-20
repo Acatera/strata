@@ -1626,6 +1626,7 @@ vars
     uint64 pe_var_index = 0;
     uint64 pe_var_type = 0;
     uint64 pe_op_index = 0;
+    uint64 pe_param_count = 0;
 code
     if tokens[token_index].type == TOKEN_OPEN_PAREN then
         consume_token(TOKEN_OPEN_PAREN);
@@ -1668,9 +1669,48 @@ code
             pe_var_type = variables[pe_var_index].data_type;
             return add_operation(OPERATION_VALUE, pe_var_index, TERM_TYPE_VARIABLE, 0, pe_var_type, PRIMITIVE_ANY);
         else
-            print_string("blah\n");
-            token_index = token_index - 1;
-            unknown_identifier();
+            pe_var_index = find_procedure(tokens[pe_term_index].text, tokens[pe_term_index].length);
+            if pe_var_index != NOT_FOUND then
+                print_string("Found procedure: ");
+                print_nstring(procedures[pe_var_index].name, procedures[pe_var_index].name_length);
+                print_string(" (");
+                print_number(pe_var_index);
+                print_string(")\n");
+
+                pe_var_type = procedures[pe_var_index].return_type;
+
+                consume_token(TOKEN_OPEN_PAREN);
+
+                pe_param_count = 0;
+                while tokens[token_index].type != TOKEN_CLOSE_PAREN do
+                    print_string("Found argument\n");
+                    pe_param_count = pe_param_count + 1;
+                    parse_expression(scope);
+                    if tokens[token_index].type == TOKEN_COMMA then
+                        consume_token(TOKEN_COMMA);
+                    end
+                end
+
+                consume_token(TOKEN_CLOSE_PAREN);
+
+                if pe_param_count != procedures[pe_var_index].param_count then
+                    token_index = token_index - 1;
+                    print_string("Incorrect number of parameters. Expected ");
+                    print_number(procedures[pe_var_index].param_count);
+                    print_string(" but got ");
+                    print_number(pe_param_count);
+                    print_string("\nLine: ");
+                    print_number(tokens[token_index].line);
+                    print_string(" Column: ");
+                    print_number(tokens[token_index].column);
+                    print_string("\n");
+                    exit(1);
+                end
+                return add_operation(OPERATION_PROCEDURE_CALL, pe_var_index, TERM_TYPE_PROCEDURE_CALL, 0, pe_var_type, PRIMITIVE_ANY);
+            else
+                token_index = token_index - 1;
+                unknown_identifier();
+            end
         end
     else
         unexpected_token();
@@ -2014,6 +2054,7 @@ vars
     uint64 ppc_proc_index = 0;
     uint64 ppc_op_index = 0;
     uint64 ppc_statement_index = 0;
+    uint64 ppc_param_count = 0;
 code
     ppc_identifier = parse_identifier();
 
@@ -2021,9 +2062,31 @@ code
     if ppc_proc_index != NOT_FOUND then
         consume_token(TOKEN_OPEN_PAREN);
 
-        // TODO: Check if procedure has parameters
+        ppc_param_count = 0;
+        while tokens[token_index].type != TOKEN_CLOSE_PAREN do
+            print_string("Found argument\n");
+            ppc_param_count = ppc_param_count + 1;
+            parse_expression(scope);
+            if tokens[token_index].type == TOKEN_COMMA then
+                consume_token(TOKEN_COMMA);
+            end
+        end
 
         consume_token(TOKEN_CLOSE_PAREN);
+
+        if ppc_param_count != procedures[ppc_proc_index].param_count then
+            token_index = token_index - 1;
+            print_string("Incorrect number of parameters. Expected ");
+            print_number(procedures[ppc_proc_index].param_count);
+            print_string(" but got ");
+            print_number(ppc_param_count);
+            print_string("\nLine: ");
+            print_number(tokens[token_index].line);
+            print_string(" Column: ");
+            print_number(tokens[token_index].column);
+            print_string("\n");
+            exit(1);
+        end
 
         ppc_op_index = add_operation(OPERATION_PROCEDURE_CALL, ppc_proc_index, TERM_TYPE_PROCEDURE_CALL, 0, PRIMITIVE_ANY, PRIMITIVE_ANY);
 
@@ -2208,6 +2271,14 @@ code
     end
 
     consume_token(TOKEN_CLOSE_PAREN);
+
+    print_string("Procedure ");
+    print_nstring(procedures[ppd_proc_index].name, procedures[ppd_proc_index].name_length);
+    print_string("(");
+    print_number(ppd_proc_index);
+    print_string(") has ");
+    print_number(procedures[ppd_proc_index].param_count);
+    print_string(" parameters\n");
 
     if tokens[token_index].type == TOKEN_ARROW then
         consume_token(TOKEN_ARROW);
@@ -3044,6 +3115,8 @@ code
     return;
 end
 
+proc write_procedure_call(uint64 file_handle, uint64 op_index); // Forward declaration
+
 proc write_assignment(uint64 file_handle, uint64 op_index)
 vars
     uint64 wa_left_index = 0;
@@ -3081,13 +3154,16 @@ code
     else if operations[wa_right_index].type == OPERATION_LEFT_SHIFT or operations[wa_right_index].type == OPERATION_RIGHT_SHIFT then
         log_codegen("write_assignment: Shift\n");
         write_op_shift(file_handle, wa_right_index);
+    else if operations[wa_right_index].type == OPERATION_PROCEDURE_CALL then
+        print_string("write_assignment: Procedure call\n");
+        write_procedure_call(file_handle, wa_right_index);
     else 
         print_string("write_assignment: Unsupported right type: ");
         str_number = to_string(operations[wa_right_index].type);
         print_nstring(str_number, &buffer + buffer_size - str_number);
         print_string("\n");
         exit(1);
-    end end end end end end end
+    end end end end end end end end
 
     if operations[op_index].value_type == TERM_TYPE_VARIABLE then
         wa_right_reg = pop_register();
