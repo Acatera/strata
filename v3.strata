@@ -52,9 +52,9 @@ proc sum(int64 a, int64 b) -> int64
     return a + b;
 end
 
-proc get_pi() -> int64
-    return 3;
-end
+// proc get_pi() -> int64
+//     return 3;
+// end
 
 // Allow forward declarations
 // proc tests();
@@ -75,7 +75,9 @@ proc main()
 
     // // Allow proc calls with arguments
     // s = sum(1, 2);
-    sum(1,2);
+
+    // Allow proc calls with arguments
+    sum(1, 2);
 
     // int64 a = 1;
     // my_proc(); // Allow procedure calls

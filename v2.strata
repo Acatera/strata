@@ -1514,8 +1514,8 @@ code
     if scope != VARIABLE_SCOPE_GLOBAL then
         if kind == VARIABLE_KIND_LOCAL then
             print_string("Adding local variable\n");
-            add_variable_to_procedure(variable_count);
             variables[variable_count].rbp_offset = 0;
+            add_variable_to_procedure(variable_count);
         else if kind == VARIABLE_KIND_PARAMETER then
             print_string("Adding parameter\n");
             variables[variable_count].rbp_offset = 0;
@@ -2055,6 +2055,10 @@ vars
     uint64 ppc_op_index = 0;
     uint64 ppc_statement_index = 0;
     uint64 ppc_param_count = 0;
+    uint64 ppc_first_arg_stmt_index = 0;
+    uint64 ppc_arg_prev_stmt_index = 0;
+    uint64 ppc_arg_stmt_index = 0;
+    uint64 ppc_arg_op_index = 0;
 code
     ppc_identifier = parse_identifier();
 
@@ -2063,13 +2067,25 @@ code
         consume_token(TOKEN_OPEN_PAREN);
 
         ppc_param_count = 0;
+        ppc_first_arg_stmt_index = 0;
+        ppc_arg_prev_stmt_index = NONE;
         while tokens[token_index].type != TOKEN_CLOSE_PAREN do
+            ppc_arg_op_index = parse_expression(scope); 
+            ppc_arg_stmt_index = create_statement(ppc_arg_op_index, NONE, NONE);
+            // Update `next_index` of previous argument statement
+            if ppc_arg_prev_stmt_index != NONE then
+                statements[ppc_arg_prev_stmt_index].next_index = ppc_arg_stmt_index;
+            end
+            if ppc_param_count == 0 then
+                // Save first argument statement index
+                ppc_first_arg_stmt_index = ppc_arg_stmt_index;
+            end
             print_string("Found argument\n");
-            ppc_param_count = ppc_param_count + 1;
-            parse_expression(scope);
             if tokens[token_index].type == TOKEN_COMMA then
                 consume_token(TOKEN_COMMA);
             end
+            ppc_arg_prev_stmt_index = ppc_arg_stmt_index;
+            ppc_param_count = ppc_param_count + 1;
         end
 
         consume_token(TOKEN_CLOSE_PAREN);
@@ -2088,7 +2104,7 @@ code
             exit(1);
         end
 
-        ppc_op_index = add_operation(OPERATION_PROCEDURE_CALL, ppc_proc_index, TERM_TYPE_PROCEDURE_CALL, 0, PRIMITIVE_ANY, PRIMITIVE_ANY);
+        ppc_op_index = add_operation(OPERATION_PROCEDURE_CALL, ppc_proc_index, TERM_TYPE_PROCEDURE_CALL, ppc_first_arg_stmt_index, PRIMITIVE_ANY, PRIMITIVE_ANY);
 
         ppc_statement_index = create_statement(ppc_op_index, procedures[proc_index].last_statement_index, NULL);
 
@@ -3387,12 +3403,49 @@ code
     end
 end
 
+proc write_expression(uint64 file_handle, uint64 op_index)
+code
+    if operations[op_index] == OPERATION_VALUE then
+        write_op_value(file_handle, op_index, OPERATION_VALUE);
+    else if operations[op_index] == OPERATION_ADD or operations[op_index] == OPERATION_SUBTRACT then
+        write_op_addition(file_handle, op_index);
+    else if 
+        operations[op_index] == OPERATION_MULTIPLY or 
+        operations[op_index] == OPERATION_DIVIDE or
+        operations[op_index] == OPERATION_MODULO
+    then
+        write_op_multiplication(file_handle, op_index);
+    else if operations[op_index] == OPERATION_UNARY_LOGICAL_NOT then
+        write_unary_logical_not(file_handle, op_index);
+    else if operations[op_index] == OPERATION_UNARY_MINUS then
+        write_op_unary_minus(file_handle, op_index);
+    else if operations[op_index] == OPERATION_LEFT_SHIFT or operations[op_index] == OPERATION_RIGHT_SHIFT then
+        write_op_shift(file_handle, op_index);
+    else 
+        print_string("write_expression: Unsupported type ");
+        str_number = to_string(operations[op_index].type);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string("\n");
+        exit(1);
+    end end end end end end
+end
+
 proc write_procedure_call(uint64 file_handle, uint64 op_index)
 vars 
     uint64 wpc_index = 0;
+    uint64 wpc_arg_stmt_index = 0;
+    uint64 wpc_arg_op_index = 0;
 code
+    // The operation's right index points to a statement list that contains the arguments
     emit_string(file_handle, "\t; procedure call\n");
     emit_push_occupied_registers();
+    wpc_arg_stmt_index = operations[op_index].right_index;
+    while wpc_arg_stmt_index != NONE do
+        wpc_arg_op_index = statements[wpc_arg_stmt_index].op_index;
+        write_expression(file_handle, wpc_arg_op_index);
+        wpc_arg_stmt_index = statements[wpc_arg_stmt_index].next_index;
+    end
+
     emit_string(file_handle, "\tcall proc_");
     wpc_index = operations[op_index].left_index;
     emit_nstring(file_handle, procedures[wpc_index].name, procedures[wpc_index].name_length);
@@ -3549,6 +3602,7 @@ code
     debug_string("Writing program\n");
     wp_i = 0;
     while wp_i < procedure_count do
+        ws_statement_index = 0;
         write_procedure_declaration(file_handle, wp_i);
         wp_i++;
     end
