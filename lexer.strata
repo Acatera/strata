@@ -3557,7 +3557,7 @@ section .text
     extern WaitForSingleObject
     extern GetExitCodeProcess
 
-    sprintf(buffer1, `"nasm.exe -f win64 %s -o %s -w+all -w+error"`, cStrOutputFile, cStrObjectFile)
+    sprintf(buffer1, `"nasm.exe -f win64 %s -o %s"`, cStrOutputFile, cStrObjectFile)
     printf(`"[\#27[92mINFO\#27[0m] Assembling using 'nasm':\r\n\t%s\r\n"`, buffer1)
 
     memset(lpProcessInformation, 0, 24)

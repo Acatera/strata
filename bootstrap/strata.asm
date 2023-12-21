@@ -4198,7 +4198,7 @@ section .rodata
     roStr_101 db "[DEBUG] Exit code: %d.\r\n", 0
     roStr_100 db "[\#27[91mERROR\#27[0m] Assembling failed.", 0
     roStr_99 db "[\#27[92mINFO\#27[0m] Assembling using 'nasm':\r\n\t%s\r\n", 0
-    roStr_98 db "nasm.exe -f win64 -g %s.asm -o %s.o -w+all -w+error", 0
+    roStr_98 db "nasm.exe -f win64 -g %s.asm -o %s.o", 0
     roStr_97 db "[\#27[92mINFO\#27[0m] Done compiling.\r\n", 0
     roStr_96 db "[WARN] Unknown token '%s'\r\n", 0
     roStr_95 db "[DEBUG] Token type %x; start: %d; length: %d\r\n", 0
