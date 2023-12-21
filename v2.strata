@@ -28,6 +28,11 @@ extern proc WriteFile(pointer hFile, pointer lpBuffer, uint64 nNumberOfBytesToWr
 
 @define FILE_ATTRIBUTE_NORMAL 0x00000080
 
+@define WINDOWS 0
+@define LINUX 1
+
+@define CALLING_CONVENTION 0
+
 uint64 NOT_FOUND = 0;
 NOT_FOUND = 0 - 1;
 uint64 NONE = 0;
@@ -1488,7 +1493,7 @@ code
     end
 
     // Set variable index
-    variables[param_index].rbp_offset = procedures[aptp_current_proc].param_count * 8 + 16;
+    variables[param_index].rbp_offset = 0 - procedures[aptp_current_proc].param_count * 8 - 16;
 
     procedures[aptp_current_proc].param_count = procedures[aptp_current_proc].param_count + 1;
 end
@@ -3350,6 +3355,10 @@ code
     emit_string(file_handle, ": ; end-if statement\n\n");
 end
 
+// list of registers that were pushed prior to calling a procedure
+uint64[100] regs_pushed;
+uint64 regs_pushed_count = 0;
+
 proc emit_push_occupied_registers()
 vars
     uint64 por_i = 0;
@@ -3363,42 +3372,38 @@ code
                 emit_string(output_file_handle, "\tpush ");
                 emit_string(output_file_handle, reg_names[por_i]);
                 emit_string(output_file_handle, "\n");
+
+                // Add pushed register to list
+                regs_pushed[regs_pushed_count] = por_i;
+                regs_pushed_count++;
+
                 por_j = por_j + 1;
             end
         else if reg_used[por_i] == 1 then
             emit_string(output_file_handle, "\tpush ");
             emit_string(output_file_handle, reg_names[por_i]);
             emit_string(output_file_handle, "\n");
+
+            // Add pushed register to list
+            regs_pushed[regs_pushed_count] = por_i;
+            regs_pushed_count++;
         end end
         por_i = por_i + 1;
     end
 end
 
+
 proc emit_pop_occupied_registers(uint64 file_handle)
 vars
     uint64 ppor_i = 0;
-    uint64 ppor_j = 0;
+    uint64 ppor_reg_index = 0;
 code
-    ppor_i = REG_COUNT - 1;
-    print_string("ppor_i: ");
-    print_number(ppor_i);
-    print_string("\n");
+    ppor_i = regs_pushed_count - 1;
     while ppor_i >= 0 do
-        if reg_used[ppor_i] > 1 then
-            print_string("reg > 1\n");
-            ppor_j = reg_used[ppor_i] - 1;
-            while ppor_j >= 0  do
-                emit_string(file_handle, "\tpop ");
-                emit_string(file_handle, reg_names[ppor_i]);
-                emit_string(file_handle, "\n");
-                ppor_j = ppor_j - 1;
-            end
-        else if reg_used[ppor_i] == 1 then
-            print_string("reg = 1\n");
-            emit_string(file_handle, "\tpop ");
-            emit_string(file_handle, reg_names[ppor_i]);
-            emit_string(file_handle, "\n");
-        end end
+        ppor_reg_index = regs_pushed[ppor_i];
+        emit_string(file_handle, "\tpop ");
+        emit_string(file_handle, reg_names[ppor_reg_index]);
+        emit_string(file_handle, "\n");
         ppor_i = ppor_i - 1;
     end
 end
@@ -3430,20 +3435,72 @@ code
     end end end end end end
 end
 
+proc get_windows_argument_register(uint64 arg_index)
+code
+    if arg_index == 0 then
+        return REG_RCX;
+    else if arg_index == 1 then
+        return REG_RDX;
+    else if arg_index == 2 then
+        return REG_R8;
+    else if arg_index == 3 then
+        return REG_R9;
+    else
+        print_string("get_windows_argument_register: Unsupported argument index ");
+        str_number = to_string(arg_index);
+        print_nstring(str_number, &buffer + buffer_size - str_number);
+        print_string("\n");
+        exit(1);
+    end end end end
+end
+
 proc write_procedure_call(uint64 file_handle, uint64 op_index)
 vars 
     uint64 wpc_index = 0;
     uint64 wpc_arg_stmt_index = 0;
     uint64 wpc_arg_op_index = 0;
+    uint64 wpc_arg_count=0;
+    uint64 wpc_arg_register = 0; // destination register for argument
+    uint64 wpc_arg_reg_index = 0; // source register for argument
 code
     // The operation's right index points to a statement list that contains the arguments
     emit_string(file_handle, "\t; procedure call\n");
     emit_push_occupied_registers();
     wpc_arg_stmt_index = operations[op_index].right_index;
+    wpc_arg_count = 0;
     while wpc_arg_stmt_index != NONE do
         wpc_arg_op_index = statements[wpc_arg_stmt_index].op_index;
+        
+        // Generate ASM code
         write_expression(file_handle, wpc_arg_op_index);
+
+        // Get register that contains the argument
+        wpc_arg_reg_index = pop_register();
+
+        // Move result to argument register or stack
+        if CALLING_CONVENTION == WINDOWS then
+            if wpc_arg_count < 4 then
+                wpc_arg_register = get_windows_argument_register(wpc_arg_count);
+                emit_string(file_handle, "\tmov ");
+                emit_string(file_handle, reg_names[wpc_arg_reg_index]);
+                emit_string(file_handle, ", ");
+                emit_string(file_handle, reg_names[wpc_arg_register]);
+                emit_string(file_handle, "\n");
+            else
+                emit_string(file_handle, "\tpush ");
+                emit_string(file_handle, reg_names[wpc_arg_reg_index]);
+                emit_string(file_handle, "\n");
+            end
+        else if CALLING_CONVENTION == LINUX then
+            print_string("Not implemented\n");
+            exit(1);
+        else 
+            print_string("Unknown calling convention\n");
+            exit(1);
+        end end
+
         wpc_arg_stmt_index = statements[wpc_arg_stmt_index].next_index;
+        wpc_arg_count = wpc_arg_count + 1;
     end
 
     emit_string(file_handle, "\tcall proc_");
@@ -3554,6 +3611,21 @@ code
     emit_string(file_handle, "\tpush rbp\n");
     emit_string(file_handle, "\tmov rbp, rsp\n");
 
+    // Copy arguments to stack
+    if CALLING_CONVENTION == WINDOWS then
+        emit_string(file_handle, "; copy arguments to stack\n");
+        emit_string(file_handle, "\tmov rcx, [rbp + 16]\n");
+        emit_string(file_handle, "\tmov rdx, [rbp + 24]\n");
+        emit_string(file_handle, "\tmov r8, [rbp + 32]\n");
+        emit_string(file_handle, "\tmov r9, [rbp + 40]\n");
+    else if CALLING_CONVENTION == LINUX then
+        print_string("Not implemented\n");
+        exit(1);
+    else 
+        print_string("Unknown calling convention\n");
+        exit(1);
+    end end
+
     if procedures[procedure_index].variable_count != 0 then
         emit_string(file_handle, "\tsub rsp, ");
         str_number = to_string(procedures[procedure_index].variable_count * 8);
@@ -3562,6 +3634,10 @@ code
         str_number = to_string(procedures[procedure_index].variable_count);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, " local vars\n");
+
+        // TODO: Fix this:
+        // mov r15, qword [rbp - -16]
+        // mov r14, qword [rbp - -24]
 
         wp_i = 0;
         wp_variable_index = procedures[procedure_index].first_variable_index;
