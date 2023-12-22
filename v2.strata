@@ -1632,6 +1632,10 @@ vars
     uint64 pe_var_type = 0;
     uint64 pe_op_index = 0;
     uint64 pe_param_count = 0;
+    uint64 pe_first_arg_stmt_index = 0;
+    uint64 pe_arg_prev_stmt_index = 0;
+    uint64 pe_arg_stmt_index = 0;
+    uint64 pe_arg_op_index = 0;
 code
     if tokens[token_index].type == TOKEN_OPEN_PAREN then
         consume_token(TOKEN_OPEN_PAREN);
@@ -1687,13 +1691,28 @@ code
                 consume_token(TOKEN_OPEN_PAREN);
 
                 pe_param_count = 0;
+                pe_first_arg_stmt_index = 0;
+                pe_arg_prev_stmt_index = NONE;
                 while tokens[token_index].type != TOKEN_CLOSE_PAREN do
-                    print_string("Found argument\n");
-                    pe_param_count = pe_param_count + 1;
-                    parse_expression(scope);
+                    pe_arg_op_index = parse_expression(scope);
+                    pe_arg_stmt_index = create_statement(pe_arg_op_index, NONE, NONE);
+
+                    // Update `next_index` of previous argument statement
+                    if pe_arg_prev_stmt_index != NONE then
+                        statements[pe_arg_prev_stmt_index].next_index = pe_arg_stmt_index;
+                    end
+
+                     if pe_param_count == 0 then
+                        // Save first argument statement index
+                        pe_first_arg_stmt_index = pe_arg_stmt_index;
+                    end
+
                     if tokens[token_index].type == TOKEN_COMMA then
                         consume_token(TOKEN_COMMA);
                     end
+
+                    pe_arg_prev_stmt_index = pe_arg_stmt_index;
+                    pe_param_count = pe_param_count + 1;
                 end
 
                 consume_token(TOKEN_CLOSE_PAREN);
@@ -1711,7 +1730,14 @@ code
                     print_string("\n");
                     exit(1);
                 end
-                return add_operation(OPERATION_PROCEDURE_CALL, pe_var_index, TERM_TYPE_PROCEDURE_CALL, 0, pe_var_type, PRIMITIVE_ANY);
+
+                pe_op_index = add_operation(OPERATION_PROCEDURE_CALL, pe_var_index, TERM_TYPE_PROCEDURE_CALL, pe_first_arg_stmt_index, pe_var_type, PRIMITIVE_ANY);
+
+                print_string("parse_procedure_call: ppc_op_index: ");
+                print_number(pe_op_index);
+                print_string("\n");
+
+                return pe_op_index;
             else
                 token_index = token_index - 1;
                 unknown_identifier();
@@ -2077,18 +2103,21 @@ code
         while tokens[token_index].type != TOKEN_CLOSE_PAREN do
             ppc_arg_op_index = parse_expression(scope); 
             ppc_arg_stmt_index = create_statement(ppc_arg_op_index, NONE, NONE);
+            
             // Update `next_index` of previous argument statement
             if ppc_arg_prev_stmt_index != NONE then
                 statements[ppc_arg_prev_stmt_index].next_index = ppc_arg_stmt_index;
             end
+            
             if ppc_param_count == 0 then
                 // Save first argument statement index
                 ppc_first_arg_stmt_index = ppc_arg_stmt_index;
             end
-            print_string("Found argument\n");
+            
             if tokens[token_index].type == TOKEN_COMMA then
                 consume_token(TOKEN_COMMA);
             end
+
             ppc_arg_prev_stmt_index = ppc_arg_stmt_index;
             ppc_param_count = ppc_param_count + 1;
         end
@@ -2110,6 +2139,10 @@ code
         end
 
         ppc_op_index = add_operation(OPERATION_PROCEDURE_CALL, ppc_proc_index, TERM_TYPE_PROCEDURE_CALL, ppc_first_arg_stmt_index, PRIMITIVE_ANY, PRIMITIVE_ANY);
+
+        print_string("parse_procedure_call: ppc_op_index: ");
+        print_number(ppc_op_index);
+        print_string("\n");
 
         ppc_statement_index = create_statement(ppc_op_index, procedures[proc_index].last_statement_index, NULL);
 
@@ -2395,7 +2428,9 @@ code
     emit_string(file_handle, "\tmov rcx, -11\n");
     emit_string(file_handle, "\tcall GetStdHandle\n");
     emit_string(file_handle, "\tmov [__std_output__], rax\n");
-    emit_string(file_handle, "\tjmp proc_main\n\n");
+    emit_string(file_handle, "\tjmp proc_main\n");
+    emit_string(file_handle, "\tret\n\n");
+
     emit_string(file_handle, "assert_failed:\n");
     emit_string(file_handle, "\tmov rcx, [__std_output__]\n");
     emit_string(file_handle, "\tmov rdx, __assert_failed__\n");
@@ -2403,7 +2438,7 @@ code
     emit_string(file_handle, "\tmov r9, 0\n");
     emit_string(file_handle, "\tcall WriteConsoleA\n");
     emit_string(file_handle, "\tmov rcx, 1\n");
-    emit_string(file_handle, "\tcall ExitProcess\n\n");
+    emit_string(file_handle, "\tcall ExitProcess\n");
     emit_string(file_handle, "\tret\n\n");
 end
 
@@ -2660,6 +2695,26 @@ code
     print_string("\n");
 end
 
+proc clear_regs()
+code
+    regs_in_use = 0;
+    reg_stack_count = 0;
+    reg_used[REG_R15] = 0;
+    reg_used[REG_R14] = 0;
+    reg_used[REG_R13] = 0;
+    reg_used[REG_R12] = 0;
+    reg_used[REG_R11] = 0;
+    reg_used[REG_R10] = 0;
+    reg_used[REG_R9] = 0;
+    reg_used[REG_R8] = 0;
+    reg_used[REG_RDI] = 0;
+    reg_used[REG_RSI] = 0;
+    reg_used[REG_RDX] = 0;
+    reg_used[REG_RCX] = 0;
+    reg_used[REG_RBX] = 0;
+    reg_used[REG_RAX] = 0;
+end
+
 @define DEBUG_CODEGEN 0
 
 proc log_codegen(pointer text)
@@ -2699,9 +2754,9 @@ code
         
         // Check if variable is a parameter or local
         if variables[guov_left_index].kind == VARIABLE_KIND_LOCAL then
-            emit_string(file_handle, "\tmov qword [rbp - ");
+            emit_string(file_handle, ", qword [rbp - ");
         else if variables[guov_left_index].kind == VARIABLE_KIND_PARAMETER then
-            emit_string(file_handle, "\tmov qword [rbp + ");
+            emit_string(file_handle, ", qword [rbp + ");
         else 
             print_string("Unknown variable kind\n");
             exit(1);
@@ -2833,6 +2888,8 @@ code
     return;
 end
 
+proc write_procedure_call(uint64 file_handle, uint64 op_index); // Forward declaration
+
 proc write_op_addition(uint64 file_handle, uint64 op_index)
 vars
     uint64 woa_left_index = 0;
@@ -2890,13 +2947,16 @@ code
     then
         log_codegen("write_op_addition: right - Multiplication, division or modulo\n");
         write_op_multiplication(file_handle, woa_right_index);
+    else if operations[woa_right_index].type == OPERATION_PROCEDURE_CALL then
+        log_codegen("write_op_addition: right - Procedure call\n");
+        write_procedure_call(file_handle, woa_right_index);
     else 
         print_string("write_op_addition: Unsupported right type: ");
         str_number = to_string(operations[woa_right_index].type);
         print_nstring(str_number, &buffer + buffer_size - str_number);
         print_string("\n");
         exit(1);
-    end end end
+    end end end end
 
     woa_right_reg = pop_register();
     woa_left_reg = pop_register();
@@ -3165,8 +3225,6 @@ code
     return;
 end
 
-proc write_procedure_call(uint64 file_handle, uint64 op_index); // Forward declaration
-
 proc write_assignment(uint64 file_handle, uint64 op_index)
 vars
     uint64 wa_left_index = 0;
@@ -3221,9 +3279,9 @@ code
         if wa_is_comparison then
             // Check if variable is a parameter or local
             if variables[wa_left_index].kind == VARIABLE_KIND_LOCAL then
-                emit_string(file_handle, "\tmov qword [rbp - ");
+                emit_string(file_handle, "\tmov byte [rbp - ");
             else if variables[wa_left_index].kind == VARIABLE_KIND_PARAMETER then
-                emit_string(file_handle, "\tmov qword [rbp + ");
+                emit_string(file_handle, "\tmov byte [rbp + ");
             else 
                 print_string("Unknown variable kind\n");
                 exit(1);
@@ -3455,6 +3513,8 @@ code
     end
 end
 
+proc write_return(uint64 file_handle, uint64 op_index, uint64 proc_index); // Forward declaration
+
 proc write_expression(uint64 file_handle, uint64 op_index)
 code
     if operations[op_index] == OPERATION_VALUE then
@@ -3473,13 +3533,17 @@ code
         write_op_unary_minus(file_handle, op_index);
     else if operations[op_index] == OPERATION_LEFT_SHIFT or operations[op_index] == OPERATION_RIGHT_SHIFT then
         write_op_shift(file_handle, op_index);
+    else if operations[op_index] == OPERATION_PROCEDURE_CALL then
+        write_procedure_call(file_handle, op_index);
+    else if operations[op_index] == OPERATION_RETURN then
+        write_return(file_handle, op_index, current_scope);
     else 
         print_string("write_expression: Unsupported type ");
         str_number = to_string(operations[op_index].type);
         print_nstring(str_number, &buffer + buffer_size - str_number);
         print_string("\n");
         exit(1);
-    end end end end end end
+    end end end end end end end end
 end
 
 proc get_windows_argument_register(uint64 arg_index)
@@ -3503,18 +3567,42 @@ end
 
 proc write_procedure_call(uint64 file_handle, uint64 op_index)
 vars 
-    uint64 wpc_index = 0;
+    uint64 wpc_proc_index = 0;
     uint64 wpc_arg_stmt_index = 0;
     uint64 wpc_arg_op_index = 0;
-    uint64 wpc_arg_count=0;
+    uint64 wpc_arg_count = 0;
     uint64 wpc_arg_register = 0; // destination register for argument
     uint64 wpc_arg_reg_index = 0; // source register for argument
+    uint64 wpc_shadow_space = 0;
+    uint64 wpc_rsp_offset = 0;
 code
+    print_string("write_procedure_call - op_index: ");
+    print_number(op_index);
+    print_string("\n");
+
+    wpc_proc_index = operations[op_index].left_index;
+
     // The operation's right index points to a statement list that contains the arguments
     emit_string(file_handle, "\t; procedure call\n");
     emit_push_occupied_registers();
     wpc_arg_stmt_index = operations[op_index].right_index;
+
+    if CALLING_CONVENTION == WINDOWS then
+        // Initialize shadow space
+        wpc_arg_count = procedures[wpc_proc_index].param_count;
+        if wpc_arg_count < 4 then
+            wpc_arg_count = 4;
+        end
+
+        wpc_shadow_space = wpc_arg_count * 8;
+
+        emit_string(file_handle, "\tsub rsp, ");
+        emit_num_string(file_handle, wpc_shadow_space);
+        emit_string(file_handle, "\n");
+    end
+
     wpc_arg_count = 0;
+    wpc_rsp_offset = 32;
     while wpc_arg_stmt_index != NONE do
         wpc_arg_op_index = statements[wpc_arg_stmt_index].op_index;
         
@@ -3529,12 +3617,15 @@ code
             if wpc_arg_count < 4 then
                 wpc_arg_register = get_windows_argument_register(wpc_arg_count);
                 emit_string(file_handle, "\tmov ");
-                emit_string(file_handle, reg_names[wpc_arg_reg_index]);
-                emit_string(file_handle, ", ");
                 emit_string(file_handle, reg_names[wpc_arg_register]);
+                emit_string(file_handle, ", ");
+                emit_string(file_handle, reg_names[wpc_arg_reg_index]);
                 emit_string(file_handle, "\n");
             else
-                emit_string(file_handle, "\tpush ");
+                wpc_rsp_offset = wpc_rsp_offset + 8;
+                emit_string(file_handle, "\tmov [rsp + ");
+                emit_num_string(file_handle, wpc_rsp_offset);
+                emit_string(file_handle, "], ");
                 emit_string(file_handle, reg_names[wpc_arg_reg_index]);
                 emit_string(file_handle, "\n");
             end
@@ -3551,13 +3642,20 @@ code
     end
 
     emit_string(file_handle, "\tcall proc_");
-    wpc_index = operations[op_index].left_index;
-    emit_nstring(file_handle, procedures[wpc_index].name, procedures[wpc_index].name_length);
+    
+    emit_nstring(file_handle, procedures[wpc_proc_index].name, procedures[wpc_proc_index].name_length);
     emit_string(file_handle, "\n");
+
+    if CALLING_CONVENTION == WINDOWS then
+        emit_string(file_handle, "\tadd rsp, ");
+        emit_num_string(file_handle, wpc_shadow_space);
+        emit_string(file_handle, "\n");
+    end
+
     emit_pop_occupied_registers(file_handle);
     emit_string(file_handle, "\t; -- end procedure call --\n");
 
-    if procedures[wpc_index].return_type != NONE then
+    if procedures[wpc_proc_index].return_type != NONE then
         get_register(OPERATION_RETURN);
     end
 end
@@ -3600,6 +3698,8 @@ code
         emit_string(file_handle, "\tmov rax, ");
         emit_string(file_handle, reg_names[wr_reg]);
         emit_string(file_handle, "\n");
+
+        get_register(OPERATION_RETURN);
     end
 
     emit_string(file_handle, "\t; return early\n");
@@ -3645,7 +3745,9 @@ code
     ws_statement_index++;
 end
 
-proc write_procedure_declaration(uint64 file_handle, uint64 procedure_index)
+uint64 proc_main_index = 0;
+
+proc write_procedure_declaration(uint64 file_handle, uint64 proc_index)
 vars
     uint64 wp_i = 0;
     uint64 wp_variable_index = 0;
@@ -3653,65 +3755,77 @@ vars
 code
     debug_string("; writing procedure\n");
     emit_string(file_handle, "proc_");
-    emit_nstring(file_handle, procedures[procedure_index].name, procedures[procedure_index].name_length);
+    emit_nstring(file_handle, procedures[proc_index].name, procedures[proc_index].name_length);
     emit_string(file_handle, ":\n");
     emit_string(file_handle, "\tpush rbp\n");
     emit_string(file_handle, "\tmov rbp, rsp\n");
 
-    // Copy arguments to stack
-    if CALLING_CONVENTION == WINDOWS then
-        emit_string(file_handle, "; copy arguments to stack\n");
-        emit_string(file_handle, "\tmov rcx, [rbp + 16]\n");
-        emit_string(file_handle, "\tmov rdx, [rbp + 24]\n");
-        emit_string(file_handle, "\tmov r8, [rbp + 32]\n");
-        emit_string(file_handle, "\tmov r9, [rbp + 40]\n");
-    else if CALLING_CONVENTION == LINUX then
-        print_string("Not implemented\n");
-        exit(1);
-    else 
-        print_string("Unknown calling convention\n");
-        exit(1);
-    end end
+    if procedures[proc_index].param_count > 0 then
+        // Copy arguments to stack
+        if CALLING_CONVENTION == WINDOWS then
+            emit_string(file_handle, "\t; copy arguments to stack\n");
+            emit_string(file_handle, "\tmov [rbp + 16], rcx\n");
+            emit_string(file_handle, "\tmov [rbp + 24], rdx\n");
+            emit_string(file_handle, "\tmov [rbp + 32], r8\n");
+            emit_string(file_handle, "\tmov [rbp + 40], r9\n");
+        else if CALLING_CONVENTION == LINUX then
+            print_string("Not implemented\n");
+            exit(1);
+        else 
+            print_string("Unknown calling convention\n");
+            exit(1);
+        end end
+    end
 
-    if procedures[procedure_index].variable_count != 0 then
+    if procedures[proc_index].variable_count != 0 then
         emit_string(file_handle, "\tsub rsp, ");
-        str_number = to_string(procedures[procedure_index].variable_count * 8);
+        str_number = to_string(procedures[proc_index].variable_count * 8);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, " ; ");
-        str_number = to_string(procedures[procedure_index].variable_count);
+        str_number = to_string(procedures[proc_index].variable_count);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, " local vars\n");
 
         wp_i = 0;
-        wp_variable_index = procedures[procedure_index].first_variable_index;
-        while wp_i < procedures[procedure_index].variable_count do
+        wp_variable_index = procedures[proc_index].first_variable_index;
+        while wp_i < procedures[proc_index].variable_count do
             write_var_init(file_handle, wp_variable_index);
             wp_variable_index = variables[wp_variable_index].next_variable_index;
             wp_i++;
         end
     end
+    emit_string(file_handle, "\t; start proc body\n");
 
     wp_i = 0;
-    wp_statement_index = procedures[procedure_index].first_statement_index;
-    while wp_i < procedures[procedure_index].statement_count do
-        write_statement(file_handle, wp_statement_index, procedure_index);
+    wp_statement_index = procedures[proc_index].first_statement_index;
+    while wp_i < procedures[proc_index].statement_count do
+        write_statement(file_handle, wp_statement_index, proc_index);
         wp_statement_index = statements[wp_statement_index].next_index;
         wp_i++;
     end
 
-    emit_string(file_handle, "\tmov rsp, rbp\n");
-    emit_string(file_handle, "\tpop rbp\n");
-    emit_string(file_handle, "\tret\n");
-    emit_string(file_handle, "; end proc_");
-    emit_nstring(file_handle, procedures[procedure_index].name, procedures[procedure_index].name_length);
-    emit_string(file_handle, "\n\n");
+    if proc_index == proc_main_index then
+        emit_string(file_handle, "\tmov rcx, 0\n");
+        emit_string(file_handle, "\tcall ExitProcess\n");
+    else
+        emit_string(file_handle, "\tmov rsp, rbp\n");
+        emit_string(file_handle, "\tpop rbp\n");
+        emit_string(file_handle, "\tret\n");
+        emit_string(file_handle, "; end proc_");
+        emit_nstring(file_handle, procedures[proc_index].name, procedures[proc_index].name_length);
+        emit_string(file_handle, "\n\n");
+    end
+
+    // Free all registers because they are not saved across procedures
+    clear_regs();
 end
 
 proc write_program(uint64 file_handle)
 vars
     uint64 wp_i = 0;
 code
-    if find_procedure("main", 4) == NOT_FOUND then
+    proc_main_index = find_procedure("main", 4);
+    if proc_main_index == NOT_FOUND then
         print_string("No main procedure found\n");
         exit(1);
     end
