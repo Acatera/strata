@@ -1355,7 +1355,7 @@ code
         exit(1);
     end
 
-    // TODO: Check if left and right data types are compatible
+    // Check if left and right data types are compatible
     if are_data_types_compatible(left_data_type, right_data_type) == 0 then
         token_index = token_index - 1;
         print_string("Incompatible data types: ");
@@ -1493,7 +1493,7 @@ code
     end
 
     // Set variable index
-    variables[param_index].rbp_offset = 0 - procedures[aptp_current_proc].param_count * 8 - 16;
+    variables[param_index].rbp_offset = procedures[aptp_current_proc].param_count * 8 + 16;
 
     procedures[aptp_current_proc].param_count = procedures[aptp_current_proc].param_count + 1;
 end
@@ -2417,12 +2417,31 @@ code
         str_number = to_string(wvi_initial_value);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, "\n");
-        emit_string(file_handle, "\tmov qword [rbp - ");
+
+        // Check if variable is a parameter or local
+        if variables[variable_index].kind == VARIABLE_KIND_LOCAL then
+            emit_string(file_handle, "\tmov qword [rbp - ");
+        else if variables[variable_index].kind == VARIABLE_KIND_PARAMETER then
+            emit_string(file_handle, "\tmov qword [rbp + ");
+        else 
+            print_string("Unknown variable kind\n");
+            exit(1);
+        end end
+
         str_number = to_string(variables[variable_index].rbp_offset);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, "], r15\n");
     else
-        emit_string(file_handle, "\tmov qword [rbp - ");
+        // Check if variable is a parameter or local
+        if variables[variable_index].kind == VARIABLE_KIND_LOCAL then
+            emit_string(file_handle, "\tmov qword [rbp - ");
+        else if variables[variable_index].kind == VARIABLE_KIND_PARAMETER then
+            emit_string(file_handle, "\tmov qword [rbp + ");
+        else 
+            print_string("Unknown variable kind\n");
+            exit(1);
+        end end
+
         str_number = to_string(variables[variable_index].rbp_offset);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, "], ");
@@ -2677,7 +2696,17 @@ code
         guov_left_index = operations[op_index].left_index;
         emit_string(file_handle, "\tmov ");
         emit_string(file_handle, reg_names[guov_free_reg]);
-        emit_string(file_handle, ", qword [rbp - ");
+        
+        // Check if variable is a parameter or local
+        if variables[guov_left_index].kind == VARIABLE_KIND_LOCAL then
+            emit_string(file_handle, "\tmov qword [rbp - ");
+        else if variables[guov_left_index].kind == VARIABLE_KIND_PARAMETER then
+            emit_string(file_handle, "\tmov qword [rbp + ");
+        else 
+            print_string("Unknown variable kind\n");
+            exit(1);
+        end end
+
         str_number = to_string(variables[guov_left_index].rbp_offset);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, "]\n");
@@ -3190,13 +3219,31 @@ code
         wa_right_reg = pop_register();
         
         if wa_is_comparison then
-            emit_string(file_handle, "\tmov byte [rbp - ");
+            // Check if variable is a parameter or local
+            if variables[wa_left_index].kind == VARIABLE_KIND_LOCAL then
+                emit_string(file_handle, "\tmov qword [rbp - ");
+            else if variables[wa_left_index].kind == VARIABLE_KIND_PARAMETER then
+                emit_string(file_handle, "\tmov qword [rbp + ");
+            else 
+                print_string("Unknown variable kind\n");
+                exit(1);
+            end end
+            
             str_number = to_string(variables[wa_left_index].rbp_offset);
             emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
             emit_string(file_handle, "], ");
             emit_string(file_handle, reg_lb_names[wa_right_reg]);
         else
-            emit_string(file_handle, "\tmov qword [rbp - ");
+            // Check if variable is a parameter or local
+            if variables[wa_left_index].kind == VARIABLE_KIND_LOCAL then
+                emit_string(file_handle, "\tmov qword [rbp - ");
+            else if variables[wa_left_index].kind == VARIABLE_KIND_PARAMETER then
+                emit_string(file_handle, "\tmov qword [rbp + ");
+            else 
+                print_string("Unknown variable kind\n");
+                exit(1);
+            end end
+
             str_number = to_string(variables[wa_left_index].rbp_offset);
             emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
             emit_string(file_handle, "], ");
@@ -3634,10 +3681,6 @@ code
         str_number = to_string(procedures[procedure_index].variable_count);
         emit_nstring(file_handle, str_number, &buffer + buffer_size - str_number);
         emit_string(file_handle, " local vars\n");
-
-        // TODO: Fix this:
-        // mov r15, qword [rbp - -16]
-        // mov r14, qword [rbp - -24]
 
         wp_i = 0;
         wp_variable_index = procedures[procedure_index].first_variable_index;

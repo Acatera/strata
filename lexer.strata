@@ -131,7 +131,7 @@ uint64 line = 1 ;
 uint64 line_start = 1 ;
 uint64 col = 1 ;
 
-array tokens = uint64 [ 75000 ] ;
+array tokens = uint64 [ 100000 ] ;
 uint64 tokenCount = 0 ;
 uint64 tokenSize = 4 ;
 
