@@ -1669,75 +1669,75 @@ code
         return add_operation(OPERATION_VALUE, pe_term_index, TERM_TYPE_LITERAL_INT, 0, PRIMITIVE_INT64, PRIMITIVE_ANY);
     else if tokens[token_index].type == TOKEN_IDENTIFIER then
         pe_term_index = parse_identifier();
-        pe_var_index = find_variable(pe_term_index, scope);
+        pe_var_index = find_procedure(tokens[pe_term_index].text, tokens[pe_term_index].length);
         if pe_var_index != NOT_FOUND then
-            print_string("Found variable: ");
-            print_nstring(variables[pe_var_index].name, variables[pe_var_index].name_length);
+            print_string("Found procedure: ");
+            print_nstring(procedures[pe_var_index].name, procedures[pe_var_index].name_length);
+            print_string(" (");
+            print_number(pe_var_index);
+            print_string(")\n");
+
+            pe_var_type = procedures[pe_var_index].return_type;
+
+            consume_token(TOKEN_OPEN_PAREN);
+
+            pe_param_count = 0;
+            pe_first_arg_stmt_index = NONE;
+            pe_arg_prev_stmt_index = NONE;
+            while tokens[token_index].type != TOKEN_CLOSE_PAREN do
+                pe_arg_op_index = parse_expression(scope);
+                pe_arg_stmt_index = create_statement(pe_arg_op_index, NONE, NONE);
+
+                // Update `next_index` of previous argument statement
+                if pe_arg_prev_stmt_index != NONE then
+                    statements[pe_arg_prev_stmt_index].next_index = pe_arg_stmt_index;
+                end
+
+                    if pe_param_count == 0 then
+                    // Save first argument statement index
+                    pe_first_arg_stmt_index = pe_arg_stmt_index;
+                end
+
+                if tokens[token_index].type == TOKEN_COMMA then
+                    consume_token(TOKEN_COMMA);
+                end
+
+                pe_arg_prev_stmt_index = pe_arg_stmt_index;
+                pe_param_count = pe_param_count + 1;
+            end
+
+            consume_token(TOKEN_CLOSE_PAREN);
+
+            if pe_param_count != procedures[pe_var_index].param_count then
+                token_index = token_index - 1;
+                print_string("Incorrect number of parameters. Expected ");
+                print_number(procedures[pe_var_index].param_count);
+                print_string(" but got ");
+                print_number(pe_param_count);
+                print_string("\nLine: ");
+                print_number(tokens[token_index].line);
+                print_string(" Column: ");
+                print_number(tokens[token_index].column);
+                print_string("\n");
+                exit(1);
+            end
+
+            pe_op_index = add_operation(OPERATION_PROCEDURE_CALL, pe_var_index, TERM_TYPE_PROCEDURE_CALL, pe_first_arg_stmt_index, pe_var_type, PRIMITIVE_ANY);
+
+            print_string("parse_procedure_call: ppc_op_index: ");
+            print_number(pe_op_index);
             print_string("\n");
 
-            pe_var_type = variables[pe_var_index].data_type;
-            return add_operation(OPERATION_VALUE, pe_var_index, TERM_TYPE_VARIABLE, 0, pe_var_type, PRIMITIVE_ANY);
+            return pe_op_index;
         else
-            pe_var_index = find_procedure(tokens[pe_term_index].text, tokens[pe_term_index].length);
+            pe_var_index = find_variable(pe_term_index, scope);
             if pe_var_index != NOT_FOUND then
-                print_string("Found procedure: ");
-                print_nstring(procedures[pe_var_index].name, procedures[pe_var_index].name_length);
-                print_string(" (");
-                print_number(pe_var_index);
-                print_string(")\n");
-
-                pe_var_type = procedures[pe_var_index].return_type;
-
-                consume_token(TOKEN_OPEN_PAREN);
-
-                pe_param_count = 0;
-                pe_first_arg_stmt_index = NONE;
-                pe_arg_prev_stmt_index = NONE;
-                while tokens[token_index].type != TOKEN_CLOSE_PAREN do
-                    pe_arg_op_index = parse_expression(scope);
-                    pe_arg_stmt_index = create_statement(pe_arg_op_index, NONE, NONE);
-
-                    // Update `next_index` of previous argument statement
-                    if pe_arg_prev_stmt_index != NONE then
-                        statements[pe_arg_prev_stmt_index].next_index = pe_arg_stmt_index;
-                    end
-
-                     if pe_param_count == 0 then
-                        // Save first argument statement index
-                        pe_first_arg_stmt_index = pe_arg_stmt_index;
-                    end
-
-                    if tokens[token_index].type == TOKEN_COMMA then
-                        consume_token(TOKEN_COMMA);
-                    end
-
-                    pe_arg_prev_stmt_index = pe_arg_stmt_index;
-                    pe_param_count = pe_param_count + 1;
-                end
-
-                consume_token(TOKEN_CLOSE_PAREN);
-
-                if pe_param_count != procedures[pe_var_index].param_count then
-                    token_index = token_index - 1;
-                    print_string("Incorrect number of parameters. Expected ");
-                    print_number(procedures[pe_var_index].param_count);
-                    print_string(" but got ");
-                    print_number(pe_param_count);
-                    print_string("\nLine: ");
-                    print_number(tokens[token_index].line);
-                    print_string(" Column: ");
-                    print_number(tokens[token_index].column);
-                    print_string("\n");
-                    exit(1);
-                end
-
-                pe_op_index = add_operation(OPERATION_PROCEDURE_CALL, pe_var_index, TERM_TYPE_PROCEDURE_CALL, pe_first_arg_stmt_index, pe_var_type, PRIMITIVE_ANY);
-
-                print_string("parse_procedure_call: ppc_op_index: ");
-                print_number(pe_op_index);
+                print_string("Found variable: ");
+                print_nstring(variables[pe_var_index].name, variables[pe_var_index].name_length);
                 print_string("\n");
 
-                return pe_op_index;
+                pe_var_type = variables[pe_var_index].data_type;
+                return add_operation(OPERATION_VALUE, pe_var_index, TERM_TYPE_VARIABLE, 0, pe_var_type, PRIMITIVE_ANY);
             else
                 token_index = token_index - 1;
                 unknown_identifier();
@@ -2225,14 +2225,14 @@ code
     else if tokens[token_index].type == TOKEN_IDENTIFIER then
         ps_identifier = parse_identifier();
 
-        ps_symbol_index = find_variable(ps_identifier, scope);
+        ps_symbol_index = find_procedure(tokens[ps_identifier].text, tokens[ps_identifier].length);
         if ps_symbol_index != NOT_FOUND then
-            ps_data_type = variables[ps_symbol_index].data_type;
+            token_index = token_index - 1; // revert token index 
+            return parse_procedure_call(scope, proc_index);
         else
-            ps_symbol_index = find_procedure(tokens[ps_identifier].text, tokens[ps_identifier].length);
+            ps_symbol_index = find_variable(ps_identifier, scope);
             if ps_symbol_index != NOT_FOUND then
-                token_index = token_index - 1; // revert token index 
-                return parse_procedure_call(scope, proc_index);
+                ps_data_type = variables[ps_symbol_index].data_type;
             else
                 token_index = token_index - 1;
                 unknown_identifier();
