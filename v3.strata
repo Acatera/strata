@@ -47,14 +47,15 @@
 //     int64 b;
 //     my_struct s;
 
+
 // Allow parameterized procedures 
 proc sum(int64 a, int64 b) -> int64
     return a + b;
 end
 
-// proc get_pi() -> int64
-//     return 3;
-// end
+proc get_pi() -> int64
+    return sum(3, 1);
+end
 
 // Allow forward declarations
 // proc tests();
@@ -70,14 +71,15 @@ proc main()
     int64 s = 0;
     int64 pi = 0;
 
-    // pi = get_pi();
-    // assert(pi == 3);
+    pi = get_pi(); assert(pi == 4);
 
     // Allow proc calls with arguments
-    // s = 2 + sum(1, 2); assert(s == 5);
+    s = sum(pi, 2); assert(s == 6);
 
     // Allow proc calls with arguments
-    // sum(1, 2);
+    sum(1, 2);
+
+    get_pi();
 
     // int64 a = 1;
     // my_proc(); // Allow procedure calls

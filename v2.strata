@@ -1691,7 +1691,7 @@ code
                 consume_token(TOKEN_OPEN_PAREN);
 
                 pe_param_count = 0;
-                pe_first_arg_stmt_index = 0;
+                pe_first_arg_stmt_index = NONE;
                 pe_arg_prev_stmt_index = NONE;
                 while tokens[token_index].type != TOKEN_CLOSE_PAREN do
                     pe_arg_op_index = parse_expression(scope);
@@ -2098,7 +2098,7 @@ code
         consume_token(TOKEN_OPEN_PAREN);
 
         ppc_param_count = 0;
-        ppc_first_arg_stmt_index = 0;
+        ppc_first_arg_stmt_index = NONE;
         ppc_arg_prev_stmt_index = NONE;
         while tokens[token_index].type != TOKEN_CLOSE_PAREN do
             ppc_arg_op_index = parse_expression(scope); 
@@ -3666,33 +3666,34 @@ vars
     uint64 wr_index = 0;
 code
     if operations[op_index].left_index != NONE then
-        wr_index = operations[op_index].left_index;
-        print_string("write_return: left type ");
-        print_number(operations[wr_index].type);
-        print_string("\n");
-        if operations[wr_index].type == OPERATION_VALUE then
-            write_op_value(file_handle, wr_index, OPERATION_VALUE);
-        else if operations[wr_index].type == OPERATION_ADD or operations[wr_index].type == OPERATION_SUBTRACT then
-            write_op_addition(file_handle, wr_index);
-        else if 
-            operations[wr_index].type == OPERATION_MULTIPLY or 
-            operations[wr_index].type == OPERATION_DIVIDE or
-            operations[wr_index].type == OPERATION_MODULO
-        then
-            write_op_multiplication(file_handle, wr_index);
-        else if operations[wr_index].type == OPERATION_UNARY_LOGICAL_NOT then
-            write_unary_logical_not(file_handle, wr_index);
-        else if operations[wr_index].type == OPERATION_UNARY_MINUS then
-            write_op_unary_minus(file_handle, wr_index);
-        else if operations[wr_index].type == OPERATION_LEFT_SHIFT or operations[wr_index].type == OPERATION_RIGHT_SHIFT then
-            write_op_shift(file_handle, wr_index);
-        else 
-            print_string("write_return: Unsupported left type ");
-            str_number = to_string(operations[wr_index].type);
-            print_nstring(str_number, &buffer + buffer_size - str_number);
-            print_string("\n");
-            exit(1);
-        end end end end end end 
+        write_expression(file_handle, operations[op_index].left_index);
+        // wr_index = operations[op_index].left_index;
+        // print_string("write_return: left type ");
+        // print_number(operations[wr_index].type);
+        // print_string("\n");
+        // if operations[wr_index].type == OPERATION_VALUE then
+        //     write_op_value(file_handle, wr_index, OPERATION_VALUE);
+        // else if operations[wr_index].type == OPERATION_ADD or operations[wr_index].type == OPERATION_SUBTRACT then
+        //     write_op_addition(file_handle, wr_index);
+        // else if 
+        //     operations[wr_index].type == OPERATION_MULTIPLY or 
+        //     operations[wr_index].type == OPERATION_DIVIDE or
+        //     operations[wr_index].type == OPERATION_MODULO
+        // then
+        //     write_op_multiplication(file_handle, wr_index);
+        // else if operations[wr_index].type == OPERATION_UNARY_LOGICAL_NOT then
+        //     write_unary_logical_not(file_handle, wr_index);
+        // else if operations[wr_index].type == OPERATION_UNARY_MINUS then
+        //     write_op_unary_minus(file_handle, wr_index);
+        // else if operations[wr_index].type == OPERATION_LEFT_SHIFT or operations[wr_index].type == OPERATION_RIGHT_SHIFT then
+        //     write_op_shift(file_handle, wr_index);
+        // else 
+        //     print_string("write_return: Unsupported left type ");
+        //     str_number = to_string(operations[wr_index].type);
+        //     print_nstring(str_number, &buffer + buffer_size - str_number);
+        //     print_string("\n");
+        //     exit(1);
+        // end end end end end end 
 
         wr_reg = pop_register();
         emit_string(file_handle, "\tmov rax, ");
